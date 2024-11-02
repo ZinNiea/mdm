@@ -1,0 +1,10 @@
+stages:
+  - deploy
+
+deploy_job:
+  stage: deploy
+  script:
+    - echo "Deploying to server..."
+    - ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_SERVER 'cd /path/to/app && git pull && npm install && pm2 restart all'
+  only:
+    - master

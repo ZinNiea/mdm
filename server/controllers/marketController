@@ -1,0 +1,47 @@
+// server/features/market/marketController.js
+
+// Mock database
+let items = [];
+
+// Add item to the market
+const addItem = (req, res) => {
+    const { name, price } = req.body;
+    if (!name || !price) {
+        return res.status(400).json({ message: 'Name and price are required' });
+    }
+    const newItem = { id: items.length + 1, name, price };
+    items.push(newItem);
+    res.status(201).json(newItem);
+};
+
+// Buy item from the market
+const buyItem = (req, res) => {
+    const { id } = req.body;
+    const itemIndex = items.findIndex(item => item.id === id);
+    if (itemIndex === -1) {
+        return res.status(404).json({ message: 'Item not found' });
+    }
+    const [purchasedItem] = items.splice(itemIndex, 1);
+    res.status(200).json(purchasedItem);
+};
+
+// Get list of items from the market
+const getItems = (req, res) => {
+    res.status(200).json(items);
+};
+
+// Get list of trade requests
+const getTradeRequests = (req, res) => {
+    // Mock trade requests data
+    const tradeRequests = [
+        { id: 1, item: 'Item 1', requester: 'User A', status: 'Pending' },
+        { id: 2, item: 'Item 2', requester: 'User B', status: 'Completed' }
+    ];
+    res.status(200).json(tradeRequests);
+};
+
+module.exports = {
+    addItem,
+    buyItem,
+    getItems
+};
