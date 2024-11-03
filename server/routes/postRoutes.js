@@ -16,6 +16,8 @@ router.post('/posts', postController.createPost);
 router.put('/posts:id', postController.updatePost);
 
 // 게시물 삭제
-router.delete('/posts:id', postController.deleteost);
+router.delete('/posts:id', postController.deletePost);
+
+router.post('/posts/:id/report', postController.reportPost);
 
 module.exports = router;

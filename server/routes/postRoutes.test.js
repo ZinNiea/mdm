@@ -19,7 +19,7 @@ describe('GET /post/posts', () => {
             res.status(200).json(mockPosts);
         });
 
-        const response = await request(app).get('/api/posts');
+        const response = await request(app).get('/post/posts');
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual(mockPosts);

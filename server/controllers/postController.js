@@ -1,6 +1,7 @@
 // server/user/postController.js
 const jwt = require('jsonwebtoken');
 const Post = require('../models/postModel');
+const Report = require('../models/reportModel');
 const SECRET_KEY = 'your_secret_key'; // 환경 변수로 관리하는 것을 권장합니다.
 
 const CATEGORY = Post.CATEGORY;
@@ -29,8 +30,6 @@ exports.getPosts = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
 
 // 특정 게시물 조회
 exports.getPostById = async (req, res) => {
@@ -144,6 +143,38 @@ exports.deletePost = async (req, res) => {
     await post.remove();
 
     res.status(200).json({ success: true, message: '게시물이 성공적으로 삭제되었습니다.' });
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+    }
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 게시물 신고
+exports.reportPost = async (req, res) => {
+  try {
+    const { id } = req.params; // 신고할 게시글 ID
+    const { category, content } = req.body; // 신고 카테고리와 내용
+
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = jwt.verify(token, SECRET_KEY);
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
+    }
+
+    // 새로운 신고 생성
+    const report = new Report({
+      post: post._id,
+      reporter: decoded.id,
+      category,
+      content,
+    });
+    await report.save();
+
+    res.status(200).json({ success: true, message: '게시글이 신고되었습니다.' });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
       return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
