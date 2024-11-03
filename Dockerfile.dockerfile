@@ -17,7 +17,7 @@ COPY . .
 ENV NODE_ENV=production
 
 # 애플리케이션이 사용하는 포트 노출
-EXPOSE 4000
+EXPOSE 5000
 
 # 애플리케이션 실행 명령
 CMD [ "node", "server/server.js" ]
