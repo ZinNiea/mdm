@@ -12,7 +12,7 @@ const SALT_ROUNDS = 10;
 
 // 회원가입 기능
 exports.registerUser = async (req, res) => {
-  const { userName, password, email, age, nickname, userImage } = req.body;
+  const { username, password, email, age, nickname, userImage } = req.body;
   const createdAt = new Date();
   
   // 허용할 도메인 목록
@@ -31,7 +31,7 @@ exports.registerUser = async (req, res) => {
     }
 
     // 사용자 이름 중복 검사
-    const existingUserName = await userSchema.findOne({ userName });
+    const existingUserName = await userSchema.findOne({ username });
     if (existingUserName) {
       return res.status(400).json({ 
         result: false, 
@@ -53,10 +53,10 @@ exports.registerUser = async (req, res) => {
 
     // 사용자 생성
     await userSchema.create({ 
-      userName, 
+      username, 
       email, 
       password: hashedPassword, 
-      age, 
+      birthdate: age, 
       nickname, 
       userImage, 
       createdAt 
@@ -90,10 +90,10 @@ exports.registerUser = async (req, res) => {
 
 // 로그인 기능
 exports.login = async (req, res) => {
-  const { userName, password } = req.body;
+  const { username, password } = req.body;
 
   try {
-    const user = await userSchema.findOne({ userName });
+    const user = await userSchema.findOne({ username });
 
     if (!user) {
       return res.status(401).json({ message: '유저를 찾을 수 없습니다.' });
@@ -106,7 +106,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, userName: user.userName },
+      { id: user._id, username: user.username },
       SECRET_KEY,
       { expiresIn: '1h' }
     );
@@ -116,7 +116,7 @@ exports.login = async (req, res) => {
       token,
       user: {
         id: user._id,
-        userName: user.userName,
+        username: user.username,
         email: user.email,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt

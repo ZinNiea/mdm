@@ -1,22 +1,15 @@
-// routes/comments.js
+// routes/commentRoutes.js
 const express = require('express');
 const router = express.Router();
-const Comment = require('../models/Comment');
+const commentsController = require('../controllers/commentsController');
 
-// 댓글 추가
-router.post('/posts/:postId/comments', async (req, res) => {
-  try {
-    const { postId } = req.params;
-    const { author, content } = req.body;
+// 댓글 추가 (대댓글 포함)
+router.post('/posts/:postId/comments', commentsController.addComment);
 
-    const comment = new Comment({ postId, author, content });
-    await comment.save();
+// 댓글 목록 조회 (대댓글 포함)
+router.get('/posts/:postId/comments', commentsController.getComments);
 
-    res.status(201).json(comment);
-  } catch (error) {
-    res.status(500).json({ message: '댓글 추가 실패', error });
-  }
-});
+// 댓글 삭제
+router.delete('/comments/:commentId', commentsController.deleteComment);
 
 module.exports = router;
-
