@@ -5,10 +5,10 @@ const express = require('express');
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
 const commentRouter = require('./routes/commentRoutes');
-const { default: mongoose } = require('mongoose');
+const { default: mongoose } = require('mongoose');z
 const app = express();
 
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://p04u:VpJL4ftrjy7RbWO6@cluster0.0nr56.mongodb.net/';
 const hostname = '0.0.0.0';
 // const port = process.env.PORT || 3000;
 const port = 3000;
