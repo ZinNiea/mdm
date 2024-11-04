@@ -4,8 +4,9 @@ const express = require('express');
 // const { userRoutes } = require('./features/user/index.js');
 // const { postRoutes } = require('./routes/index.js');
 // const { marketRoutes } = require('./routes/marketRoutes.js');
-const userRoutes = require('./routes/userRoutes');
-const postRoutes = require('./routes/postRoutes');
+const userRouter = require('./routes/userRoutes');
+const postRouter = require('./routes/postRoutes');
+const commentRouter = require('./routes/commentRoutes');
 const { default: mongoose } = require('mongoose');
 const app = express();
 
@@ -23,8 +24,9 @@ mongoose.connect(MONGO_URI, {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/user', userRoutes);
-app.use('/post', postRoutes);
+app.use('/user', userRouter);
+app.use('/post', postRouter);
+app.use('/comment', commentRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
