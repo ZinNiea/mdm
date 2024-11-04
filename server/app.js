@@ -9,8 +9,8 @@ const { default: mongoose } = require('mongoose');
 const app = express();
 
 const MONGO_URI = process.env.MONGO_URI;
-const hostname = process.env.HOSTNAME || '127.0.0.1';
-const port = process.env.PORT || 3000;
+const hostname = '0.0.0.0';
+const port = process.env.PORT === 'development' ? 5000 : 80;
 
 if (process.env.NODE_ENV !== 'production') {
   mongoose.set('debug', true); // 몽고 쿼리가 콘솔에서 뜨게 한다.
