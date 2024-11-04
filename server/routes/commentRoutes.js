@@ -1,7 +1,7 @@
 // routes/commentRoutes.js
 const express = require('express');
 const router = express.Router();
-const commentsController = require('../controllers/commentsController');
+const commentsController = require('../controllers/commentController');
 
 // 댓글 추가 (대댓글 포함)
 router.post('/posts/:postId/comments', commentsController.addComment);

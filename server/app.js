@@ -1,8 +1,6 @@
-// server/app.js - 애플리케이션의 주요 로직
+// app.js
 require('dotenv').config();
 const express = require('express');
-// const { userRoutes } = require('./features/user/index.js');
-// const { postRoutes } = require('./routes/index.js');
 // const { marketRoutes } = require('./routes/marketRoutes.js');
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
@@ -11,6 +9,8 @@ const { default: mongoose } = require('mongoose');
 const app = express();
 
 const MONGO_URI = process.env.MONGO_URI;
+const hostname = process.env.HOSTNAME || '127.0.0.1';
+const port = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV !== 'production') {
   mongoose.set('debug', true); // 몽고 쿼리가 콘솔에서 뜨게 한다.
@@ -30,6 +30,10 @@ app.use('/comment', commentRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
+});
+
+app.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
 });
 
 module.exports = app;
