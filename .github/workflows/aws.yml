@@ -120,7 +120,7 @@ jobs:
           # SSH로 EC2에 접속하여 배포 작업 수행
           ssh -i ec2-key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
             # 예: 리포지토리에서 코드 가져오기
-            cd /home/ec2-user/
+            cd /home/ec2-user/mdm
             git pull origin master
 
             # 예: 종속성 설치 및 애플리케이션 시작 (Node.js 예시)
