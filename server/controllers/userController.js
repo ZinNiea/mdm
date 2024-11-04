@@ -93,7 +93,7 @@ exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const user = await userSchema.findOne({ username });
+    const user = await userSchema.findOne({ username, isDeleted: false });
 
     if (!user) {
       return res.status(401).json({ message: '유저를 찾을 수 없습니다.' });
@@ -124,6 +124,34 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ 
+      message: err.message 
+    });
+  }
+};
+
+// 회원 탈퇴 (소프트 삭제)
+exports.deleteUser = async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ result: false, message: 'username이 필요합니다.' });
+    }
+
+    const user = await userSchema.findOneAndUpdate(
+      { username, isDeleted: false },
+      { isDeleted: true, deletedAt: new Date() }
+    );
+    if (!user) {
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ 
+      result: true,
+      message: '사용자 계정이 성공적으로 삭제되었습니다.' 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      result: false,
       message: err.message 
     });
   }

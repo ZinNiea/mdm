@@ -31,6 +31,13 @@ const userSchema = new mongoose.Schema({
   userImage: {
     type: String
   },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
+  deletedAt: {
+    type: Date,
+  },
 }, { timestamps: true });
 
 // 사용자 모델 생성
