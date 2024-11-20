@@ -18,6 +18,10 @@ router.put('/posts:id', postController.updatePost);
 // 게시물 삭제
 router.delete('/posts:id', postController.deletePost);
 
+// 게시물 신고
 router.post('/posts/:id/report', postController.reportPost);
+
+// 좋아요/좋아요 취소
+router.post('/posts/:id/like', postController.toggleLike);
 
 module.exports = router;

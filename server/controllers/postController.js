@@ -12,7 +12,11 @@ exports.getPosts = async (req, res) => {
   let filter = {};
 
   if (category) {
-    filter.category = Number(category);
+    if (category === '친구' || Number(category) === 1) {
+      filter.category = 1;
+    } else if (category === '전체' || Number(category) === 3) {
+      filter.category = 3;
+    }
   }
 
   if (search) {
@@ -22,10 +26,22 @@ exports.getPosts = async (req, res) => {
 
   try {
     const posts = await Post.find(filter)
-      .populate('author', 'userName email') // 작성자 정보 포함
-      .populate('comments.author', 'userName email') // 댓글 작성자 정보 포함
+      .select('_id content author created_at likes comments bookmarks') // 필요한 필드만 선택
+      .populate('author', 'userName') // 작성자 닉네임만 포함
       .sort({ created_at: -1 }); // 최신순으로 정렬
-    res.status(200).json({ success: true, data: posts });
+
+    // 각 게시물에 필요한 정보만 추출하여 새로운 객체 생성
+    const postList = posts.map(post => ({
+      id: post._id,
+      content: post.content,
+      author_name: post.author.userName,
+      created_at: post.created_at,
+      likes_count: post.likes.length,
+      comment_count: post.comments.length,
+      bookmark_count: post.bookmarks.length
+    }));
+
+    res.status(200).json({ success: true, data: postList });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -33,16 +49,44 @@ exports.getPosts = async (req, res) => {
 
 // 특정 게시물 조회
 exports.getPostById = async (req, res) => {
-  const { id } = req.params;
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+  const { postId } = req.params;
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
+  }
+
   try {
-    const post = await Post.findById(id)
-      .populate('author', 'userName email')
+    const decoded = jwt.verify(token, SECRET_KEY);
+    const userId = decoded.id;
+
+    const post = await Post.findById(postId)
+      .populate('author', 'userName email _id')
       .populate('comments.author', 'userName email');
+
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
-    res.status(200).json({ success: true, data: post });
+
+    const userHasLiked = post.likes.includes(userId);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: post._id,
+        content: post.content,
+        author_id: post.author._id,
+        created_at: post.created_at,
+        likes_count: post.likes.length,
+        user_has_liked: userHasLiked,
+        comment_count: post.comments.length,
+        bookmark_count: post.bookmarks.length
+      }
+    });
   } catch (err) {
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+    }
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -57,7 +101,7 @@ exports.createPost = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-    const { content, images, category } = req.body;
+    const { content, image_urls, category } = req.body;
 
     // 카테고리 유효성 검사
     if (!Object.values(Post.CATEGORY).includes(category)) {
@@ -67,7 +111,7 @@ exports.createPost = async (req, res) => {
     const newPost = await Post.create({
       author: decoded.id,
       content,
-      images,
+      images: image_urls,
       category,
       created_at: new Date(),
       updated_at: new Date(),
@@ -154,13 +198,13 @@ exports.deletePost = async (req, res) => {
 // 게시물 신고
 exports.reportPost = async (req, res) => {
   try {
-    const { id } = req.params; // 신고할 게시글 ID
+    const { postId } = req.params; // 신고할 게시글 ID
     const { category, content } = req.body; // 신고 카테고리와 내용
 
     const token = req.headers.authorization.split(' ')[1];
     const decoded = jwt.verify(token, SECRET_KEY);
 
-    const post = await Post.findById(id);
+    const post = await Post.findById(postId);
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
@@ -180,5 +224,108 @@ exports.reportPost = async (req, res) => {
       return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
     }
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 좋아요/좋아요 취소
+exports.toggleLike = async (req, res) => {
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+  const { postId } = req.params;
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    const userId = decoded.id;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
+    }
+
+    if (post.likes.includes(userId)) {
+      post.likes.pull(userId);
+      await post.save();
+      return res.status(200).json({ success: true, message: '좋아요를 취소했습니다.' });
+    } else {
+      post.likes.push(userId);
+      await post.save();
+      return res.status(200).json({ success: true, message: '게시물에 좋아요를 표시했습니다.' });
+    }
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+    }
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 관심사 추가
+exports.addInterest = async (req, res) => {
+  const { userId, profileId } = req.params;
+  const { mainCategory, subCategory, bias } = req.body;
+
+  try {
+    const user = await userSchema.findById(userId);
+    if (!user) return res.status(404).json({ message: '유저를 찾을 수 없습니다.' });
+
+    const profile = user.profiles.id(profileId);
+    if (!profile) return res.status(404).json({ message: '프로필을 찾을 수 없습니다.' });
+
+    if (profile.interests.length >= 5) {
+      return res.status(400).json({ message: '관심사는 최대 5개까지 추가할 수 있습니다.' });
+    }
+
+    profile.interests.push({ mainCategory, subCategory, bias });
+    await user.save();
+
+    res.status(200).json({ message: '관심사가 추가되었습니다.', data: profile.interests });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 관심사 수정
+exports.updateInterest = async (req, res) => {
+  const { userId, profileId, interestId } = req.params;
+  const { mainCategory, subCategory, bias } = req.body;
+
+  try {
+    const user = await userSchema.findById(userId);
+    if (!user) return res.status(404).json({ message: '유저를 찾을 수 없습니다.' });
+
+    const profile = user.profiles.id(profileId);
+    if (!profile) return res.status(404).json({ message: '프로필을 찾을 수 없습니다.' });
+
+    const interest = profile.interests.id(interestId);
+    if (!interest) return res.status(404).json({ message: '관심사를 찾을 수 없습니다.' });
+
+    interest.mainCategory = mainCategory || interest.mainCategory;
+    interest.subCategory = subCategory || interest.subCategory;
+    interest.bias = bias || interest.bias;
+
+    await user.save();
+    res.status(200).json({ message: '관심사가 수정되었습니다.', data: interest });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 관심사 목록 조회
+exports.getInterests = async (req, res) => {
+  const { userId, profileId } = req.params;
+
+  try {
+    const user = await userSchema.findById(userId).select('profiles');
+    if (!user) return res.status(404).json({ message: '유저를 찾을 수 없습니다.' });
+
+    const profile = user.profiles.id(profileId);
+    if (!profile) return res.status(404).json({ message: '프로필을 찾을 수 없습니다.' });
+
+    res.status(200).json({ data: profile.interests });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
