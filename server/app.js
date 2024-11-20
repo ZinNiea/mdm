@@ -8,6 +8,9 @@ const commentRouter = require('./routes/commentRoutes');
 const { default: mongoose } = require('mongoose');
 const app = express();
 
+// app.set('trust proxy', 1); 'trust proxy'를 1로 설정하면 클라이언트의 IP 주소를 신뢰합니다.
+app.set('trust proxy', true);
+
 const MONGO_URI = 'mongodb+srv://p04u:VpJL4ftrjy7RbWO6@cluster0.0nr56.mongodb.net/';
 const hostname = '0.0.0.0';
 // const port = process.env.PORT || 3000;
