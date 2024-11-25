@@ -17,7 +17,7 @@ const commentSchema = new mongoose.Schema({
 
 // 게시물 스키마 정의
 const postSchema = new mongoose.Schema({
-  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile', required: true },
   content: { type: String, required: true },
   images: [{ type: String }],
   category: { 
@@ -28,8 +28,8 @@ const postSchema = new mongoose.Schema({
   }, // 카테고리 필드 수정
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   comments: [commentSchema],
-  created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
 // 카테고리 상수를 모델에 추가하여 외부에서 접근 가능하도록 함

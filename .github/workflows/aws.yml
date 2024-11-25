@@ -126,8 +126,8 @@ jobs:
             # 예: 종속성 설치 및 애플리케이션 시작 (Node.js 예시)
             npm install
             if pm2 list | grep -q "mdm"; then
-              pm2 restart mdm
+              pm2 restart mdm --time
             else
-              pm2 start npm --name "mdm" -- start
+              pm2 start npm --name "mdm" --time -- start
             fi
           EOF

@@ -18,6 +18,26 @@ exports.registerUser = async (req, res) => {
   const { username, password, email, age, nickname, userImage } = req.body;
   const createdAt = new Date();
 
+  // 데이터 타입 검사
+  // if (typeof username !== 'string') {
+  //   return res.status(400).json({ result: false, message: 'username은 문자열이어야 합니다.' });
+  // }
+  // if (typeof password !== 'string') {
+  //   return res.status(400).json({ result: false, message: 'password는 문자열이어야 합니다.' });
+  // }
+  // if (typeof email !== 'string') {
+  //   return res.status(400).json({ result: false, message: 'email은 문자열이어야 합니다.' });
+  // }
+  // if (age !== undefined && typeof age !== 'number') {
+  //   return res.status(400).json({ result: false, message: 'age는 숫자여야 합니다.' });
+  // }
+  // if (nickname !== undefined && typeof nickname !== 'string') {
+  //   return res.status(400).json({ result: false, message: 'nickname은 문자열이어야 합니다.' });
+  // }
+  // if (userImage !== undefined && typeof userImage !== 'string') {
+  //   return res.status(400).json({ result: false, message: 'userImage는 문자열이어야 합니다.' });
+  // }
+
   // 허용할 도메인 목록
   const allowedDomains = ['naver.com', 'kakao.com', 'nate.com'];
 
@@ -82,16 +102,26 @@ exports.registerUser = async (req, res) => {
     // 비밀번호 해싱
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // 사용자 생성
-    await userSchema.create({ 
-      username, 
-      email, 
-      password: hashedPassword, 
-      birthdate: age, 
-      nickname, 
-      userImage, 
-      createdAt 
+    // 프로필 생성
+    const newProfile = new Profile({
+      nickname: nickname,
+      userImage: userImage,
+      birthdate: age, // age가 birthdate라면 적절히 변환 필요
     });
+
+    await newProfile.save();
+
+    // 사용자 생성
+    const newUser = new User({
+      username: username, 
+      email: email, 
+      password: hashedPassword, 
+      createdAt: createdAt,
+      profiles: [newProfile._id],
+      mainProfile: newProfile._id,
+    });
+
+    await newUser.save();
 
     res.status(201).json({ 
       result: true, 

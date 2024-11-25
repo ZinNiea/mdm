@@ -1,6 +1,7 @@
 // server/user/postController.js
 const jwt = require('jsonwebtoken');
 const Post = require('../models/postModel');
+const User = require('../models/userModel');
 const Report = require('../models/reportModel');
 const SECRET_KEY = 'your_secret_key'; // 환경 변수로 관리하는 것을 권장합니다.
 
@@ -8,7 +9,7 @@ const CATEGORY = Post.CATEGORY;
 
 // 게시물 전체 조회 또는 카테고리별, 검색어별 조회
 exports.getPosts = async (req, res) => {
-  const { category, search } = req.query; // 쿼리 파라미터에서 카테고리와 검색어 추출
+  const { category, search, profileId } = req.query; // 쿼리 파라미터에서 카테고리와 검색어 추출
   let filter = {};
 
   if (category) {
@@ -24,18 +25,23 @@ exports.getPosts = async (req, res) => {
     filter.content = { $regex: search, $options: 'i' };
   }
 
+  if (profileId) {
+    filter.author = profileId;
+  }
+
   try {
     const posts = await Post.find(filter)
-      .select('_id content author created_at likes comments bookmarks') // 필요한 필드만 선택
-      .populate('author', 'userName') // 작성자 닉네임만 포함
-      .sort({ created_at: -1 }); // 최신순으로 정렬
+      .select('_id content author createdAt likes comments bookmarks') // 필요한 필드만 선택
+      .populate('author', 'nickname userImage') // 프로필 정보 포함
+      .sort({ createdAt: -1 }); // 최신순으로 정렬
 
-    // 각 게시물에 필요한 정보만 추출하여 새로운 객체 생성
+    // 각 게시��에 필요한 정보만 추출하여 새로운 객체 생성
     const postList = posts.map(post => ({
       id: post._id,
       content: post.content,
-      author_name: post.author.userName,
-      created_at: post.created_at,
+      author_nickname: post.author.nickname,
+      author_image: post.author.userImage,
+      createdAt: post.createdAt,
       likes_count: post.likes.length,
       comment_count: post.comments.length,
       bookmark_count: post.bookmarks.length
@@ -61,8 +67,12 @@ exports.getPostById = async (req, res) => {
     const userId = decoded.id;
 
     const post = await Post.findById(postId)
-      .populate('author', 'userName email _id')
-      .populate('comments.author', 'userName email');
+      .populate({
+        path: 'author',
+        select: 'nickname userImage',
+        populate: { path: 'user', select: 'email' }
+      })
+      .populate('comments.author', 'nickname userImage');
 
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
@@ -76,7 +86,9 @@ exports.getPostById = async (req, res) => {
         _id: post._id,
         content: post.content,
         author_id: post.author._id,
-        created_at: post.created_at,
+        author_nickname: post.author.nickname,
+        author_image: post.author.userImage,
+        createdAt: post.createdAt,
         likes_count: post.likes.length,
         user_has_liked: userHasLiked,
         comment_count: post.comments.length,
@@ -101,7 +113,18 @@ exports.createPost = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-    const { content, image_urls, category } = req.body;
+    const { content, image_urls, category, profileId } = req.body;
+
+    // 프로필 소유자 검증
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: '유저를 찾을 수 없습니다.' });
+    }
+
+    const profile = user.profiles.id(profileId);
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
+    }
 
     // 카테고리 유효성 검사
     if (!Object.values(Post.CATEGORY).includes(category)) {
@@ -109,11 +132,11 @@ exports.createPost = async (req, res) => {
     }
 
     const newPost = await Post.create({
-      author: decoded.id,
-      content,
+      author: profileId,
+      content: content,
       images: image_urls,
-      category,
-      created_at: new Date(),
+      category: category,
+      createdAt: new Date(),
       updated_at: new Date(),
     });
 
