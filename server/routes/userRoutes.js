@@ -3,7 +3,10 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 
-router.post('/register', userController.registerUser);
+// AWS S3 업로드 미들웨어 가져오기
+const { upload } = require('../middlewares/uploadMiddleware');
+
+router.post('/register', upload.single('userImage'), userController.registerUser);
 router.post('/login', userController.login);
 router.delete('/delete', userController.deleteUser);
 router.put('/:userId/profile', userController.addProfile);

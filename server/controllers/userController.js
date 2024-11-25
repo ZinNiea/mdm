@@ -15,7 +15,9 @@ const { isUsernameTaken, isEmailTaken } = require('../utils/userUtils');
 
 // 회원가입 기능
 exports.registerUser = async (req, res) => {
-  const { username, password, email, age, nickname, userImage } = req.body;
+  const { username, password, email, age, nickname } = req.body;
+  // 업로드된 이미지의 URL 가져오기
+  const userImage = req.file ? req.file.location : null;
   const createdAt = new Date();
 
   // 데이터 타입 검사
@@ -69,7 +71,7 @@ exports.registerUser = async (req, res) => {
       });
     }
 
-    // // 사용자 이름 중복 검사
+    // 사용자 이름 중복 검사
     // const existingUserName = await userSchema.findOne({ username });
     // if (existingUserName) {
     //   return res.status(400).json({ 
@@ -84,7 +86,7 @@ exports.registerUser = async (req, res) => {
       });
     }
 
-    // // 이메일 중복 검사
+    // 이메일 중복 검사
     // const existingEmail = await userSchema.findOne({ email });
     // if (existingEmail) {
     //   return res.status(400).json({ 
@@ -227,6 +229,15 @@ exports.login = async (req, res) => {
       { expiresIn: '1d' }
     );
 
+    // 프로필 목록 구성
+    const profiles = user.profiles.map(profile => ({
+      id: profile._id,
+      nickname: profile.nickname,
+      userImage: profile.userImage,
+      birthdate: profile.birthdate,
+      // 필요한 다른 필드 추가
+    }));
+
     res.status(200).json({ 
       message: '로그인 성공', 
       token,
@@ -235,6 +246,7 @@ exports.login = async (req, res) => {
         username: user.username,
         email: user.email,
         createdAt: user.createdAt,
+        profiles: profiles,
       }
     });
   } catch (err) {
@@ -247,13 +259,13 @@ exports.login = async (req, res) => {
 // 회원 탈퇴 (소프트 삭제)
 exports.deleteUser = async (req, res) => {
   try {
-    const { username } = req.body;
-    if (!username) {
-      return res.status(400).json({ result: false, message: 'username이 필요합니다.' });
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ result: false, message: 'userId이 필요합니다.' });
     }
 
     const user = await userSchema.findOneAndUpdate(
-      { username, isDeleted: false },
+      { userId, isDeleted: false },
       { isDeleted: true, deletedAt: new Date() }
     );
     if (!user) {

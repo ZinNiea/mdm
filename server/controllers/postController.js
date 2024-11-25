@@ -113,7 +113,8 @@ exports.createPost = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-    const { content, image_urls, category, profileId } = req.body;
+    const { content, category, profileId } = req.body;
+    const images = req.files ? req.files.map(file => file.location) : [];
 
     // 프로필 소유자 검증
     const user = await User.findById(decoded.id);
@@ -131,10 +132,15 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ success: false, message: '유효하지 않은 카테고리입니다.' });
     }
 
+    // 이미지 개수 제한 확인
+    if (images.length > 5) {
+      return res.status(400).json({ success: false, message: '이미지는 최대 5장까지 업로드 가능합니다.' });
+    }
+
     const newPost = await Post.create({
       author: profileId,
       content: content,
-      images: image_urls,
+      images: images,
       category: category,
       createdAt: new Date(),
       updated_at: new Date(),
@@ -173,7 +179,7 @@ exports.updatePost = async (req, res) => {
 
     post.content = content || post.content;
     post.images = images || post.images;
-    post.updated_at = new Date();
+    post.updatedAt = new Date();
 
     await post.save();
 
