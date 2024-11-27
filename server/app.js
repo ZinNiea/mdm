@@ -1,6 +1,7 @@
 // app.js
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const { marketRoutes } = require('./routes/marketRoutes.js');
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
@@ -30,6 +31,7 @@ const options = {
 mongoose.connect(MONGO_URI, options).then(() => console.log('MongoDB connected!'))
   .catch((err) => console.log(err));
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
