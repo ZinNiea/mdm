@@ -1,6 +1,6 @@
 // server/user/userController.js
 require('dotenv').config();
-const userSchema = require('../models/userModel');
+const userModel = require('../models/userModel');
 
 // jwt 모듈을 사용하여 토큰을 발급합니다.
 const jwt = require('jsonwebtoken');
@@ -72,7 +72,7 @@ exports.registerUser = async (req, res) => {
     }
 
     // 사용자 이름 중복 검사
-    // const existingUserName = await userSchema.findOne({ username });
+    // const existingUserName = await userModel.findOne({ username });
     // if (existingUserName) {
     //   return res.status(400).json({ 
     //     result: false, 
@@ -87,7 +87,7 @@ exports.registerUser = async (req, res) => {
     }
 
     // 이메일 중복 검사
-    // const existingEmail = await userSchema.findOne({ email });
+    // const existingEmail = await userModel.findOne({ email });
     // if (existingEmail) {
     //   return res.status(400).json({ 
     //     result: false, 
@@ -216,7 +216,7 @@ exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const user = await userSchema.findOne({ username: username, isDeleted: false });
+    const user = await userModel.findOne({ username: username, isDeleted: false });
 
     // 사용자 존재 여부와 비밀번호 검증을 통합
     if (!user || !await bcrypt.compare(password, user.password)) {
@@ -264,7 +264,7 @@ exports.deleteUser = async (req, res) => {
       return res.status(400).json({ result: false, message: 'userId이 필요합니다.' });
     }
 
-    const user = await userSchema.findOneAndUpdate(
+    const user = await userModel.findOneAndUpdate(
       { userId, isDeleted: false },
       { isDeleted: true, deletedAt: new Date() }
     );
@@ -291,7 +291,7 @@ exports.addProfile = async (req, res) => {
 
   try {
     // 유저 찾기
-    const user = await userSchema.findById(userId);
+    const user = await userModel.findById(userId);
     if (!user) {
       return res.status(404).json({ result: false, message: '유저를 찾을 수 없습니다.' });
     }
