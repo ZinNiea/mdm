@@ -32,11 +32,11 @@ const userSchema = new mongoose.Schema({
   },
 
   // 프로필 필드 추가
-  profiles: [{
+  profiles: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: 'Profile',
     validate: [arrayLimit, '최대 5개의 프로필만 가질 수 있습니다.'],
-  }],
+  },
   mainProfile: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Profile',
@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema({
 
 // 프로필 수 제한을 위한 유효성 검사 함수
 function arrayLimit(val) {
-  return val.length <= 5;
+  return !val || val.length <= 5;
 }
 
 // mainProfile이 profiles 배열에 포함되는지 확인
