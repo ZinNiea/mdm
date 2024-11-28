@@ -191,7 +191,7 @@ exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const user = await userModel.findOne({ username: username, isDeleted: false });
+    const user = await User.findOne({ username: username, isDeleted: false });
 
     // 사용자 존재 여부와 비밀번호 검증을 통합
     if (!user || !await bcrypt.compare(password, user.password)) {
@@ -239,7 +239,7 @@ exports.deleteUser = async (req, res) => {
       return res.status(400).json({ result: false, message: 'userId이 필요합니다.' });
     }
 
-    const user = await userModel.findOneAndUpdate(
+    const user = await User.findOneAndUpdate(
       { userId, isDeleted: false },
       { isDeleted: true, deletedAt: new Date() }
     );
@@ -266,7 +266,7 @@ exports.addProfile = async (req, res) => {
 
   try {
     // 유저 찾기
-    const user = await userModel.findById(userId);
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ result: false, message: '유저를 찾을 수 없습니다.' });
     }

@@ -28,8 +28,9 @@ const options = {
   family: 4, // Use IPv4, skip trying IPv6
 }
 mongoose.connect(MONGO_URI, options)
-.then(() => console.log('MongoDB connected!'))
-  .catch((err) => console.log('MongoDB connection error: ', err));
+// .then(() => console.log('MongoDB connected!'))
+//   .catch((err) => console.log('MongoDB connection error: ', err))
+  ;
 
 app.use(cors());
 app.use(express.json());
@@ -44,7 +45,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+  // console.log(`Server running at http://${hostname}:${port}/`);
 });
 
 module.exports = app;
