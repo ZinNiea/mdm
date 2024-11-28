@@ -13,7 +13,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 const MONGO_URI = 'mongodb+srv://p04u:VpJL4ftrjy7RbWO6@cluster0.0nr56.mongodb.net/';
-const hostname = 'localhost';
+const hostname = '0.0.0.0';
 // const port = process.env.PORT || 3000;
 const port = 3000;
 
