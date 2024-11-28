@@ -10,10 +10,10 @@ const { default: mongoose } = require('mongoose');
 const app = express();
 
 // app.set('trust proxy', 1); 'trust proxy'를 1로 설정하면 클라이언트의 IP 주소를 신뢰합니다.
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 const MONGO_URI = 'mongodb+srv://p04u:VpJL4ftrjy7RbWO6@cluster0.0nr56.mongodb.net/';
-const hostname = '0.0.0.0';
+const hostname = 'localhost';
 // const port = process.env.PORT || 3000;
 const port = 3000;
 
@@ -23,13 +23,13 @@ const port = 3000;
 
 const options = {
   autoIndex: false, // Don't build indexes
-  poolSize: 10, // Maintain up to 10 socket connections
   serverSelectionTimeoutMS: 60000, // Keep trying to send operations for 5 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   family: 4, // Use IPv4, skip trying IPv6
 }
-mongoose.connect(MONGO_URI, options).then(() => console.log('MongoDB connected!'))
-  .catch((err) => console.log(err));
+mongoose.connect(MONGO_URI, options)
+.then(() => console.log('MongoDB connected!'))
+  .catch((err) => console.log('MongoDB connection error: ', err));
 
 app.use(cors());
 app.use(express.json());

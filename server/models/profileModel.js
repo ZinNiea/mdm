@@ -2,10 +2,10 @@
 const mongoose = require('mongoose');
 
 const interestSchema = new mongoose.Schema({
-    mainCategory: { type: String, required: true },
-    subCategory: { type: String, required: true },
-    bias: { type: String }
-  });
+  mainCategory: { type: String, required: true },
+  subCategory: { type: String, required: true },
+  bias: { type: String }
+});
 
 const profileSchema = new mongoose.Schema({
   nickname: {
@@ -41,7 +41,8 @@ const profileSchema = new mongoose.Schema({
 });
 
 function interestsLimit(val) {
-    return val.length <= 5;
-  }
+  return val.length <= 5;
+}
 
-  module.exports = mongoose.model('Profile', profileSchema);
+const Profile = mongoose.model('Profile', profileSchema);
+module.exports = { Profile };

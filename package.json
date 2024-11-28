@@ -20,6 +20,6 @@
   "scripts": {
     "start": "node server/app.js",
     "dev": "nodemon server/app.js",
-    "test": "jest"
+    "test": "npx jest"
   }
 }

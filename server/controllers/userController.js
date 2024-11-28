@@ -1,6 +1,7 @@
 // server/user/userController.js
 require('dotenv').config();
-const userModel = require('../models/userModel');
+const { User } = require('../models/userModel');
+const { Profile } = require('../models/profileModel');
 
 // jwt 모듈을 사용하여 토큰을 발급합니다.
 const jwt = require('jsonwebtoken');
@@ -19,26 +20,6 @@ exports.registerUser = async (req, res) => {
   // 업로드된 이미지의 URL 가져오기
   const userImage = req.file ? req.file.location : null;
   const createdAt = new Date();
-
-  // 데이터 타입 검사
-  // if (typeof username !== 'string') {
-  //   return res.status(400).json({ result: false, message: 'username은 문자열이어야 합니다.' });
-  // }
-  // if (typeof password !== 'string') {
-  //   return res.status(400).json({ result: false, message: 'password는 문자열이어야 합니다.' });
-  // }
-  // if (typeof email !== 'string') {
-  //   return res.status(400).json({ result: false, message: 'email은 문자열이어야 합니다.' });
-  // }
-  // if (age !== undefined && typeof age !== 'number') {
-  //   return res.status(400).json({ result: false, message: 'age는 숫자여야 합니다.' });
-  // }
-  // if (nickname !== undefined && typeof nickname !== 'string') {
-  //   return res.status(400).json({ result: false, message: 'nickname은 문자열이어야 합니다.' });
-  // }
-  // if (userImage !== undefined && typeof userImage !== 'string') {
-  //   return res.status(400).json({ result: false, message: 'userImage는 문자열이어야 합니다.' });
-  // }
 
   // 허용할 도메인 목록
   const allowedDomains = ['naver.com', 'kakao.com', 'nate.com'];
@@ -72,13 +53,6 @@ exports.registerUser = async (req, res) => {
     }
 
     // 사용자 이름 중복 검사
-    // const existingUserName = await userModel.findOne({ username });
-    // if (existingUserName) {
-    //   return res.status(400).json({ 
-    //     result: false, 
-    //     message: '이미 사용 중인 사용자 이름입니다.' 
-    //   });
-    // }
     if (await isUsernameTaken(username)) {
       return res.status(400).json({
         result: false,
@@ -87,13 +61,6 @@ exports.registerUser = async (req, res) => {
     }
 
     // 이메일 중복 검사
-    // const existingEmail = await userModel.findOne({ email });
-    // if (existingEmail) {
-    //   return res.status(400).json({ 
-    //     result: false, 
-    //     message: '이미 사용 중인 이메일입니다.' 
-    //   });
-    // }
     if (await isEmailTaken(email)) {
       return res.status(400).json({
         result: false,
@@ -105,11 +72,18 @@ exports.registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     // 프로필 생성
-    const newProfile = new Profile({
-      nickname: nickname,
-      userImage: userImage,
-      birthdate: age, // age가 birthdate라면 적절히 변환 필요
-    });
+  
+    // 삼항 연산자 사용해서, userImage가 있으면 userImage를 넣고, 없으면 userImage를 넣지 않는다.
+    const newProfile = userImage
+      ? new Profile({
+          nickname: nickname,
+          userImage: userImage,
+          birthdate: age, // age가 birthdate라면 적절히 변환 필요
+        })
+      : new Profile({
+          nickname: nickname,
+          birthdate: age, // age가 birthdate라면 적절히 변환 필요
+        });
 
     await newProfile.save();
 
@@ -130,6 +104,7 @@ exports.registerUser = async (req, res) => {
       message: '회원가입에 성공했습니다.' 
     });
   } catch (err) {
+    console.error('서버 오류 발생:', err); // 에러 로그 추가
     if (err.code === 11000) {
       const duplicatedField = Object.keys(err.keyValue)[0];
       res.status(400).json({ 
