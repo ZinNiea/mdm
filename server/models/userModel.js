@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
 
   // 프로필 필드 추가
   profiles: [{
-    type: mongoose.Schema.Types.ObjectId,
+    type: [mongoose.Schema.Types.ObjectId],
     ref: 'Profile',
     validate: [arrayLimit, '최대 5개의 프로필만 가질 수 있습니다.'],
   }],
