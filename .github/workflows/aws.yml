@@ -116,35 +116,58 @@ jobs:
         env:
           EC2_USER: ec2-user
           EC2_HOST: 3.36.210.144
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
+        run: |
+          # EC2에 SSH로 접속하여 배포 작업 수행
+          ssh -i ec2-key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
+            # .env 파일 생성 또는 업데이트
+            echo "$ENV_FILE_CONTENT" > /home/ec2-user/mdm/.env
+            chmod 600 /home/ec2-user/mdm/.env
+
+            # 애플리케이션 배포
+            cd /home/ec2-user/mdm
+            git pull origin master
+            npm install
+
+            # 애플리케이션 재시작
+            if pm2 list | grep -q "mdm"; then
+              pm2 restart mdm --time --update-env
+            else
+              pm2 start npm --name "mdm" --time -- start
+            fi
+          EOF
+
+      - name: Deploy to EC2
+        env:
+          EC2_USER: ec2-user
+          EC2_HOST: 3.36.210.144
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
         run: |
-          # SSH로 EC2에 접속하여 배포 작업 수행
-          ssh -i ec2-key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-          
-          # .env 파일 생성 또는 업데이트
-          cat > /home/ec2-user/mdm/.env <<EOL
-          SECRET_KEY=${SECRET_KEY}
-          AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-          AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-          AWS_REGION=${AWS_REGION}
-          AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
-        EOL
+          ssh -i ec2-key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST <<EOF
+            # .env 파일 생성 또는 업데이트
+            cat > /home/ec2-user/mdm/.env <<EOL
+            SECRET_KEY=${SECRET_KEY}
+            AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+            AWS_REGION=${AWS_REGION}
+            AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+            EOL
 
             # 권한 설정
             chmod 600 /home/ec2-user/mdm/.env
-          
-            # 예: 리포지토리에서 코드 가져오기
+
+            # 애플리케이션 배포
             cd /home/ec2-user/mdm
             git pull origin master
-
-            # 예: 종속성 설치 및 애플리케이션 시작 (Node.js 예시)
             npm install
-            # pm2 restart mdm --time --update-env
+
+            # 애플리케이션 재시작
             if pm2 list | grep -q "mdm"; then
-              pm2 restart mdm --time
+              pm2 restart mdm --time --update-env
             else
               pm2 start npm --name "mdm" --time -- start
             fi
