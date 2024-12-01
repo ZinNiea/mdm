@@ -18,8 +18,8 @@
     "supertest": "^7.0.0"
   },
   "scripts": {
-    "start": "node server/app.js",
-    "dev": "nodemon server/app.js",
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
     "test": "jest --detectOpenHandles"
   }
 }

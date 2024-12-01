@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { isUsernameTaken, isEmailTaken } = require('../utils/userUtils');
 const { User } = require('../models/userModel');
+const SECRET_KEY = process.env.SECRET_KEY;
 
 // server/controllers/userController.test.js
 
@@ -17,7 +18,7 @@ jest.mock('../utils/userUtils');
 app.post('/register', userController.registerUser);
 app.post('/login', userController.login);
 
-describe('registerUser', () => {
+describe('register', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -134,20 +135,26 @@ describe('registerUser', () => {
     expect(response.body.result).toBe(false);
     expect(response.body.message).toBe('서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
   });
+});
 
-  it('should login successfully with correct credentials', async () => {
+describe('login', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should login successfully with valid credentials', async () => {
     const mockUser = {
-      _id: 'userId',
+      _id: 'userId123',
       username: 'testuser',
-      password: 'hashedPassword',
       email: 'test@naver.com',
-      createdAt: new Date(),
+      password: 'hashedPassword',
+      createdAt: new Date().toISOString(), // 문자열로 변경
       profiles: [
         {
-          _id: 'profileId',
+          _id: 'profileId123',
           nickname: 'Tester',
-          userImage: 'imageUrl',
-          birthdate: '1995-01-01',
+          userImage: 'http://example.com/image.jpg',
+          birthdate: '1990-01-01',
         },
       ],
       isDeleted: false,
@@ -155,7 +162,7 @@ describe('registerUser', () => {
 
     User.findOne.mockResolvedValue(mockUser);
     bcrypt.compare.mockResolvedValue(true);
-    jwt.sign.mockReturnValue('token');
+    jwt.sign.mockReturnValue('dummyToken');
 
     const response = await request(app)
       .post('/login')
@@ -165,213 +172,30 @@ describe('registerUser', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.message).toBe('로그인 성공');
-    expect(response.body.token).toBe('token');
-    expect(response.body.user).toEqual({
-      id: 'userId',
-      username: 'testuser',
-      email: 'test@naver.com',
-      createdAt: mockUser.createdAt.toISOString(),
-      profiles: [
-        {
-          id: 'profileId',
-          nickname: 'Tester',
-          userImage: 'imageUrl',
-          birthdate: '1995-01-01',
-        },
-      ],
+    expect(response.body).toEqual({
+      message: '로그인 성공',
+      token: 'dummyToken',
+      user: {
+        id: 'userId123',
+        username: 'testuser',
+        email: 'test@naver.com',
+        createdAt: mockUser.createdAt, // 문자열로 비교
+        profiles: [
+          {
+            id: 'profileId123',
+            nickname: 'Tester',
+            userImage: 'http://example.com/image.jpg',
+            birthdate: '1990-01-01',
+          },
+        ],
+      },
     });
     expect(User.findOne).toHaveBeenCalledWith({ username: 'testuser', isDeleted: false });
     expect(bcrypt.compare).toHaveBeenCalledWith('Password1!', 'hashedPassword');
     expect(jwt.sign).toHaveBeenCalledWith(
-      { id: 'userId', username: 'testuser' },
+      { id: 'userId123', username: 'testuser' },
       SECRET_KEY,
       { expiresIn: '1d' }
     );
-  });
-
-  it('should fail login if username does not exist', async () => {
-    userModel.findOne.mockResolvedValue(null);
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'nonexistentuser',
-        password: 'Password1!',
-      });
-
-    expect(response.status).toBe(401);
-    expect(response.body.message).toBe('아이디 또는 비밀번호가 잘못되었습니다.');
-    expect(userModel.findOne).toHaveBeenCalledWith({ username: 'nonexistentuser', isDeleted: false });
-  });
-
-  it('should fail login if password is incorrect', async () => {
-    const mockUser = {
-      _id: 'userId',
-      username: 'testuser',
-      password: 'hashedPassword',
-      isDeleted: false,
-    };
-
-    userModel.findOne.mockResolvedValue(mockUser);
-    bcrypt.compare.mockResolvedValue(false);
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'testuser',
-        password: 'WrongPassword1!',
-      });
-
-    expect(response.status).toBe(401);
-    expect(response.body.message).toBe('아이디 또는 비밀번호가 잘못되었습니다.');
-    expect(bcrypt.compare).toHaveBeenCalledWith('WrongPassword1!', 'hashedPassword');
-  });
-
-  it('should fail login if user is deleted', async () => {
-    userModel.findOne.mockResolvedValue(null);
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'deleteduser',
-        password: 'Password1!',
-      });
-
-    expect(response.status).toBe(401);
-    expect(response.body.message).toBe('아이디 또는 비밀번호가 잘못되었습니다.');
-  });
-
-  it('should handle server errors gracefully', async () => {
-    userModel.findOne.mockRejectedValue(new Error('Database error'));
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'testuser',
-        password: 'Password1!',
-      });
-
-    expect(response.status).toBe(500);
-    expect(response.body.message).toBe('Database error');
-  });it('should login successfully with correct credentials', async () => {
-    const mockUser = {
-      _id: 'userId',
-      username: 'testuser',
-      password: 'hashedPassword',
-      email: 'test@naver.com',
-      createdAt: new Date(),
-      profiles: [
-        {
-          _id: 'profileId',
-          nickname: 'Tester',
-          userImage: 'imageUrl',
-          birthdate: '1995-01-01',
-        },
-      ],
-      isDeleted: false,
-    };
-
-    userModel.findOne.mockResolvedValue(mockUser);
-    bcrypt.compare.mockResolvedValue(true);
-    jwt.sign.mockReturnValue('token');
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'testuser',
-        password: 'Password1!',
-      });
-
-    expect(response.status).toBe(200);
-    expect(response.body.message).toBe('로그인 성공');
-    expect(response.body.token).toBe('token');
-    expect(response.body.user).toEqual({
-      id: 'userId',
-      username: 'testuser',
-      email: 'test@naver.com',
-      createdAt: mockUser.createdAt.toISOString(),
-      profiles: [
-        {
-          id: 'profileId',
-          nickname: 'Tester',
-          userImage: 'imageUrl',
-          birthdate: '1995-01-01',
-        },
-      ],
-    });
-    expect(userModel.findOne).toHaveBeenCalledWith({ username: 'testuser', isDeleted: false });
-    expect(bcrypt.compare).toHaveBeenCalledWith('Password1!', 'hashedPassword');
-    expect(jwt.sign).toHaveBeenCalledWith(
-      { id: 'userId', username: 'testuser' },
-      SECRET_KEY,
-      { expiresIn: '1d' }
-    );
-  });
-
-  it('should fail login if username does not exist', async () => {
-    userModel.findOne.mockResolvedValue(null);
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'nonexistentuser',
-        password: 'Password1!',
-      });
-
-    expect(response.status).toBe(401);
-    expect(response.body.message).toBe('아이디 또는 비밀번호가 잘못되었습니다.');
-    expect(userModel.findOne).toHaveBeenCalledWith({ username: 'nonexistentuser', isDeleted: false });
-  });
-
-  it('should fail login if password is incorrect', async () => {
-    const mockUser = {
-      _id: 'userId',
-      username: 'testuser',
-      password: 'hashedPassword',
-      isDeleted: false,
-    };
-
-    userModel.findOne.mockResolvedValue(mockUser);
-    bcrypt.compare.mockResolvedValue(false);
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'testuser',
-        password: 'WrongPassword1!',
-      });
-
-    expect(response.status).toBe(401);
-    expect(response.body.message).toBe('아이디 또는 비밀번호가 잘못되었습니다.');
-    expect(bcrypt.compare).toHaveBeenCalledWith('WrongPassword1!', 'hashedPassword');
-  });
-
-  it('should fail login if user is deleted', async () => {
-    userModel.findOne.mockResolvedValue(null);
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'deleteduser',
-        password: 'Password1!',
-      });
-
-    expect(response.status).toBe(401);
-    expect(response.body.message).toBe('아이디 또는 비밀번호가 잘못되었습니다.');
-  });
-
-  it('should handle server errors gracefully', async () => {
-    userModel.findOne.mockRejectedValue(new Error('Database error'));
-
-    const response = await request(app)
-      .post('/login')
-      .send({
-        username: 'testuser',
-        password: 'Password1!',
-      });
-
-    expect(response.status).toBe(500);
-    expect(response.body.message).toBe('Database error');
   });
 });

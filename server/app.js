@@ -44,8 +44,8 @@ app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
 });
 
-app.listen(port, hostname, () => {
-  // console.log(`Server running at http://${hostname}:${port}/`);
-});
+// app.listen(port, hostname, () => {
+//   console.log(`Server running at http://${hostname}:${port}/`);
+// });
 
 module.exports = app;
