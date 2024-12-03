@@ -24,7 +24,7 @@ router.delete('/posts/:postId', postController.deletePost);
 router.post('/posts/:postId/report', postController.reportPost);
 
 // 좋아요 실행/취소
-router.post('/posts/:postId/like', postController.toggleLike);
+router.post('/posts/:postId/likes', postController.toggleLike);
 
 
 
@@ -39,6 +39,6 @@ router.get('/posts/:postId/comments', commentsController.getComments);
 // 댓글 삭제
 router.delete('/posts/:postId/comments/:commentId', commentsController.deleteComment);
 
-router.post('/posts/:postId/comments/:commentId/like', commentsController.toggleCommentLike);
+router.post('/posts/:postId/comments/:commentId/likes', commentsController.toggleCommentLike);
 
 module.exports = router;
