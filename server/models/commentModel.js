@@ -9,7 +9,8 @@ const commentSchema = new mongoose.Schema({
     required: true,
   },
   author: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: MODELS.PROFILE,
     required: true,
   },
   content: {
@@ -24,6 +25,10 @@ const commentSchema = new mongoose.Schema({
   isDeleted: {
     type: Boolean,
     default: false, // 댓글 삭제 여부
+  },
+  likes: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
+    default: [], // 댓글 좋아요를 누른 사용자 ID 목록
   },
   createdAt: {
     type: Date,

@@ -4,7 +4,6 @@ const { Post } = require('../models/postModel');
 const { User } = require('../models/userModel');
 const { Report } = require('../models/reportModel');
 const jwt = require('jsonwebtoken');
-const Report = require('../models/reportModel');
 const SECRET_KEY = process.env.SECRET_KEY;
 const MODELS = require('../models/constants');
 

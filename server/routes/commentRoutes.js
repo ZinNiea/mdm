@@ -10,6 +10,8 @@ router.post('/posts/:postId/comments', commentsController.addComment);
 router.get('/posts/:postId/comments', commentsController.getComments);
 
 // 댓글 삭제
-router.delete('/comments/:commentId', commentsController.deleteComment);
+router.delete('/posts/:postId/comments/:commentId', commentsController.deleteComment);
+
+router.post('/posts/:postId/comments/:commentId/like', commentsController.toggleLike);
 
 module.exports = router;

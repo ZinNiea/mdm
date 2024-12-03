@@ -5,6 +5,7 @@ const MODELS = {
   POST: 'Post',
   COMMENT: 'Comment',
   REPORT: 'Report',
+  COMMENTREPORT: 'CommentReport',
 };
 
 module.exports = MODELS;

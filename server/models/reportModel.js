@@ -27,5 +27,31 @@ const ReportSchema = new mongoose.Schema({
   },
 });
 
+const commentReportSchema = new mongoose.Schema({
+  comment: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: MODELS.COMMENT,
+    required: true,
+  },
+  reporter: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: MODELS.PROFILE,
+    required: true,
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['스팸', '욕설', '혐오', '기타'], // 예시 카테고리
+  },
+  content: {
+    type: String,
+    required: true,
+  },
+  reportedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 const Report = mongoose.model(MODELS.REPORT, ReportSchema);
-module.exports = { Report };
+const CommentReport = mongoose.model(MODELS.COMMENTREPORT, commentReportSchema);
+module.exports = { Report, CommentReport };

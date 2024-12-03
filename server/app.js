@@ -5,7 +5,6 @@ const cors = require('cors');
 const { marketRoutes } = require('./routes/marketRoutes.js');
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
-const commentRouter = require('./routes/commentRoutes');
 const { default: mongoose } = require('mongoose');
 const app = express();
 
@@ -38,7 +37,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/user', userRouter);
 app.use('/post', postRouter);
-// app.use('/comment', commentRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
