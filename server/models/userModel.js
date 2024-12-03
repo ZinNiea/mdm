@@ -1,6 +1,7 @@
 // server/user/userModel.js
 const mongoose = require('mongoose');
-const profileSchema = require('./profileModel');
+const { Profile } = require('./profileModel');
+const MODELS = require('./constants');
 
 // 사용자 스키마 정의
 const userSchema = new mongoose.Schema({
@@ -34,12 +35,12 @@ const userSchema = new mongoose.Schema({
   // 프로필 필드 추가
   profiles: {
     type: [mongoose.Schema.Types.ObjectId],
-    ref: 'Profile',
+    ref: MODELS.PROFILE,
     validate: [arrayLimit, '최대 5개의 프로필만 가질 수 있습니다.'],
   },
   mainProfile: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Profile',
+    ref: MODELS.PROFILE,
   },
 });
 
@@ -56,5 +57,5 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model(MODELS.USER, userSchema);
 module.exports = { User };

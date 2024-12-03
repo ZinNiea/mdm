@@ -1,5 +1,6 @@
 // profileModel.js
 const mongoose = require('mongoose');
+const MODELS = require('./constants');
 
 const interestSchema = new mongoose.Schema({
   mainCategory: { type: String, required: true },
@@ -44,5 +45,5 @@ function interestsLimit(val) {
   return val.length <= 5;
 }
 
-const Profile = mongoose.model('Profile', profileSchema);
+const Profile = mongoose.model(MODELS.PROFILE, profileSchema);
 module.exports = { Profile };

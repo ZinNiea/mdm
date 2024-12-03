@@ -104,7 +104,6 @@ exports.registerUser = async (req, res) => {
       message: '회원가입에 성공했습니다.' 
     });
   } catch (err) {
-    console.error('서버 오류 발생:', err); // 에러 로그 추가
     if (err.code === 11000) {
       const duplicatedField = Object.keys(err.keyValue)[0];
       res.status(400).json({ 

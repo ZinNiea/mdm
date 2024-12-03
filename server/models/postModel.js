@@ -1,5 +1,6 @@
-// server/user/postModel.js
+// server/models/postModel.js
 const mongoose = require('mongoose');
+const MODELS = require('./constants');
 
 // 카테고리 상수 정의
 const CATEGORY = {
@@ -8,26 +9,20 @@ const CATEGORY = {
   PUBLIC: 3           // 모든 사용자에게 공개되는 게시물 (추가 가능)
 };
 
-// 댓글 스키마 정의
-const commentSchema = new mongoose.Schema({
-  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  content: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
-
 // 게시물 스키마 정의
 const postSchema = new mongoose.Schema({
-  author: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile', required: true },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE, required: true },
   content: { type: String, required: true },
   images: [{ type: String }],
-  category: { 
-    type: Number, 
+  category: {
+    type: Number,
     required: true,
     enum: Object.values(CATEGORY),
     default: CATEGORY.FRIENDS // 기본값 설정 (선택 사항)
   }, // 카테고리 필드 수정
-  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  comments: [commentSchema],
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
+  bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
+  comments: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.COMMENT }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -35,4 +30,5 @@ const postSchema = new mongoose.Schema({
 // 카테고리 상수를 모델에 추가하여 외부에서 접근 가능하도록 함
 postSchema.statics.CATEGORY = CATEGORY;
 
-module.exports = mongoose.model('Post', postSchema);
+const Post = mongoose.model(MODELS.POST, postSchema);
+module.exports = { Post };

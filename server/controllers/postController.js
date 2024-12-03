@@ -1,11 +1,12 @@
 // server/user/postController.js
+require('dotenv').config();
+const { Post } = require('../models/postModel');
+const { User } = require('../models/userModel');
+const { Report } = require('../models/reportModel');
 const jwt = require('jsonwebtoken');
-const Post = require('../models/postModel');
-const User = require('../models/userModel');
 const Report = require('../models/reportModel');
-const SECRET_KEY = 'your_secret_key'; // 환경 변수로 관리하는 것을 권장합니다.
-
-const CATEGORY = Post.CATEGORY;
+const SECRET_KEY = process.env.SECRET_KEY;
+const MODELS = require('../models/constants');
 
 // 게시물 전체 조회 또는 카테고리별, 검색어별 조회
 exports.getPosts = async (req, res) => {
@@ -17,6 +18,8 @@ exports.getPosts = async (req, res) => {
       filter.category = 1;
     } else if (category === '전체' || Number(category) === 3) {
       filter.category = 3;
+    } else {
+      filter.category = Number(category);
     }
   }
 
@@ -39,67 +42,75 @@ exports.getPosts = async (req, res) => {
     const postList = posts.map(post => ({
       id: post._id,
       content: post.content,
-      author_nickname: post.author.nickname,
-      author_image: post.author.userImage,
+      authorId: post.author._id,
+      authorNickname: post.author.nickname,
+      authorImage: post.author.userImage,
       createdAt: post.createdAt,
-      likes_count: post.likes.length,
-      comment_count: post.comments.length,
-      bookmark_count: post.bookmarks.length
+      likesCount: post.likes.length,
+      commentCount: post.comments.length,
+      bookmarkCount: post.bookmarks.length,
+      likeStatus: post.likes.includes(profileId),
+      bookmarkStatus: post.bookmarks.includes(profileId),
     }));
 
     res.status(200).json({ success: true, data: postList });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 특정 게시물 조회
+// 설명: getPostById 함수는 특정 게시물을 조회하는 API 엔드포인트를 처리합니다.
 exports.getPostById = async (req, res) => {
+  // 요청 헤더에서 인증 토큰을 추출합니다.
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
   const { postId } = req.params;
 
+  // 토큰이 없으면 401 상태 코드와 함께 인증 필요 메시지를 반환합니다.
   if (!token) {
     return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
   }
 
   try {
+    // 토큰을 검증하고 디코딩하여 사용자 ID를 추출합니다.
     const decoded = jwt.verify(token, SECRET_KEY);
     const userId = decoded.id;
 
+    // postId를 사용하여 게시물을 데이터베이스에서 조회하고, author와 comments.author 필드를 populating 합니다.
     const post = await Post.findById(postId)
-      .populate({
-        path: 'author',
-        select: 'nickname userImage',
-        populate: { path: 'user', select: 'email' }
-      })
+      .populate('author', 'nickname userImage')
       .populate('comments.author', 'nickname userImage');
 
+    // 게시물이 존재하지 않으면 404 상태 코드와 함께 오류 메시지를 반환합니다.
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
 
-    const userHasLiked = post.likes.includes(userId);
-
+    // 게시물 정보를 응답으로 반환합니다.
     res.status(200).json({
       success: true,
       data: {
         _id: post._id,
         content: post.content,
-        author_id: post.author._id,
-        author_nickname: post.author.nickname,
-        author_image: post.author.userImage,
+        authorId: post.author._id,
+        authorNickname: post.author.nickname,
+        authorImage: post.author.userImage,
         createdAt: post.createdAt,
-        likes_count: post.likes.length,
-        user_has_liked: userHasLiked,
-        comment_count: post.comments.length,
-        bookmark_count: post.bookmarks.length
+        likesCount: post.likes.length,
+        likeStatus: post.likes.includes(userId),
+        commentCount: post.comments.length,
+        bookmarkCount: post.bookmarks.length,
+        bookmarkStatus: post.bookmarks.includes(userId),
       }
     });
-  } catch (err) {
-    if (err.name === 'JsonWebTokenError') {
+  } catch (error) {
+    console.error(error);
+    // 토큰 검증 오류인 경우 401 상태 코드와 함께 메시지를 반환합니다.
+    if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
     }
-    res.status(500).json({ success: false, message: err.message });
+    // 기타 서버 오류인 경우 500 상태 코드와 함께 오류 메시지를 반환합니다.
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -122,7 +133,8 @@ exports.createPost = async (req, res) => {
       return res.status(404).json({ success: false, message: '유저를 찾을 수 없습니다.' });
     }
 
-    const profile = user.profiles.id(profileId);
+    // const profile = user.profiles.id(profileId);
+    const profile = user.profiles.includes(profileId);
     if (!profile) {
       return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
     }
@@ -143,7 +155,7 @@ exports.createPost = async (req, res) => {
       images: images,
       category: category,
       createdAt: new Date(),
-      updated_at: new Date(),
+      updatedAt: new Date(),
     });
 
     res.status(201).json({ success: true, data: newPost });
@@ -158,8 +170,9 @@ exports.createPost = async (req, res) => {
 // 게시물 수정
 exports.updatePost = async (req, res) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
-  const { id } = req.params;
-  const { content, images } = req.body;
+  const { postId } = req.params;
+  const { content } = req.body;
+  const images = req.files ? req.files.map(file => file.location) : [];
 
   if (!token) {
     return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
@@ -167,7 +180,7 @@ exports.updatePost = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-    const post = await Post.findById(id);
+    const post = await Post.findById(postId);
 
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
@@ -178,7 +191,22 @@ exports.updatePost = async (req, res) => {
     }
 
     post.content = content || post.content;
-    post.images = images || post.images;
+    // post.images = images || post.images;
+    // 이미지 업데이트
+    if (images && images.length > 0) {
+      // 기존 이미지 삭제 로직 추가 (필요 시)
+      // 예: 기존 이미지를 스토리지에서 삭제
+
+      // 기존 이미지와 새 이미지의 합이 5개를 초과하지 않는지 확인
+      const totalImages = post.images.length + images.length;
+      if (totalImages > 5) {
+        return res.status(400).json({ success: false, message: '이미지는 최대 5장까지 업로드 가능합니다.' });
+      }
+
+      // 기존 이미지를 유지하면서 새 이미지를 추가
+      post.images = post.images.concat(images.map(file => file.path));
+    }
+
     post.updatedAt = new Date();
 
     await post.save();
@@ -195,7 +223,7 @@ exports.updatePost = async (req, res) => {
 // 게시물 삭제
 exports.deletePost = async (req, res) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
-  const { id } = req.params;
+  const { postId } = req.params;
 
   if (!token) {
     return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
@@ -203,7 +231,7 @@ exports.deletePost = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-    const post = await Post.findById(id);
+    const post = await Post.findById(postId);
 
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
@@ -228,31 +256,31 @@ exports.deletePost = async (req, res) => {
 exports.reportPost = async (req, res) => {
   try {
     const { postId } = req.params; // 신고할 게시글 ID
-    const { category, content } = req.body; // 신고 카테고리와 내용
+    const { category, content, profileId } = req.body; // 신고 카테고리와 내용
 
     const token = req.headers.authorization.split(' ')[1];
     const decoded = jwt.verify(token, SECRET_KEY);
 
     const post = await Post.findById(postId);
     if (!post) {
-      return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
+      return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
     }
 
     // 새로운 신고 생성
     const report = new Report({
       post: post._id,
-      reporter: decoded.id,
-      category,
-      content,
+      reporter: profileId,
+      category: category,
+      content: content,
     });
     await report.save();
 
-    res.status(200).json({ success: true, message: '게시글이 신고되었습니다.' });
+    res.status(200).json({ result: true, message: '게시글이 신고되었습니다.' });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
-      return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+      return res.status(401).json({ result: false, message: '유효하지 않은 토큰입니다.' });
     }
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ result: false, message: err.message });
   }
 };
 
@@ -260,9 +288,10 @@ exports.reportPost = async (req, res) => {
 exports.toggleLike = async (req, res) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
   const { postId } = req.params;
+  const { profileId } = req.body;
 
   if (!token) {
-    return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
+    return res.status(401).json({ result: false, message: '인증 토큰이 필요합니다.' });
   }
 
   try {
@@ -271,23 +300,23 @@ exports.toggleLike = async (req, res) => {
 
     const post = await Post.findById(postId);
     if (!post) {
-      return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
+      return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
     }
 
-    if (post.likes.includes(userId)) {
-      post.likes.pull(userId);
+    if (post.likes.includes(profileId)) {
+      post.likes.pull(profileId);
       await post.save();
-      return res.status(200).json({ success: true, message: '좋아요를 취소했습니다.' });
+      return res.status(200).json({ result: true, message: '좋아요를 취소했습니다.' });
     } else {
-      post.likes.push(userId);
+      post.likes.push(profileId);
       await post.save();
-      return res.status(200).json({ success: true, message: '게시물에 좋아요를 표시했습니다.' });
+      return res.status(200).json({ result: true, message: '게시물에 좋아요를 표시했습니다.' });
     }
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
-      return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+      return res.status(401).json({ result: false, message: '유효하지 않은 토큰입니다.' });
     }
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ result: false, message: err.message });
   }
 };
 

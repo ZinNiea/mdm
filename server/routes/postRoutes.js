@@ -8,21 +8,21 @@ const { upload } = require('../middlewares/uploadMiddleware');
 router.get('/posts', postController.getPosts);
 
 // 특정 게시물 조회
-router.get('/posts/:id', postController.getPostById);
+router.get('/posts/:postId', postController.getPostById);
 
 // 게시물 작성 (최대 5장까지 이미지 업로드 허용)
 router.post('/posts', upload.array('images', 5), postController.createPost);
 
 // 게시물 수정
-router.put('/posts/:id', postController.updatePost);
+router.put('/posts/:postId', upload.array('images', 5), postController.updatePost);
 
 // 게시물 삭제
-router.delete('/posts/:id', postController.deletePost);
+router.delete('/posts/:postId', postController.deletePost);
 
 // 게시물 신고
-router.post('/posts/:id/report', postController.reportPost);
+router.post('/posts/:postId/report', postController.reportPost);
 
-// 좋아요/좋아요 취소
-router.post('/posts/:id/like', postController.toggleLike);
+// 좋아요 실행/취소
+router.post('/posts/:postId/like', postController.toggleLike);
 
 module.exports = router;

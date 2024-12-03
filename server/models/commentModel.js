@@ -1,10 +1,11 @@
 // models/commentModel.js
 const mongoose = require('mongoose');
+const MODELS = require('./constants');
 
 const commentSchema = new mongoose.Schema({
   postId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Post',
+    ref: MODELS.POST,
     required: true,
   },
   author: {
@@ -17,7 +18,7 @@ const commentSchema = new mongoose.Schema({
   },
   parentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Comment',
+    ref: MODELS.COMMENT,
     default: null, // 대댓글인 경우 부모 댓글의 ID, 아닐 경우 null
   },
   isDeleted: {
@@ -30,4 +31,5 @@ const commentSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('Comment', commentSchema);
+const Comment = mongoose.model(MODELS.COMMENT, commentSchema);
+module.exports = { Comment };

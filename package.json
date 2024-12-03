@@ -21,5 +21,12 @@
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
     "test": "jest --detectOpenHandles"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/server/controllers/**/*.test.js"
+    ]
   }
 }

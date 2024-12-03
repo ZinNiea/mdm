@@ -1,31 +1,31 @@
 // controllers/commentController.js
-const Comment = require('../models/commentModel');
+const { Comment } = require('../models/commentModel');
 
 // 댓글 추가 (대댓글 포함)
 exports.addComment = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { content, username, parentId } = req.body;
+    const { content, profileId, parentId } = req.body;
 
     // 대댓글인 경우 parentId 유효성 검사
     if (parentId) {
       const parentComment = await Comment.findById(parentId);
       if (!parentComment) {
-        return res.status(400).json({ message: '유효하지 않은 parentId입니다.' });
+        return res.status(400).json({ result: false, message: '원본 댓글을 찾을 수 없습니다.' });
       }
     }
 
     const comment = new Comment({
-      postId,
-      author: username,
-      content,
+      postId: postId,
+      author: profileId,
+      content: content,
       parentId: parentId || null,
     });
     await comment.save();
 
-    res.status(201).json(comment);
+    res.status(201).json({ result: true, comment });
   } catch (error) {
-    res.status(500).json({ message: '댓글 추가 실패', error });
+    res.status(500).json({ result: false, message: '댓글 추가 실패', error });
   }
 };
 
