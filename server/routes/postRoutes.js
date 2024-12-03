@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const postController = require('../controllers/postController');
-const commentsController = require('../controllers/commentController');
+const commentController = require('../controllers/commentController');
 const { upload } = require('../middlewares/uploadMiddleware');
 
 // 게시물 전체 조회 또는 카테고리별 조회
@@ -26,19 +26,28 @@ router.post('/posts/:postId/report', postController.reportPost);
 // 좋아요 실행/취소
 router.post('/posts/:postId/likes', postController.toggleLike);
 
+// 북마크 실행/취소
+router.post('/posts/:postId/bookmarks', postController.toggleBookmark);
 
 
 
 /* 댓글 관련 라우터 */
 // 댓글 추가 (대댓글 포함)
-router.post('/posts/:postId/comments', commentsController.addComment);
+router.post('/posts/:postId/comments', commentController.addComment);
 
 // 댓글 목록 조회 (대댓글 포함)
-router.get('/posts/:postId/comments', commentsController.getComments);
+router.get('/posts/:postId/comments', commentController.getComments);
 
 // 댓글 삭제
-router.delete('/posts/:postId/comments/:commentId', commentsController.deleteComment);
+router.delete('/posts/:postId/comments/:commentId', commentController.deleteComment);
 
-router.post('/posts/:postId/comments/:commentId/likes', commentsController.toggleCommentLike);
+// 댓글 좋아요 표시/취소
+router.post('/posts/:postId/comments/:commentId/likes', commentController.toggleCommentLike);
+
+// 댓글 신고
+router.post('/posts/:postId/comments/:commentId/report', commentController.reportComment);
+
+
+
 
 module.exports = router;

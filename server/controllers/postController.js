@@ -319,6 +319,36 @@ exports.toggleLike = async (req, res) => {
   }
 };
 
+// 게시물 북마크 추가/취소
+exports.toggleBookmark = async (req, res) => {
+  const { postId } = req.params;
+  const { profileId } = req.body;
+
+  if (!profileId) {
+    return res.status(400).json({ result: false, message: '프로필 ID가 필요합니다.' });
+  }
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
+    }
+
+    if (post.bookmarks.includes(profileId)) {
+      post.bookmarks.pull(profileId);
+      await post.save();
+      return res.status(200).json({ result: true, message: '북마크가 취소되었습니다.' });
+    } else {
+      post.bookmarks.push(profileId);
+      await post.save();
+      return res.status(200).json({ result: true, message: '게시물이 북마크에 추가되었습니다.' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ result: false, message: '북마크 처리에 실패했습니다.', error });
+  }
+};
+
 // 관심사 추가
 exports.addInterest = async (req, res) => {
   const { userId, profileId } = req.params;
