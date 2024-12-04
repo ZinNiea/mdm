@@ -416,3 +416,24 @@ exports.getInterests = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// 북마크 게시물 조회
+exports.getBookmarkedPosts = async (req, res) => {
+  const { profileId } = req.params;
+  
+  try {
+    const bookmarkedPosts = await Post.find({ bookmarks: profileId })
+      .populate('author', 'nickname userImage')
+      .sort({ createdAt: -1 });
+
+    const data = bookmarkedPosts.map(post => ({
+      id: post._id,
+      title: post.title,
+      content: post.content,
+    }));
+
+    res.status(200).json({ result: true, data: data });
+  } catch (error) {
+    res.status(500).json({ result: false, message: error.message });
+  }
+};
