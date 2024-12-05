@@ -6,7 +6,6 @@ const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
 const { default: mongoose } = require('mongoose');
 const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가져오기
-const logger = require('./utils/logger'); // Winston 로거
 
 const app = express();
 
@@ -18,9 +17,9 @@ const hostname = '0.0.0.0';
 // const port = process.env.PORT || 3000;
 const port = 3000;
 
-// if (process.env.NODE_ENV !== 'production') {
-//   mongoose.set('debug', true); // 몽고 쿼리가 콘솔에서 뜨게 한다.
-// }
+if (process.env.NODE_ENV !== 'production') {
+  mongoose.set('debug', true); // 몽고 쿼리가 콘솔에서 뜨게 한다.
+}
 
 
 // MongoDB 연결

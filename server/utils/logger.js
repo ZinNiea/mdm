@@ -1,8 +1,10 @@
 // logger.js
 const { createLogger, format, transports } = require('winston');
 
+const env = process.env.NODE_ENV || 'development';
+
 const logger = createLogger({
-  level: 'info', // 로그 레벨 설정
+  level: env === 'development' ? 'debug' : 'info', // 로그 레벨 설정
   format: format.combine(
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), // 타임스탬프 형식 지정
     format.printf(({ timestamp, level, message }) => `[${timestamp}] ${level}: ${message}`)
