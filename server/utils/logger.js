@@ -1,5 +1,6 @@
 // logger.js
 const { createLogger, format, transports } = require('winston');
+const DailyRotateFile = require('winston-daily-rotate-file');
 
 const env = process.env.NODE_ENV || 'development';
 
@@ -11,7 +12,12 @@ const logger = createLogger({
   ),
   transports: [
     new transports.Console(), // 콘솔에 로그 출력
-    new transports.File({ filename: 'logs/app.log' }), // 파일에 로그 저장
+    // new transports.File({ filename: 'logs/app.log' }), // 파일에 로그 저장
+    new DailyRotateFile({
+      filename: 'logs/app-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '14d', // 14일치 로그 보관
+    }),
   ],
 });
 
