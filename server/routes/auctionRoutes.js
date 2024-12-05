@@ -4,17 +4,16 @@ const router = express.Router();
 const { AuctionItem } = require('../models/auctionItemModel');
 const { Bid } = require('../models/bidModel');
 const auctionController = require('../controllers/auctionController');
+const { upload } = require('../middlewares/uploadMiddleware');
 
 // 경매 아이템 생성
-router.post('/', auctionController.createAuctionItem);
+router.post('/', upload.array('images', 5), auctionController.createAuctionItem);
 
 // 경매 아이템 목록 조회
 router.get('/', auctionController.getAuctionItems);
 
 // 특정 경매 아이템 조회
-router.get('/:id', auctionController.getAuctionItemById);
-
-module.exports = router;
+router.get('/:auctionId', auctionController.getAuctionItemById);
 
 // 입찰
 router.post('/:id/bid', async (req, res) => {
