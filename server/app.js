@@ -13,9 +13,6 @@ const app = express();
 app.set('trust proxy', 1);
 
 const MONGO_URI = 'mongodb+srv://p04u:VpJL4ftrjy7RbWO6@cluster0.0nr56.mongodb.net/';
-const hostname = '0.0.0.0';
-// const port = process.env.PORT || 3000;
-const port = 3000;
 
 if (process.env.NODE_ENV !== 'production') {
   mongoose.set('debug', true); // 몽고 쿼리가 콘솔에서 뜨게 한다.
