@@ -1,0 +1,13 @@
+// models/Bid.js
+const mongoose = require('mongoose');
+const MODELS = require('./constants');
+
+const BidSchema = new mongoose.Schema({
+  amount: { type: Number, required: true },
+  bidder: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.USER },
+  auctionItem: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.AUCTIONITEM },
+  bidTime: { type: Date, default: Date.now }
+});
+
+const BID = mongoose.model(MODELS.BID, BidSchema);
+module.exports = { BID };

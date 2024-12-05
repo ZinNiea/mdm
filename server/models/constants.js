@@ -6,6 +6,9 @@ const MODELS = {
   COMMENT: 'Comment',
   REPORT: 'Report',
   COMMENTREPORT: 'CommentReport',
+
+  AUCTIONITEM: 'AuctionItem',
+  BID: 'Bid',
 };
 
 module.exports = MODELS;

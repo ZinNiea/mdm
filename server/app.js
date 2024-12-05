@@ -2,10 +2,12 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { marketRoutes } = require('./routes/marketRoutes.js');
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
 const { default: mongoose } = require('mongoose');
+const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가져오기
+const logger = require('./utils/logger'); // Winston 로거
+
 const app = express();
 
 // app.set('trust proxy', 1); 'trust proxy'를 1로 설정하면 클라이언트의 IP 주소를 신뢰합니다.
@@ -20,6 +22,8 @@ const port = 3000;
 //   mongoose.set('debug', true); // 몽고 쿼리가 콘솔에서 뜨게 한다.
 // }
 
+
+// MongoDB 연결
 const options = {
   autoIndex: false, // Don't build indexes
   serverSelectionTimeoutMS: 60000, // Keep trying to send operations for 5 seconds
@@ -31,10 +35,17 @@ mongoose.connect(MONGO_URI, options)
 //   .catch((err) => console.log('MongoDB connection error: ', err))
   ;
 
+// CORS 미들웨어 적용
 app.use(cors());
+// JSON 파싱 미들웨어 적용
 app.use(express.json());
+// URL 인코딩 미들웨어 적용
 app.use(express.urlencoded({ extended: true }));
 
+// 로깅 미들웨어 적용
+app.use(loggingMiddleware);
+
+// 라우터 등록
 app.use('/user', userRouter);
 app.use('/post', postRouter);
 
