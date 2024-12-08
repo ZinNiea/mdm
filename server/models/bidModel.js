@@ -9,5 +9,5 @@ const BidSchema = new mongoose.Schema({
   bidTime: { type: Date, default: Date.now }
 });
 
-const BID = mongoose.model(MODELS.BID, BidSchema);
-module.exports = { BID };
+const Bid = mongoose.model(MODELS.BID, BidSchema);
+module.exports = { Bid };

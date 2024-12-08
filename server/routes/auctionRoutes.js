@@ -16,36 +16,10 @@ router.get('/', auctionController.getAuctionItems);
 router.get('/:auctionId', auctionController.getAuctionItemById);
 
 // 입찰
-router.post('/:id/bid', async (req, res) => {
-  try {
-    const item = await AuctionItem.findById(req.params.id);
-    if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-    if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
-
-    const bidAmount = req.body.amount;
-    if (bidAmount <= item.currentBid || bidAmount < item.startingPrice) {
-      return res.status(400).send('입찰 금액이 너무 낮습니다.');
-    }
-
-    item.currentBid = bidAmount;
-    item.highestBidder = req.user._id;
-    await item.save();
-
-    const bid = new Bid({
-      amount: bidAmount,
-      bidder: req.user._id,
-      auctionItem: item._id
-    });
-    await bid.save();
-
-    res.send('입찰이 성공적으로 이루어졌습니다.');
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+router.post('/:auctionId/bids', auctionController.placeBid);
 
 // 즉시구매
-router.post('/:id/buy', async (req, res) => {
+router.post('/:auctionId/instant-buys', async (req, res) => {
   try {
     const item = await AuctionItem.findById(req.params.id);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');

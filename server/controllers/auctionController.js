@@ -24,10 +24,11 @@ exports.createAuctionItem = async (req, res) => {
     return res.status(400).send('유효한 duration 값을 입력해주세요.');
   }
 
-   // duration을 현재 시간에 더하여 endTime 계산 (duration: 시간 단위)
-   const endTime = new Date(Date.now() + duration * 60 * 60 * 1000);
-
-   const imageUrls = req.files.map(file => file.location); // S3에서의 이미지 URL
+  // duration을 현재 시간에 더하여 endTime 계산 (duration: 시간 단위)
+  const createdAt = new Date();
+  //  const endTime = new Date(Date.now() + duration * 60 * 60 * 1000);
+  const endTime = new Date(createdAt.getTime() + duration * 60 * 60 * 1000);
+  const imageUrls = req.files.map(file => file.location); // S3에서의 이미지 URL
 
   try {
     const auctionItem = new AuctionItem({
@@ -39,70 +40,140 @@ exports.createAuctionItem = async (req, res) => {
       endTime: endTime,
       createdBy: author_id,
       images: imageUrls,
-      realted: related
-    })
+      related: related,
+      createdAt: createdAt
+    });
     await auctionItem.save();
-    res.send('경매 아이템이 생성되었습니다.');
+    // res.send('경매 아이템이 생성되었습니다.');
+    res.status(201).send({ result: true });
   } catch (err) {
     res.status(400).send(err.message);
   }
 };
 
-// 경매 아이템 목록 조회
+/**
+ * 경매 아이템 목록 조회
+ * @param {Request} req 
+ * @param {Response} res 
+ */
 exports.getAuctionItems = async (req, res) => {
   const { userId } = req.query;
+  /*
+  auctionId, related(관련 아티스트/웹툰 이름), 
+  title, highest_bid_price(최고 입찰 가격), 
+  duration, views, likes_count, image_urls(첫번째 사진 하나만 있어도 됨)
+   */
   try {
-    const items = await AuctionItem.find().populate('highestBidder', 'username');
-    res.send(items);
+    // const items = await AuctionItem.find().populate('highestBidder', 'username');
+    const items = await AuctionItem.find();
+
+    const now = new Date();
+
+    const data = items.map(item => {
+      const duration = Math.max(0, Math.ceil((item.endTime - now) / 1000 / 60 / 60));
+
+      return {
+        auctionId: item._id,
+        related: item.related,
+        title: item.title,
+        highest_bid_price: item.currentBid,
+        duration: duration,
+        views: item.views,
+        likes_count: item.likes.length,
+        image_urls: item.images ? [item.images[0]] : [],
+      };
+
+    });
+    res.status(200).send(data);
   } catch (err) {
     res.status(400).send(err.message);
   }
 };
 
-// 특정 경매 아이템 조회
+/**
+ * 특정 경매 아이템 조회
+ * @param {Request} req 
+ * @param {Response} res 
+ * @returns 
+ */
 exports.getAuctionItemById = async (req, res) => {
   try {
-    const item = await AuctionItem.findById(req.params.id).populate('highestBidder', 'username');
+    const item = await AuctionItem.findById(req.params.auctionId).populate('highestBidder', 'username');
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-    res.send(item);
+    //title, content, views, starting_bid, buy_now_price, created_at, duration, author_id, related(관련 아티스트/웹툰 이름), image_urls, highest_bid_price, likes_count, 
+
+    const data = {
+      title: item.title,
+      content: item.description,
+      views: item.views,
+      starting_bid: item.startingPrice,
+      buy_now_price: item.instantBuyPrice,
+      created_at: item.createdAt,
+      author_id: item.createdBy,
+      related: item.related,
+      image_urls: item.images,
+      highest_bid_price: item.currentBid,
+      likes_count: item.likes.length,
+      endTime: item.endTime,
+    };
+    res.status(200).send(data);
   } catch (err) {
     res.status(400).send(err.message);
   }
 };
 
-// 입찰
+/**
+ * 입찰
+ * @param {Request} req 
+ * @param {Response} res 
+ * @returns 
+ */
 exports.placeBid = async (req, res) => {
   try {
-    const item = await AuctionItem.findById(req.params.id);
+    const item = await AuctionItem.findById(req.params.auctionId);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
     if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
 
     const bidAmount = req.body.amount;
-    if (bidAmount <= item.currentBid || bidAmount < item.startingPrice) {
+    if (bidAmount < item.startingPrice || bidAmount <= item.currentBid) {
       return res.status(400).send('입찰 금액이 너무 낮습니다.');
     }
 
     item.currentBid = bidAmount;
-    item.highestBidder = req.user._id;
+    // item.highestBidder = req.user._id;
+    item.highestBidder = req.body.bidder_id;
     await item.save();
 
     const bid = new Bid({
       amount: bidAmount,
-      bidder: req.user._id,
-      auctionItem: item._id
+      // bidder: req.user._id,
+      bidder: req.body.bidder_id,
+      auctionItem: item._id,
+      bidTime: new Date()
     });
     await bid.save();
 
-    res.send('입찰이 성공적으로 이루어졌습니다.');
+    // res.send('입찰이 성공적으로 이루어졌습니다.');
+    // res.status(201).send({ result: true });
+    // 생성된 입찰의 URI를 응답 헤더에 포함
+    res.status(201)
+      .location(`/auctions/${item._id}/bids/${bid._id}`)
+      .send({ result: true });
   } catch (err) {
     res.status(400).send(err.message);
   }
-}
+};
 
-// 즉시구매
+
+/**
+ * 즉시구매
+ * @param {Request} req 
+ * @param {Response} res 
+ * @returns 
+ */
 exports.instantBuy = async (req, res) => {
   try {
-    const item = await AuctionItem.findById(req.params.id);
+    const item = await AuctionItem.findById(req.params.auctionId);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
     if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
     if (!item.instantBuyPrice) return res.status(400).send('즉시구매가 불가능한 아이템입니다.');
@@ -123,4 +194,4 @@ exports.instantBuy = async (req, res) => {
   } catch (err) {
     res.status(400).send(err.message);
   }
-}
+};

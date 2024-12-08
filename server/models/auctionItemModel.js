@@ -17,7 +17,10 @@ const AuctionItemSchema = new mongoose.Schema({
   endTime: { type: Date, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.USER, required: true },
   images: [{ type: String }],
-  realted: { type: String },  // 관련 인물 또는 작품
+  related: { type: String },  // 관련 인물 또는 작품
+  views: { type: Number, default: 0 },
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.USER }],
+  createdAt: { type: Date, default: Date.now },
 });
 
 const AuctionItem = mongoose.model(MODELS.AUCTIONITEM, AuctionItemSchema);

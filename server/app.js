@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
+const auctionRouter = require('./routes/auctionRoutes');
 const { default: mongoose } = require('mongoose');
 const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가져오기
 
@@ -44,6 +45,7 @@ app.use(loggingMiddleware);
 // 라우터 등록
 app.use('/user', userRouter);
 app.use('/post', postRouter);
+app.use('/auctions', auctionRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
