@@ -9,6 +9,7 @@ const MODELS = {
 
   AUCTIONITEM: 'AuctionItem',
   BID: 'Bid',
+  CHAT: 'Chat',
 };
 
 module.exports = MODELS;

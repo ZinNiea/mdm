@@ -2,6 +2,7 @@
 const { Request, Response } = require('express');
 const { AuctionItem } = require('../models/auctionItemModel');
 const { Bid } = require('../models/bidModel');
+const { Chat } = require('../models/chatModel');
 
 /**
  * 경매 아이템 생성
@@ -216,9 +217,26 @@ exports.endAuction = async (req, res) => {
     item.endTime = new Date();
     await item.save();
 
+    const io = req.app.get('io');
+
     if (item.highestBidder) {
       // 낙찰자에게 알림 또는 추가 로직 수행
-      res.send(`경매가 종료되었습니다. 낙찰자: ${item.highestBidder.name}`);
+      const chatRoom = await Chat.create({
+        participants: [item.createdBy, item.highestBidder._id],
+        auctionItem: item._id,
+      });
+
+      const roomId = `auction_${chatRoom._id}`;
+
+      // 채팅방 ID를 설정 (예: 경매 ID 사용 가능)
+      chatRoom.roomId = roomId;
+      await chatRoom.save();
+
+      // 판매자와 낙찰자에게 채팅방 정보 전송
+      io.to(item.createdBy.toString()).emit('chatRoom', { roomId });
+      io.to(item.highestBidder._id.toString()).emit('chatRoom', { roomId });
+
+      res.send('경매가 종료되었습니다. 실시간 채팅방이 생성되었습니다.');
     } else {
       res.send('경매가 종료되었으나, 입찰자가 없습니다.');
     }
