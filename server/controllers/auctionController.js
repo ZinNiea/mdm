@@ -195,3 +195,34 @@ exports.instantBuy = async (req, res) => {
     res.status(400).send(err.message);
   }
 };
+
+/**
+ * 경매 즉시 종료
+ * @param {Request} req 
+ * @param {Response} res 
+ * @returns 
+ */
+exports.endAuction = async (req, res) => {
+  try {
+    const auctionId = req.params.auctionId;
+    const item = await AuctionItem.findById(auctionId).populate('highestBidder');
+
+    if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
+    if (item.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).send('경매를 종료할 권한이 없습니다.');
+    }
+    if (item.endTime < new Date()) return res.status(400).send('경매가 이미 종료되었습니다.');
+
+    item.endTime = new Date();
+    await item.save();
+
+    if (item.highestBidder) {
+      // 낙찰자에게 알림 또는 추가 로직 수행
+      res.send(`경매가 종료되었습니다. 낙찰자: ${item.highestBidder.name}`);
+    } else {
+      res.send('경매가 종료되었으나, 입찰자가 없습니다.');
+    }
+  } catch (err) {
+    res.status(400).send(err.message);
+  }
+};
