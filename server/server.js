@@ -21,6 +21,12 @@ const io = socketIo(server, {
 io.on('connection', (socket) => {
   console.log('새 클라이언트 접속:', socket.id);
 
+  // 사용자 등록 이벤트 핸들러
+  socket.on('register', (userId) => {
+    socket.join(userId); // 사용자 ID를 방으로 사용
+    console.log(`사용자 ${userId}가 방 ${userId}에 입장했습니다.`);
+  });
+
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
     console.log(`클라이언트 ${socket.id}가 방 ${roomId}에 입장했습니다.`);

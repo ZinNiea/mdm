@@ -7,6 +7,7 @@ const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가�
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
 const auctionRouter = require('./routes/auctionRoutes');
+const chatRouter = require('./routes/chatRoutes');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use(loggingMiddleware);
 app.use('/user', userRouter);
 app.use('/post', postRouter);
 app.use('/auctions', auctionRouter);
+app.use('/chat', chatRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
