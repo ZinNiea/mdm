@@ -2,8 +2,8 @@
 require('dotenv').config();
 const express = require('express');
 const { default: mongoose } = require('mongoose');
-const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가져오기
 const cors = require('cors');
+const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가져오기
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
 const auctionRouter = require('./routes/auctionRoutes');

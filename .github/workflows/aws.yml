@@ -139,7 +139,7 @@ jobs:
 
             # 코드 업데이트 및 종속성 설치
             cd /home/ec2-user/mdm
-            git pull origin main
+            git pull origin master
             npm install
 
             # 애플리케이션 재시작
