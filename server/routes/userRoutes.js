@@ -8,7 +8,7 @@ const { upload } = require('../middlewares/uploadMiddleware');
 
 router.post('/register', upload.single('userImage'), userController.registerUser);
 router.post('/login', userController.login);
-router.delete('/delete', userController.deleteUser);
+router.delete('/:userId/delete', userController.deleteUser);
 router.put('/:userId/profile', userController.addProfile);
 
 // router.post('/:userId/profiles/:profileId/interests', userController.addInterest);

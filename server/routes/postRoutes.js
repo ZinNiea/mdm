@@ -29,6 +29,9 @@ router.post('/posts/:postId/likes', postController.toggleLike);
 // 북마크 실행/취소
 router.post('/posts/:postId/bookmarks', postController.toggleBookmark);
 
+// 북마크 게시물 조회
+router.get('/users/:userId/bookmarks', postController.getBookmarkedPosts);
+
 
 
 /* 댓글 관련 라우터 */
