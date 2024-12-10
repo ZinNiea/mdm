@@ -232,10 +232,10 @@ exports.login = async (req, res) => {
 
 // 회원 탈퇴 (소프트 삭제)
 exports.deleteUser = async (req, res) => {
+  const userId = req.params.userId;
   try {
-    const { userId } = req.body;
     if (!userId) {
-      return res.status(400).json({ result: false, message: 'userId이 필요합니다.' });
+      return res.status(400).json({ result: false, message: 'userId가 필요합니다.' });
     }
 
     const user = await User.findOneAndUpdate(

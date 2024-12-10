@@ -21,19 +21,25 @@ const io = socketIo(server, {
 io.on('connection', (socket) => {
   console.log('새 클라이언트 접속:', socket.id);
 
-  // 사용자 등록 이벤트 핸들러
-  socket.on('register', (userId) => {
-    socket.join(userId); // 사용자 ID를 방으로 사용
-    console.log(`사용자 ${userId}가 방 ${userId}에 입장했습니다.`);
-  });
-
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
-    console.log(`클라이언트 ${socket.id}가 방 ${roomId}에 입장했습니다.`);
+    console.log(`방 ${roomId}에 참여: ${socket.id}`);
   });
 
-  socket.on('chatMessage', (data) => {
-    io.to(data.roomId).emit('chatMessage', data.message);
+  socket.on('chatMessage', async (data) => { 
+    const { roomId, senderId, message } = data;
+    // 메시지 저장
+    try {
+      const chatRoom = await Chat.findOne({ roomId });
+      if (chatRoom) {
+        chatRoom.messages.push({ sender: senderId, message });
+        await chatRoom.save();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    // 메시지 브로드캐스트
+    io.to(roomId).emit('chatMessage', { senderId, message });
   });
 
   socket.on('disconnect', () => {
