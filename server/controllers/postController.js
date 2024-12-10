@@ -1,4 +1,4 @@
-// server/user/postController.js
+// server/controllers/postController.js
 require('dotenv').config();
 const { Post } = require('../models/postModel');
 const { User } = require('../models/userModel');
@@ -435,5 +435,37 @@ exports.getBookmarkedPosts = async (req, res) => {
     res.status(200).json({ result: true, data: data });
   } catch (error) {
     res.status(500).json({ result: false, message: error.message });
+  }
+};
+
+/**
+ * 특정 프로필로 작성된 게시글 목록 조회 (GET /api/posts/profile/:profileId)
+ * @param {Request} req
+ * @param {Response} res
+ */
+exports.getPostsByProfile = async (req, res) => {
+  const { profileId } = req.params;
+  
+  //postList => { postId, content, createdAt, likeCount, commentCount, bookmarkCount }
+  try {
+    // 프로필 ID로 게시글 필터링
+    const posts = await Post.find({ author: profileId })
+      .select('_id content author createdAt likes comments bookmarks') // 필요한 필드 선택
+      .sort({ createdAt: -1 }); // 최신순 정렬
+
+    // 응답 형식에 맞게 게시글 목록 변환
+    const postList = posts.map(post => ({
+      id: post._id,
+      content: post.content,
+      createdAt: post.createdAt,
+      likesCount: post.likes.length,
+      commentCount: post.comments.length,
+      bookmarkCount: post.bookmarks.length,
+    }));
+
+    res.status(200).json({ success: true, data: postList });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

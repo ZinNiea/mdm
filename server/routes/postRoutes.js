@@ -52,5 +52,8 @@ router.post('/posts/:postId/comments/:commentId/report', commentController.repor
 
 
 
+/* 새로운 라우트: 특정 프로필의 게시글 목록 조회 */
+router.get('/posts/profile/:profileId', postController.getPostsByProfile);
+
 
 module.exports = router;
