@@ -90,7 +90,6 @@ exports.getAuctionItems = async (req, res) => {
  * @returns 
  */
 exports.getAuctionItemById = async (req, res) => {
-  // authorId, authorNickname, authorImage, authorRating, title, content, viewCount, startingBid, buyNowPrice, createdAt, duration, related, imageUrls, highestBidPrice, likeCount, 
   try {
     const item = await AuctionItem.findById(req.params.auctionId)
       .populate('highestBidder', 'username')
@@ -101,7 +100,18 @@ exports.getAuctionItemById = async (req, res) => {
       authorId: item.createdBy._id,
       authorNickname: item.createdBy.nickname,
       authorImage: item.createdBy.profileImage,
-      
+      authorRating: item.createdBy.rating,
+      title: item.title,
+      content: item.description,
+      viewCount: item.views,
+      startingBid: item.startingPrice,
+      buyNowPrice: item.instantBuyPrice,
+      createdAt: item.createdAt,
+      endTime: item.endTime,
+      related: item.related,
+      imageUrls: item.images,
+      highestBidPrice: item.currentBid,
+      likeCount: item.likes.length,
     };
     res.status(200).send(data);
   } catch (err) {
