@@ -10,8 +10,6 @@ const { Chat } = require('../models/chatModel');
  * @param {Response} res
  */
 exports.createAuctionItem = async (req, res) => {
-  //title, content, category(거래, 나눔, 이벤트), starting_bid, buy_now_price, duration, related,  image_urls, author_id
-  // const { title, description, startingPrice, instantBuyPrice, endTime } = req.body;
   const { title, content, category, starting_bid, buy_now_price, duration, related, author_id } = req.body;
 
   // 카테고리 유효성 검사
@@ -27,9 +25,8 @@ exports.createAuctionItem = async (req, res) => {
 
   // duration을 현재 시간에 더하여 endTime 계산 (duration: 시간 단위)
   const createdAt = new Date();
-  //  const endTime = new Date(Date.now() + duration * 60 * 60 * 1000);
   const endTime = new Date(createdAt.getTime() + duration * 60 * 60 * 1000);
-  const imageUrls = req.files.map(file => file.location); // S3에서의 이미지 URL
+  const imageUrls = req.files.map(file => file.location); // S3에서의 이미�� URL
 
   try {
     const auctionItem = new AuctionItem({
@@ -52,20 +49,15 @@ exports.createAuctionItem = async (req, res) => {
   }
 };
 
+
 /**
  * 경매 아이템 목록 조회
  * @param {Request} req 
  * @param {Response} res 
  */
 exports.getAuctionItems = async (req, res) => {
-  const { userId } = req.query;
-  /*
-  auctionId, related(관련 아티스트/웹툰 이름), 
-  title, highest_bid_price(최고 입찰 가격), 
-  duration, views, likes_count, image_urls(첫번째 사진 하나만 있어도 됨)
-   */
+  const { q, profileId } = req.query;
   try {
-    // const items = await AuctionItem.find().populate('highestBidder', 'username');
     const items = await AuctionItem.find();
 
     const now = new Date();
@@ -98,24 +90,18 @@ exports.getAuctionItems = async (req, res) => {
  * @returns 
  */
 exports.getAuctionItemById = async (req, res) => {
+  // authorId, authorNickname, authorImage, authorRating, title, content, viewCount, startingBid, buyNowPrice, createdAt, duration, related, imageUrls, highestBidPrice, likeCount, 
   try {
-    const item = await AuctionItem.findById(req.params.auctionId).populate('highestBidder', 'username');
+    const item = await AuctionItem.findById(req.params.auctionId)
+      .populate('highestBidder', 'username')
+      .populate('createdBy', 'nickname profileImage rating');
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-    //title, content, views, starting_bid, buy_now_price, created_at, duration, author_id, related(관련 아티스트/웹툰 이름), image_urls, highest_bid_price, likes_count, 
 
     const data = {
-      title: item.title,
-      content: item.description,
-      views: item.views,
-      starting_bid: item.startingPrice,
-      buy_now_price: item.instantBuyPrice,
-      created_at: item.createdAt,
-      author_id: item.createdBy,
-      related: item.related,
-      image_urls: item.images,
-      highest_bid_price: item.currentBid,
-      likes_count: item.likes.length,
-      endTime: item.endTime,
+      authorId: item.createdBy._id,
+      authorNickname: item.createdBy.nickname,
+      authorImage: item.createdBy.profileImage,
+      
     };
     res.status(200).send(data);
   } catch (err) {
@@ -130,12 +116,14 @@ exports.getAuctionItemById = async (req, res) => {
  * @returns 
  */
 exports.placeBid = async (req, res) => {
+  const { auctionId } = req.params;
+  const { amount, bidder_id } = req.body;
   try {
-    const item = await AuctionItem.findById(req.params.auctionId);
+    const item = await AuctionItem.findById(auctionId);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
     if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
 
-    const bidAmount = req.body.amount;
+    const bidAmount = amount;
     if (bidAmount < item.startingPrice || bidAmount <= item.currentBid) {
       return res.status(400).send('입찰 금액이 너무 낮습니다.');
     }
@@ -242,5 +230,36 @@ exports.endAuction = async (req, res) => {
     }
   } catch (err) {
     res.status(400).send(err.message);
+  }
+};
+
+/**
+ * 특정 유저가 생성한 경매 목록 조회 (GET /auctions/profile/:profileId)
+ * @param {Request} req
+ * @param {Response} res
+ */
+exports.getAuctionsByUser = async (req, res) => {
+  const { profileId } = req.params;
+  try {
+    const auctions = await AuctionItem.find({ createdBy: profileId })
+      .select('title related currentBid endTime views likes images')
+      .populate('likes', 'nickname') // 좋아요를 누른 사용자 정보 포함 (필요 시)
+      .sort({ createdAt: -1 }); // 최신 순 정렬
+
+    const postList = auctions.map(auction => ({
+      auctionId: auction._id,
+      related: auction.related,
+      title: auction.title,
+      highest_bid_price: auction.currentBid,
+      endTime: auction.endTime,
+      viewCount: auction.views,
+      likeCount: auction.likes.length,
+      imageUrl: auction.images ? [auction.images[0]] : [],
+    }));
+
+    res.status(200).json({ success: true, data: postList });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

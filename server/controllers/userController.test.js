@@ -153,7 +153,7 @@ describe('login', () => {
         {
           _id: 'profileId123',
           nickname: 'Tester',
-          userImage: 'http://example.com/image.jpg',
+          profileImage: 'http://example.com/image.jpg',
           birthdate: '1990-01-01',
         },
       ],
@@ -184,7 +184,7 @@ describe('login', () => {
           {
             id: 'profileId123',
             nickname: 'Tester',
-            userImage: 'http://example.com/image.jpg',
+            profileImage: 'http://example.com/image.jpg',
             birthdate: '1990-01-01',
           },
         ],

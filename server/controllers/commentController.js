@@ -40,7 +40,7 @@ exports.getComments = async (req, res) => {
     // 최상위 댓글만 조회 (parentId가 null인 댓글)
     const comments = await Comment.find({ postId, parentId: null })
       .sort({ createdAt: -1 })
-      .populate('author', 'nickname userImage')
+      .populate('author', 'nickname profileImage')
       .lean();
 
     // 재귀적으로 댓글과 하위 댓글을 조회하는 함수
@@ -51,14 +51,14 @@ exports.getComments = async (req, res) => {
         comment.author = {
           _id: null,
           nickname: '알 수 없음',
-          userImage: null,
+          profileImage: null,
         }
       }
 
       // 하위 댓글 조회
       const replies = await Comment.find({ parentId: comment._id })
         .sort({ createdAt: 1 })
-        .populate('author', 'nickname userImage')
+        .populate('author', 'nickname profileImage')
         .lean();
 
       // 각 하위 댓글에 대해 재귀적으로 하위 댓글 조회
@@ -69,7 +69,7 @@ exports.getComments = async (req, res) => {
             reply.author = {
               _id: null,
               nickname: '알 수 없음',
-              userImage: null,
+              profileImage: null,
             };
           }
           // 좋아요 정보 추가

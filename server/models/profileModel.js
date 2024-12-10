@@ -13,7 +13,7 @@ const profileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  userImage: {
+  profileImage: {
     type: String,
   },
   birthdate: {
@@ -33,6 +33,10 @@ const profileSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now,
+  },
+  rating: { // 매너 평가점수
+    type: Number,
+    default: 0,
   },
   // 추가로 필요한 프로필 정보를 여기에 추가합니다.
   interests: {

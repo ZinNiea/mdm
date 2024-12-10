@@ -18,7 +18,7 @@ const { isUsernameTaken, isEmailTaken } = require('../utils/userUtils');
 exports.registerUser = async (req, res) => {
   const { username, password, email, age, nickname } = req.body;
   // 업로드된 이미지의 URL 가져오기
-  const userImage = req.file ? req.file.location : null;
+  const profileImage = req.file ? req.file.location : null;
   const createdAt = new Date();
 
   // 허용할 도메인 목록
@@ -73,11 +73,11 @@ exports.registerUser = async (req, res) => {
 
     // 프로필 생성
   
-    // 삼항 연산자 사용해서, userImage가 있으면 userImage를 넣고, 없으면 userImage를 넣지 않는다.
-    const newProfile = userImage
+    // 삼항 연산자 사용해서, profileImage 있으면 profileImage 넣고, 없으면 profileImage 넣지 않는다.
+    const newProfile = profileImage
       ? new Profile({
           nickname: nickname,
-          userImage: userImage,
+          profileImage: profileImage,
           birthdate: age, // age가 birthdate라면 적절히 변환 필요
         })
       : new Profile({
@@ -207,7 +207,7 @@ exports.login = async (req, res) => {
     const profiles = user.profiles.map(profile => ({
       id: profile._id,
       nickname: profile.nickname,
-      userImage: profile.userImage,
+      profileImage: profile.profileImage,
       birthdate: profile.birthdate,
       // 필요한 다른 필드 추가
     }));
@@ -261,7 +261,7 @@ exports.deleteUser = async (req, res) => {
 // 유저의 프로필을 추가하는 함수
 exports.addProfile = async (req, res) => {
   const userId = req.params.userId; // URL 파라미터에서 유저 ID 추출
-  const { nickname, userImage, birthdate, phone_number, phone_verified } = req.body;
+  const { nickname, profileImage, birthdate, phone_number, phone_verified } = req.body;
 
   try {
     // 유저 찾기
@@ -278,7 +278,7 @@ exports.addProfile = async (req, res) => {
     // 새 프로필 객체 생성
     const newProfile = {
       nickname,
-      userImage,
+      profileImage,
       birthdate,
       phone_number,
       phone_verified,

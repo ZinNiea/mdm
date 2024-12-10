@@ -34,7 +34,7 @@ exports.getPosts = async (req, res) => {
   try {
     const posts = await Post.find(filter)
       .select('_id content author createdAt likes comments bookmarks') // 필요한 필드만 선택
-      .populate('author', 'nickname userImage') // 프로필 정보 포함
+      .populate('author', 'nickname profileImage') // 프로필 정보 포함
       .sort({ createdAt: -1 }); // 최신순으로 정렬
 
     // 각 게시��에 필요한 정보만 추출하여 새로운 객체 생성
@@ -43,7 +43,7 @@ exports.getPosts = async (req, res) => {
       content: post.content,
       authorId: post.author._id,
       authorNickname: post.author.nickname,
-      authorImage: post.author.userImage,
+      authorImage: post.author.profileImage,
       createdAt: post.createdAt,
       likesCount: post.likes.length,
       commentCount: post.comments.length,
@@ -77,8 +77,8 @@ exports.getPostById = async (req, res) => {
 
     // postId를 사용하여 게시물을 데이터베이스에서 조회하고, author와 comments.author 필드를 populating 합니다.
     const post = await Post.findById(postId)
-      .populate('author', 'nickname userImage')
-      .populate('comments.author', 'nickname userImage');
+      .populate('author', 'nickname profileImage')
+      .populate('comments.author', 'nickname profileImage');
 
     // 게시물이 존재하지 않으면 404 상태 코드와 함께 오류 메시지를 반환합니다.
     if (!post) {
@@ -93,7 +93,7 @@ exports.getPostById = async (req, res) => {
         content: post.content,
         authorId: post.author._id,
         authorNickname: post.author.nickname,
-        authorImage: post.author.userImage,
+        authorImage: post.author.profileImage,
         createdAt: post.createdAt,
         likesCount: post.likes.length,
         likeStatus: post.likes.includes(userId),
@@ -423,7 +423,7 @@ exports.getBookmarkedPosts = async (req, res) => {
   
   try {
     const bookmarkedPosts = await Post.find({ bookmarks: profileId })
-      .populate('author', 'nickname userImage')
+      .populate('author', 'nickname profileImage')
       .sort({ createdAt: -1 });
 
     const data = bookmarkedPosts.map(post => ({

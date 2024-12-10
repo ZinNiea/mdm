@@ -26,7 +26,7 @@ describe('Post Controller', () => {
                     author: {
                         _id: 'author1',
                         nickname: 'Tester',
-                        userImage: 'image1.png',
+                        profileImage: 'image1.png',
                     },
                     createdAt: new Date(),
                     likes: ['user1', 'user2'],
@@ -39,7 +39,7 @@ describe('Post Controller', () => {
                     author: {
                         _id: 'author2',
                         nickname: 'Tester2',
-                        userImage: 'image2.png',
+                        profileImage: 'image2.png',
                     },
                     createdAt: new Date(),
                     likes: [],
@@ -68,7 +68,7 @@ describe('Post Controller', () => {
                     content: post.content,
                     authorId: post.author._id,
                     authorNickname: post.author.nickname,
-                    authorImage: post.author.userImage,
+                    authorImage: post.author.profileImage,
                     createdAt: post.createdAt.toISOString(),
                     likesCount: post.likes.length,
                     commentCount: post.comments.length,
@@ -84,7 +84,7 @@ describe('Post Controller', () => {
                 author: 'user1',
             });
             expect(Post.find().select).toHaveBeenCalledWith('_id content author createdAt likes comments bookmarks');
-            expect(Post.find().populate).toHaveBeenCalledWith('author', 'nickname userImage');
+            expect(Post.find().populate).toHaveBeenCalledWith('author', 'nickname profileImage');
             expect(Post.find().sort).toHaveBeenCalledWith({ createdAt: -1 });
         });
 
@@ -111,13 +111,13 @@ describe('Post Controller', () => {
             // 3. 실제 호출
             const result = await Post.find(filter)
                   .select('_id content author createdAt likes comments bookmarks')
-                  .populate('author', 'nickname userImage')
+                  .populate('author', 'nickname profileImage')
                   .sort({ createdAt: -1 });
     
             // 4. 검증
             expect(Post.find).toHaveBeenCalledWith(filter);
             expect(selectMock).toHaveBeenCalledWith('_id content author createdAt likes comments bookmarks');
-            expect(populateMock).toHaveBeenCalledWith('author', 'nickname userImage');
+            expect(populateMock).toHaveBeenCalledWith('author', 'nickname profileImage');
             expect(sortMock).toHaveBeenCalledWith({ createdAt: -1 });
             expect(result).toEqual(mockPosts);
         });
