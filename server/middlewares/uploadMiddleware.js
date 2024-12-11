@@ -30,4 +30,14 @@ const upload = multer({
   },
 });
 
-module.exports = { upload };
+// 이미지 삭제 함수 추가
+const deleteImage = async (imageUrl) => {
+  const key = imageUrl.split('/').pop();
+  const params = {
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    Key: key,
+  };
+  return s3.deleteObject(params).promise();
+};
+
+module.exports = { upload, deleteImage };

@@ -3,6 +3,11 @@ const { Request, Response } = require('express');
 const { AuctionItem } = require('../models/auctionItemModel');
 const { Bid } = require('../models/bidModel');
 const { Chat } = require('../models/chatModel');
+const { Report } = require('../models/reportModel');
+const { profile } = require('winston');
+const AWS = require('aws-sdk'); // AWS SDK 추가
+const s3 = new AWS.S3();
+const { deleteImage } = require('../middlewares/uploadMiddleware'); // deleteImage 함수 추가
 
 /**
  * 경매 아이템 생성
@@ -10,7 +15,7 @@ const { Chat } = require('../models/chatModel');
  * @param {Response} res
  */
 exports.createAuctionItem = async (req, res) => {
-  const { title, content, category, starting_bid, buy_now_price, duration, related, author_id } = req.body;
+  const { profileId, title, content, category, startingbid, buyNowPrice, duration, related} = req.body;
 
   // 카테고리 유효성 검사
   const validCategories = ['거래', '나눔', '이벤트'];
@@ -26,24 +31,24 @@ exports.createAuctionItem = async (req, res) => {
   // duration을 현재 시간에 더하여 endTime 계산 (duration: 시간 단위)
   const createdAt = new Date();
   const endTime = new Date(createdAt.getTime() + duration * 60 * 60 * 1000);
-  const imageUrls = req.files.map(file => file.location); // S3에서의 이미�� URL
+  const imageUrls = req.files.map(file => file.location); // S3에서의 이미지 URL
 
   try {
     const auctionItem = new AuctionItem({
       title: title,
       description: content,
       category: category,
-      startingPrice: starting_bid,
-      instantBuyPrice: buy_now_price,
+      startingPrice: startingbid,
+      instantBuyPrice: buyNowPrice,
       endTime: endTime,
-      createdBy: author_id,
+      createdBy: profileId,
       images: imageUrls,
       related: related,
       createdAt: createdAt
     });
     await auctionItem.save();
     // res.send('경매 아이템이 생성되었습니다.');
-    res.status(201).send({ result: true });
+    res.status(201).send({ result: true, auctionId: auctionItem._id });
   } catch (err) {
     res.status(400).send(err.message);
   }
@@ -95,7 +100,6 @@ exports.getAuctionItemById = async (req, res) => {
       .populate('highestBidder', 'username')
       .populate('createdBy', 'nickname profileImage rating');
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-
     const data = {
       authorId: item.createdBy._id,
       authorNickname: item.createdBy.nickname,
@@ -127,7 +131,8 @@ exports.getAuctionItemById = async (req, res) => {
  */
 exports.placeBid = async (req, res) => {
   const { auctionId } = req.params;
-  const { amount, bidder_id } = req.body;
+  const { price, profileId } = req.body;
+  const amount = price;
   try {
     const item = await AuctionItem.findById(auctionId);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
@@ -140,13 +145,12 @@ exports.placeBid = async (req, res) => {
 
     item.currentBid = bidAmount;
     // item.highestBidder = req.user._id;
-    item.highestBidder = req.body.bidder_id;
+    item.highestBidder = profileId;
     await item.save();
 
     const bid = new Bid({
       amount: bidAmount,
-      // bidder: req.user._id,
-      bidder: req.body.bidder_id,
+      bidder: profileId,
       auctionItem: item._id,
       bidTime: new Date()
     });
@@ -164,6 +168,22 @@ exports.placeBid = async (req, res) => {
 };
 
 
+// 공통 채팅방 생성 및 알림 헬퍼 함수 추가
+const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) => {
+  const chatRoom = await Chat.create({
+    participants: [sellerId, bidderId],
+    auctionItem: auctionItemId,
+  });
+
+  const roomId = `auction_${chatRoom._id}`;
+  chatRoom.roomId = roomId;
+  await chatRoom.save();
+
+  // 판매자와 낙찰자에게 채팅방 정보 전송
+  io.to(sellerId.toString()).emit('chatRoom', { roomId });
+  io.to(bidderId.toString()).emit('chatRoom', { roomId });
+};
+
 /**
  * 즉시구매
  * @param {Request} req 
@@ -178,18 +198,24 @@ exports.instantBuy = async (req, res) => {
     if (!item.instantBuyPrice) return res.status(400).send('즉시구매가 불가능한 아이템입니다.');
 
     item.currentBid = item.instantBuyPrice;
-    item.highestBidder = req.user._id;
+    item.highestBidder = req.body.bidder_id;
     item.endTime = new Date(); // 경매 종료
     await item.save();
 
     const bid = new Bid({
       amount: item.instantBuyPrice,
-      bidder: req.user._id,
+      bidder: req.body.bidder_id,
       auctionItem: item._id
     });
     await bid.save();
 
-    res.send('즉시구매가 완료되었습니다.');
+    // 헬퍼 함수 호출하여 채팅방 생성 및 알림
+    const io = req.app.get('io');
+    await createChatRoomAndNotify(item.createdBy, req.body.bidder_id, item._id, io);
+
+    res.status(201)
+      .location(`/auctions/${item._id}/bids/${bid._id}`)
+      .send({ result: true });
   } catch (err) {
     res.status(400).send(err.message);
   }
@@ -203,7 +229,7 @@ exports.instantBuy = async (req, res) => {
  */
 exports.endAuction = async (req, res) => {
   try {
-    const auctionId = req.params.auctionId;
+    const { auctionId } = req.params;
     const item = await AuctionItem.findById(auctionId).populate('highestBidder');
 
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
@@ -218,22 +244,8 @@ exports.endAuction = async (req, res) => {
     const io = req.app.get('io');
 
     if (item.highestBidder) {
-      // 낙찰자에게 알림 또는 추가 로직 수행
-      const chatRoom = await Chat.create({
-        participants: [item.createdBy, item.highestBidder._id],
-        auctionItem: item._id,
-      });
-
-      const roomId = `auction_${chatRoom._id}`;
-
-      // 채팅방 ID를 설정 (예: 경매 ID 사용 가능)
-      chatRoom.roomId = roomId;
-      await chatRoom.save();
-
-      // 판매자와 낙찰자에게 채팅방 정보 전송
-      io.to(item.createdBy.toString()).emit('chatRoom', { roomId });
-      io.to(item.highestBidder._id.toString()).emit('chatRoom', { roomId });
-
+      // 헬퍼 함수 호출하여 채팅방 생성 및 알림
+      await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
       res.send('경매가 종료되었습니다. 실시간 채팅방이 생성되었습니다.');
     } else {
       res.send('경매가 종료되었으나, 입찰자가 없습니다.');
@@ -248,7 +260,7 @@ exports.endAuction = async (req, res) => {
  * @param {Request} req
  * @param {Response} res
  */
-exports.getAuctionsByUser = async (req, res) => {
+exports.getAuctionsByProfile = async (req, res) => {
   const { profileId } = req.params;
   try {
     const auctions = await AuctionItem.find({ createdBy: profileId })
@@ -271,5 +283,108 @@ exports.getAuctionsByUser = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * 거래 신고
+ * @param {Request} req 
+ * @param {Response} res 
+ * @returns 
+ */
+exports.reportAuctionItem = async (req, res) => {
+  try {
+    const { auctionId } = req.params; // 신고할 게시글 ID
+    const { category, content, profileId } = req.body; // 신고 카테고리와 내용
+    
+    const auctionItem = await AuctionItem.findById(auctionId);
+    if (!auctionItem) {
+      return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
+    }
+
+    const report = new Report({
+      auctionItem: auctionItem._id,
+      reporter: profileId,
+      category: category,
+      content: content,
+    });
+    await report.save();
+
+    res.status(200).json({ result: true, message: '게시글이 신고되었습니다.' });
+  } catch (error) {
+    res.status(500).json({ result: false, message: error.message });
+  }
+};
+
+/**
+ * 경매 아이템 삭제
+ * @param {Request} req
+ * @param {Response} res
+ */
+exports.deleteAuctionItem = async (req, res) => {
+  try {
+    const { auctionId } = req.params;
+    const { profileId } = req.body;
+    const auctionItem = await AuctionItem.findById(auctionId);
+
+    if (!auctionItem) {
+      return res.status(404).send('아이템을 찾을 수 없습니다.');
+    }
+
+    if (auctionItem.createdBy.toString() !== profileId.toString()) {
+      return res.status(403).send('경매를 삭제할 권한이 없습니다.');
+    }
+
+    await AuctionItem.findByIdAndDelete(auctionId);
+    res.status(200).json({ message: '경매 아이템이 삭제되었습니다.'});
+  } catch (err) {
+    res.status(400).send(err.message);
+  }
+};
+
+/**
+ * 경매 아이템 수정
+ * @param {Request} req
+ * @param {Response} res
+ */
+exports.updateAuctionItem = async (req, res) => {
+  const { auctionId, profileId, title, content, duration } = req.body;
+  const imageFiles = req.files;
+
+  try {
+    const auctionItem = await AuctionItem.findById(auctionId);
+    if (!auctionItem) {
+      return res.status(404).send('아이템을 찾을 수 없습니다.');
+    }
+
+    if (auctionItem.createdBy.toString() !== profileId.toString()) {
+      return res.status(403).send('경매를 수정할 권한이 없습니다.');
+    }
+
+    // 기존 이미지 삭제
+    const imagesToDelete = auctionItem.images;
+    for (const imageUrl of imagesToDelete) {
+      await deleteImage(imageUrl);
+    }
+
+    // 수정할 필드 업데이트
+    if (title) auctionItem.title = title;
+    if (content) auctionItem.description = content;
+    if (duration && !isNaN(duration) && duration > 0) {
+      auctionItem.endTime = new Date(Date.now() + duration * 60 * 60 * 1000);
+    }
+
+    // 새로운 이미지 저장
+    if (imageFiles && imageFiles.length > 0) {
+      const newImageUrls = imageFiles.map(file => file.location);
+      auctionItem.images = newImageUrls;
+    } else {
+      auctionItem.images = [];
+    }
+
+    await auctionItem.save();
+    res.status(200).send({ result: true, auctionId: auctionItem._id });
+  } catch (err) {
+    res.status(400).send(err.message);
   }
 };

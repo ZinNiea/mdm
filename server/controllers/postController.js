@@ -77,8 +77,8 @@ exports.getPostById = async (req, res) => {
 
     // postId를 사용하여 게시물을 데이터베이스에서 조회하고, author와 comments.author 필드를 populating 합니다.
     const post = await Post.findById(postId)
-      .populate('author', 'nickname profileImage')
-      .populate('comments.author', 'nickname profileImage');
+      .populate('author', 'nickname profileImage');
+      // .populate('comments.author', 'nickname profileImage');
 
     // 게시물이 존재하지 않으면 404 상태 코드와 함께 오류 메시지를 반환합니다.
     if (!post) {
@@ -89,7 +89,7 @@ exports.getPostById = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        _id: post._id,
+        postId: post._id,
         content: post.content,
         authorId: post.author._id,
         authorNickname: post.author.nickname,

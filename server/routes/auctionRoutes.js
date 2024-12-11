@@ -19,29 +19,18 @@ router.get('/:auctionId', auctionController.getAuctionItemById);
 router.post('/:auctionId/bids', auctionController.placeBid);
 
 // 즉시구매
-router.post('/:auctionId/instant-buys', async (req, res) => {
-  try {
-    const item = await AuctionItem.findById(req.params.id);
-    if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-    if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
-    if (!item.instantBuyPrice) return res.status(400).send('즉시구매가 불가능한 아이템입니다.');
+router.post('/:auctionId/instant-buys', auctionController.instantBuy);
 
-    item.currentBid = item.instantBuyPrice;
-    item.highestBidder = req.user._id;
-    item.endTime = new Date(); // 경매 종료
-    await item.save();
+// 경매 아이템 삭제
+router.delete('/:auctionId', auctionController.deleteAuctionItem);
 
-    const bid = new Bid({
-      amount: item.instantBuyPrice,
-      bidder: req.user._id,
-      auctionItem: item._id
-    });
-    await bid.save();
+// 경매 아이템 수정
+router.put('/:auctionId', upload.array('images', 5), auctionController.updateAuctionItem);
 
-    res.send('즉시구매가 완료되었습니다.');
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
+// 특정 프로필이 생성한 경매 아이템 조회
+router.get('/profile/:profileId', auctionController.getAuctionsByProfile);
+
+// 경매 신고
+router.post('/:auctionId/reports', auctionController.reportAuctionItem);
 
 module.exports = router;
