@@ -348,7 +348,7 @@ exports.deleteAuctionItem = async (req, res) => {
  * @param {Response} res
  */
 exports.updateAuctionItem = async (req, res) => {
-  const { auctionId, profileId, title, content, duration } = req.body;
+  const { auctionId, profileId, title, content, duration, buyNowPrice } = req.body;
   const imageFiles = req.files;
 
   try {
@@ -373,6 +373,7 @@ exports.updateAuctionItem = async (req, res) => {
     if (duration && !isNaN(duration) && duration > 0) {
       auctionItem.endTime = new Date(Date.now() + duration * 60 * 60 * 1000);
     }
+    if (buyNowPrice) auctionItem.instantBuyPrice = buyNowPrice;
 
     // 새로운 이미지 저장
     if (imageFiles && imageFiles.length > 0) {
