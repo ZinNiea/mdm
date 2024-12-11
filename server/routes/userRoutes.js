@@ -18,6 +18,9 @@ router.get('/profiles/:profileId/interests', userController.getInterests);
 // 특정 프로필에 관심사 추가 라우트 추가
 router.post('/profiles/:profileId/interests', userController.addInterest);
 
+// 특정 프로필에 관심사 삭제 라우트 수정
+router.delete('/profiles/:profileId/interests/:subCategory', userController.deleteInterest);
+
 // router.post('/:userId/profiles/:profileId/interests', userController.addInterest);
 // router.put('/:userId/profiles/:profileId/interests/:interestId', userController.updateInterest);
 // router.get('/:userId/profiles/:profileId/interests', userController.getInterests);

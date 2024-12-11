@@ -370,3 +370,33 @@ exports.addInterest = async (req, res) => {
     });
   }
 };
+
+// 특정 프로필의 관심사를 subCategory 기준으로 삭제하는 함수 수정
+exports.deleteInterest = async (req, res) => {
+  const { profileId, subCategory } = req.params;
+
+  try {
+    const profile = await Profile.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    const interest = profile.interests.find(i => i.subCategory === subCategory);
+    if (!interest) {
+      return res.status(404).json({ result: false, message: '관심사를 찾을 수 없습니다.' });
+    }
+
+    profile.interests = profile.interests.filter(i => i.subCategory !== subCategory);
+    await profile.save();
+
+    res.status(200).json({ 
+      result: true, 
+      message: '관심사가 성공적으로 삭제되었습니다.' 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      result: false, 
+      message: err.message 
+    });
+  }
+};
