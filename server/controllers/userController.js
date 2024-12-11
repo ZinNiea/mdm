@@ -295,3 +295,22 @@ exports.addProfile = async (req, res) => {
     res.status(500).json({ result: false, message: err.message });
   }
 };
+
+// mainCategory에 따른 모든 subCategory 조회
+exports.getSubCategories = async (req, res) => {
+  const { mainCategory } = req.params;
+  try {
+    const profiles = await Profile.find({ 'interests.mainCategory': mainCategory });
+    const subCategoriesSet = new Set();
+    profiles.forEach(profile => {
+      profile.interests.forEach(interest => {
+        if (interest.mainCategory === mainCategory) {
+          subCategoriesSet.add(interest.subCategory);
+        }
+      });
+    });
+    res.status(200).json({ subCategories: Array.from(subCategoriesSet) });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

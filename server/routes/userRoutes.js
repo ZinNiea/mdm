@@ -10,6 +10,7 @@ router.post('/register', upload.single('profileImage'), userController.registerU
 router.post('/login', userController.login);
 router.delete('/:userId/delete', userController.deleteUser);
 router.put('/:userId/profile', userController.addProfile);
+router.get('/subcategories/:mainCategory', userController.getSubCategories);
 
 // router.post('/:userId/profiles/:profileId/interests', userController.addInterest);
 // router.put('/:userId/profiles/:profileId/interests/:interestId', userController.updateInterest);
