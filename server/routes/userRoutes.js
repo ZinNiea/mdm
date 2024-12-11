@@ -12,6 +12,9 @@ router.delete('/:userId/delete', userController.deleteUser);
 router.put('/:userId/profile', userController.addProfile);
 router.get('/subcategories/:mainCategory', userController.getSubCategories);
 
+// 특정 프로필의 관심사 조회 라우트 추가
+router.get('/profiles/:profileId/interests', userController.getInterests);
+
 // router.post('/:userId/profiles/:profileId/interests', userController.addInterest);
 // router.put('/:userId/profiles/:profileId/interests/:interestId', userController.updateInterest);
 // router.get('/:userId/profiles/:profileId/interests', userController.getInterests);

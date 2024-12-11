@@ -314,3 +314,24 @@ exports.getSubCategories = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// 특정 프로필의 관심사를 조회하는 함수 추가
+exports.getInterests = async (req, res) => {
+  const { profileId } = req.params;
+  try {
+    const profile = await Profile.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ 
+      result: true, 
+      interests: profile.interests 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      result: false, 
+      message: err.message 
+    });
+  }
+};
