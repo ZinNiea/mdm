@@ -17,7 +17,7 @@ const upload = multer({
     bucket: process.env.AWS_S3_BUCKET_NAME,
     acl: 'public-read',
     key: function (req, file, cb) {
-      cb(null, `uploads/${Date.now().toString()}_${file.originalname}`);
+      cb(null, `profiles/${Date.now().toString()}_${file.originalname}`);
     },
   }),
   limits: { fileSize: 5 * 1024 * 1024 },

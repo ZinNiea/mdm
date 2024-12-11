@@ -19,12 +19,20 @@ const profileSchema = new mongoose.Schema({
   birthdate: {
     type: Date,
   },
-  phoneNumber: {
+  gender: {
     type: String,
   },
-  phoneVerified: {
-    type: Boolean,
-    default: false,
+  mbti: {
+    type: String,
+  },
+  introduction: {
+    type: String,
+  },
+  likeWork : {
+    type: String,
+  },
+  likeSong : {
+    type: String,
   },
   createdAt: {
     type: Date,
@@ -42,7 +50,10 @@ const profileSchema = new mongoose.Schema({
   interests: {
     type: [interestSchema],
     validate: [interestsLimit, '최대 5개의 관심사만 가질 수 있습니다.']
-  }
+  },
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
+  topFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
 });
 
 function interestsLimit(val) {

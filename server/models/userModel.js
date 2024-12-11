@@ -20,6 +20,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  phoneNumber: {
+    type: String,
+  },
+  phoneVerified: {
+    type: Boolean,
+    default: false,
+  },
   // 가입일 필드 추가
   createdAt: {
     type: Date,

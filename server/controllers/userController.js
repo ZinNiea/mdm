@@ -13,6 +13,7 @@ const SALT_ROUNDS = 10;
 
 // 중복을 확인하는 유틸리티 함수를 가져옵니다.
 const { isUsernameTaken, isEmailTaken } = require('../utils/userUtils');
+const { upload, deleteImage } = require('../middlewares/uploadMiddleware');
 
 // 회원가입 기능
 exports.registerUser = async (req, res) => {
@@ -260,8 +261,10 @@ exports.deleteUser = async (req, res) => {
 
 // 유저의 프로필을 추가하는 함수
 exports.addProfile = async (req, res) => {
+  //nickname, profileImage, mbti, intro, likeWork, likeSong
   const userId = req.params.userId; // URL 파라미터에서 유저 ID 추출
-  const { nickname, profileImage, birthdate, phone_number, phone_verified } = req.body;
+  const { nickname, birthdate, phoneNumber, phoneVerified } = req.body;
+  const profileImage = req.file ? req.file.location : null;
 
   try {
     // 유저 찾기
@@ -275,17 +278,17 @@ exports.addProfile = async (req, res) => {
       return res.status(400).json({ result: false, message: '프로필은 최대 5개까지 추가할 수 있습니다.' });
     }
 
-    // 새 프로필 객체 생성
-    const newProfile = {
+    // 새 프로필 생성
+    const newProfile = new Profile({
       nickname,
       profileImage,
       birthdate,
-      phone_number,
-      phone_verified,
-    };
+    });
 
-    // 프로필 추가
-    user.profiles.push(newProfile);
+    await newProfile.save();
+
+    // 프로필 ID 추가
+    user.profiles.push(newProfile._id);
 
     // 유저 저장
     await user.save();
@@ -398,5 +401,208 @@ exports.deleteInterest = async (req, res) => {
       result: false, 
       message: err.message 
     });
+  }
+};
+
+// 특정 유저의 프로필 목록을 조회하는 함수 추가
+exports.getUserProfiles = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const user = await User.findById(userId).populate('profiles, nickname');
+    if (!user) {
+      return res.status(404).json({ result: false, message: '유저를 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ 
+      result: true, 
+      profiles: user.profiles 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      result: false, 
+      message: err.message 
+    });
+  }
+};
+
+// 특정 프로필을 수정하는 함수 추가
+exports.updateProfile = async (req, res) => {
+  const { profileId } = req.params;
+  const { nickname, birthdate, gender, mbti, intro, likeWork, likeSong } = req.body;
+  const profileImage = req.file ? req.file.location : null;
+
+  try {
+    const profile = await Profile.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    // 기존 이미지가 있고 새로운 이미지가 업로드된 경우 기존 이미지 삭제
+    if (profile.profileImage && profileImage) {
+      await deleteImage(profile.profileImage);
+      profile.profileImage = profileImage;
+    } else if (profileImage) {
+      profile.profileImage = profileImage;
+    }
+
+    // 기타 필드 업데이트
+    if (nickname) profile.nickname = nickname;
+    if (birthdate) profile.birthdate = birthdate;
+    if (gender) profile.gender = gender;
+    if (mbti) profile.mbti = mbti;
+    if (intro) profile.introduction = intro;
+    if (likeWork) profile.likeWork = likeWork;
+    if (likeSong) profile.likeSong = likeSong;
+
+    profile.updatedAt = new Date();
+
+    await profile.save();
+
+    res.status(200).json({ result: true, message: '프로필이 성공적으로 업데이트되었습니다.', data: profile });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필을 조회하는 함수 추가
+exports.getProfile = async (req, res) => {
+  const { profileId, targetProfileId } = req.params;
+  try {
+    const profile = await Profile.findById(profileId).populate('topFriends', 'nickname profileImage');
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ 
+      result: true, 
+      info: {
+        nickname: profile.nickname,
+        profileImage: profile.profileImage,
+        birthdate: profile.birthdate,
+        gender: profile.gender,
+        mbti: profile.mbti,
+        likeWork: profile.likeWork,
+        likeSong: profile.likeSong,
+        intro: profile.introduction,
+      },
+      interests: profile.interests,
+      followingState: profile.following.includes(targetProfileId),
+      followingCount: profile.following.length,
+      followersCount: profile.followers.length,
+      topFriends: profile.topFriends
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      result: false, 
+      message: err.message 
+    });
+  }
+};
+
+// 사용자 팔로우 기능
+exports.followUser = async (req, res) => {
+  const userId = req.user.id; // 토큰에서 추출한 사용자 ID
+  const targetUserId = req.params.userId; // 팔로우할 사용자 ID
+
+  try {
+    const user = await User.findById(userId);
+    const targetUser = await User.findById(targetUserId);
+
+    if (!targetUser) {
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    if (user.following.includes(targetUserId)) {
+      return res.status(400).json({ result: false, message: '이미 팔로우 중입니다.' });
+    }
+
+    user.following.push(targetUserId);
+    targetUser.followers.push(userId);
+
+    await user.save();
+    await targetUser.save();
+
+    res.status(200).json({ result: true, message: '팔로우 성공' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 사용자 언팔로우 기능
+exports.unfollowUser = async (req, res) => {
+  const userId = req.user.id;
+  const targetUserId = req.params.userId;
+
+  try {
+    const user = await User.findById(userId);
+    const targetUser = await User.findById(targetUserId);
+
+    if (!targetUser) {
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    if (!user.following.includes(targetUserId)) {
+      return res.status(400).json({ result: false, message: '팔로우 중이 아닙니다.' });
+    }
+
+    user.following.pull(targetUserId);
+    targetUser.followers.pull(userId);
+
+    await user.save();
+    await targetUser.save();
+
+    res.status(200).json({ result: true, message: '언팔로우 성공' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+exports.addSpecialFriend = async (req, res) => {
+  try {
+    const profileId = req.user.profileId; // 인증된 사용자의 프로필 ID
+    const targetProfileId = req.params.profileId;
+
+    const profile = await Profile.findById(profileId);
+    const targetProfile = await Profile.findById(targetProfileId);
+
+    if (!targetProfile) {
+      return res.status(404).json({ message: '대상 프로필을 찾을 수 없습니다.' });
+    }
+
+    // 추가된 부분: 대상 프로필이 팔로잉 중인지 확인
+    if (!profile.following.includes(targetProfileId)) {
+      return res.status(400).json({ message: '특별한 친구로 등록하려면 먼저 해당 프로필을 팔로우해야 합니다.' });
+    }
+
+    if (profile.topFriends.includes(targetProfileId)) {
+      return res.status(400).json({ message: '이미 특별한 친구로 등록되어 있습니다.' });
+    }
+
+    profile.topFriends.push(targetProfileId);
+    await profile.save();
+
+    res.status(200).json({ message: '특별한 친구로 추가되었습니다.' });
+  } catch (error) {
+    res.status(500).json({ message: '서버 오류입니다.' });
+  }
+};
+
+exports.removeSpecialFriend = async (req, res) => {
+  try {
+    const profileId = req.user.profileId; // 인증된 사용자의 프로필 ID
+    const targetProfileId = req.params.profileId;
+
+    const profile = await Profile.findById(profileId);
+
+    if (!profile.topFriends.includes(targetProfileId)) {
+      return res.status(400).json({ message: '특별한 친구로 등록되어 있지 않습니다.' });
+    }
+
+    profile.topFriends = profile.topFriends.filter(id => id.toString() !== targetProfileId);
+    await profile.save();
+
+    res.status(200).json({ message: '특별한 친구에서 제거되었습니다.' });
+  } catch (error) {
+    res.status(500).json({ message: '서버 오류입니다.' });
   }
 };
