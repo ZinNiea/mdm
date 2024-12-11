@@ -52,6 +52,34 @@ const commentReportSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+const ProfileReportSchema = new mongoose.Schema({
+  profile: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: MODELS.PROFILE,
+    required: true,
+  },
+  reporter: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: MODELS.PROFILE,
+    required: true,
+  },
+  category: {
+    type: String,
+    required: true,
+  },
+  content: {
+    type: String,
+    required: true,
+  },
+  reportedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
 const Report = mongoose.model(MODELS.REPORT, ReportSchema);
 const CommentReport = mongoose.model(MODELS.COMMENTREPORT, commentReportSchema);
-module.exports = { Report, CommentReport };
+const ProfileReport = mongoose.model(MODELS.PROFILEREPORT, ProfileReportSchema);
+
+module.exports = { Report, CommentReport, ProfileReport };

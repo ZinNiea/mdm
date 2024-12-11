@@ -14,6 +14,7 @@ const SALT_ROUNDS = 10;
 // 중복을 확인하는 유틸리티 함수를 가져옵니다.
 const { isUsernameTaken, isEmailTaken } = require('../utils/userUtils');
 const { upload, deleteImage } = require('../middlewares/uploadMiddleware');
+const { ProfileReport } = require('../models/reportModel');
 
 // 회원가입 기능
 exports.registerUser = async (req, res) => {
@@ -74,7 +75,7 @@ exports.registerUser = async (req, res) => {
 
     // 프로필 생성
   
-    // 삼항 연산자 사용해서, profileImage 있으면 profileImage 넣고, 없으면 profileImage 넣지 않는다.
+    // 삼항 연산자 사용��서, profileImage 있으면 profileImage 넣고, 없으면 profileImage 넣지 않는다.
     const newProfile = profileImage
       ? new Profile({
           nickname: nickname,
@@ -156,18 +157,18 @@ exports.checkUsername = async (req, res) => {
   }
 };
 
-// 이메일 중복 검사 API
+// 이메일 중복 검사 API 수정: email과 domain을 별도로 받음
 exports.checkEmail = async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
+  const { email, domain } = req.body;
+  if (!email || !domain) {
     return res.status(400).json({
       result: false,
-      message: '이메일이 필요합니다.'
+      message: 'email과 domain이 필요합니다.'
     });
   }
 
   try {
-    if (await isEmailTaken(email)) {
+    if (await isEmailTaken(email, domain)) {
       return res.status(200).json({
         result: false,
         message: '이미 사용 중인 이메일입니다.'
@@ -176,6 +177,36 @@ exports.checkEmail = async (req, res) => {
       return res.status(200).json({
         result: true,
         message: '사용 가능한 이메일입니다.'
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      result: false,
+      message: err.message
+    });
+  }
+};
+
+// 닉네임 중복 검사 API
+exports.checkNickname = async (req, res) => {
+  const { nickname } = req.body;
+  if (!nickname) {
+    return res.status(400).json({
+      result: false,
+      message: '닉네임이 필요합니다.'
+    });
+  }
+
+  try {
+    if (await isNicknameTaken(nickname)) {
+      return res.status(200).json({
+        result: false,
+        message: '이미 사용 중인 닉네임입니다.'
+      });
+    } else {
+      return res.status(200).json({
+        result: true,
+        message: '사용 가능한 닉네임입니다.'
       });
     }
   } catch (err) {
@@ -557,52 +588,248 @@ exports.unfollowUser = async (req, res) => {
   }
 };
 
-exports.addSpecialFriend = async (req, res) => {
+// 수정된 프로필 검색 기능
+exports.searchProfiles = async (req, res) => {
+  const { profileId, q, interests } = req.query;
+  const nickname = q;
   try {
-    const profileId = req.user.profileId; // 인증된 사용자의 프로필 ID
-    const targetProfileId = req.params.profileId;
+    const query = {};
 
-    const profile = await Profile.findById(profileId);
-    const targetProfile = await Profile.findById(targetProfileId);
-
-    if (!targetProfile) {
-      return res.status(404).json({ message: '대상 프로필을 찾을 수 없습니다.' });
+    if (profileId) {
+      query._id = profileId;
     }
 
-    // 추가된 부분: 대상 프로필이 팔로잉 중인지 확인
-    if (!profile.following.includes(targetProfileId)) {
-      return res.status(400).json({ message: '특별한 친구로 등록하려면 먼저 해당 프로필을 팔로우해야 합니다.' });
+    if (nickname) {
+      query.nickname = { $regex: nickname, $options: 'i' };
     }
 
-    if (profile.topFriends.includes(targetProfileId)) {
-      return res.status(400).json({ message: '이미 특별한 친구로 등록되어 있습니다.' });
+    if (interests) {
+      const interestsArray = Array.isArray(interests) ? interests : [interests];
+      query['interests.subCategory'] = { $in: interestsArray };
     }
 
-    profile.topFriends.push(targetProfileId);
-    await profile.save();
-
-    res.status(200).json({ message: '특별한 친구로 추가되었습니다.' });
-  } catch (error) {
-    res.status(500).json({ message: '서버 오류입니다.' });
+    const profiles = await Profile.find(query).select('nickname profileImage mbti gender interests');
+    res.status(200).json({ result: true, profiles });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
   }
 };
 
-exports.removeSpecialFriend = async (req, res) => {
+// 프로필의 topFriends 조회 기능 추가
+exports.getTopFriends = async (req, res) => {
+  const { profileId } = req.params;
   try {
-    const profileId = req.user.profileId; // 인증된 사용자의 프로필 ID
-    const targetProfileId = req.params.profileId;
-
-    const profile = await Profile.findById(profileId);
-
-    if (!profile.topFriends.includes(targetProfileId)) {
-      return res.status(400).json({ message: '특별한 친구로 등록되어 있지 않습니다.' });
+    const profile = await Profile.findById(profileId).populate('topFriends', 'nickname profileImage');
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
     }
 
-    profile.topFriends = profile.topFriends.filter(id => id.toString() !== targetProfileId);
+    res.status(200).json({ result: true, topFriends: profile.topFriends });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 프로필에 topFriends 추가 기능
+exports.addTopFriend = async (req, res) => {
+  const { profileId } = req.params;
+  const { friendId } = req.body;
+
+  if (!friendId) {
+    return res.status(400).json({
+      result: false,
+      message: 'friendId가 필요합니다.'
+    });
+  }
+
+  try {
+    const profile = await Profile.findById(profileId);
+    const friendProfile = await Profile.findById(friendId);
+
+    if (!profile || !friendProfile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (profile.topFriends.includes(friendId)) {
+      return res.status(400).json({ result: false, message: '이미 topFriend에 등록된 프로필입니다.' });
+    }
+
+    profile.topFriends.push(friendId);
     await profile.save();
 
-    res.status(200).json({ message: '특별한 친구에서 제거되었습니다.' });
-  } catch (error) {
-    res.status(500).json({ message: '서버 오류입니다.' });
+    res.status(200).json({ result: true, message: 'topFriend가 성공적으로 추가되었습니다.', topFriends: profile.topFriends });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 프로필에서 topFriends 삭제 기능
+exports.deleteTopFriend = async (req, res) => {
+  const { profileId, friendId } = req.params;
+
+  try {
+    const profile = await Profile.findById(profileId);
+
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (!profile.topFriends.includes(friendId)) {
+      return res.status(400).json({ result: false, message: 'topFriend에 등록되지 않은 프로필입니다.' });
+    }
+
+    profile.topFriends = profile.topFriends.filter(id => id.toString() !== friendId);
+    await profile.save();
+
+    res.status(200).json({ result: true, message: 'topFriend가 성공적으로 삭제되었습니다.', topFriends: profile.topFriends });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+exports.reportProfile = async (req, res) => {
+  const { profileId } = req.params;
+  const { category, content } = req.body;
+  const reporterId = req.user.id;
+
+  if (!category || !content) {
+    return res.status(400).json({
+      result: false,
+      message: 'category와 content가 필요합니다.',
+    });
+  }
+
+  try {
+    const profile = await Profile.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    const newReport = new ProfileReport({
+      profile: profileId,
+      reporter: reporterId,
+      category,
+      content,
+    });
+
+    await newReport.save();
+
+    res.status(201).json({ result: true, message: '프로필이 성공적으로 신고되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필 차단
+exports.blockProfile = async (req, res) => {
+  const { profileId } = req.params;
+  const { blockedProfileId } = req.body;
+
+  if (!blockedProfileId) {
+    return res.status(400).json({
+      result: false,
+      message: 'blockedProfileId가 필요합니다.',
+    });
+  }
+
+  try {
+    const profile = await Profile.findById(profileId);
+    const blockedProfile = await Profile.findById(blockedProfileId);
+
+    if (!profile || !blockedProfile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (profile.blockedProfiles.includes(blockedProfileId)) {
+      return res.status(400).json({ result: false, message: '이미 차단된 프로필입니다.' });
+    }
+
+    profile.blockedProfiles.push(blockedProfileId);
+    await profile.save();
+
+    res.status(200).json({ result: true, message: '프로필이 성공적으로 차단되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필 차단 해제
+exports.unblockProfile = async (req, res) => {
+  const { profileId, blockedProfileId } = req.params;
+
+  try {
+    const profile = await Profile.findById(profileId);
+
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (!profile.blockedProfiles.includes(blockedProfileId)) {
+      return res.status(400).json({ result: false, message: '차단된 프로필이 아닙니다.' });
+    }
+
+    profile.blockedProfiles = profile.blockedProfiles.filter(id => id.toString() !== blockedProfileId);
+    await profile.save();
+
+    res.status(200).json({ result: true, message: '프로필의 차단이 해제되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필 숨기기
+exports.hideProfile = async (req, res) => {
+  const { profileId } = req.params;
+  const { hiddenProfileId } = req.body;
+
+  if (!hiddenProfileId) {
+    return res.status(400).json({
+      result: false,
+      message: 'hiddenProfileId가 필요합니다.',
+    });
+  }
+
+  try {
+    const profile = await Profile.findById(profileId);
+    const hiddenProfile = await Profile.findById(hiddenProfileId);
+
+    if (!profile || !hiddenProfile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (profile.hiddenProfiles.includes(hiddenProfileId)) {
+      return res.status(400).json({ result: false, message: '이미 숨겨진 프로필입니다.' });
+    }
+
+    profile.hiddenProfiles.push(hiddenProfileId);
+    await profile.save();
+
+    res.status(200).json({ result: true, message: '프로필이 성공적으로 숨겨졌습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필 숨기기 해제
+exports.unhideProfile = async (req, res) => {
+  const { profileId, hiddenProfileId } = req.params;
+
+  try {
+    const profile = await Profile.findById(profileId);
+
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (!profile.hiddenProfiles.includes(hiddenProfileId)) {
+      return res.status(400).json({ result: false, message: '숨겨진 프로필이 아닙니다.' });
+    }
+
+    profile.hiddenProfiles = profile.hiddenProfiles.filter(id => id.toString() !== hiddenProfileId);
+    await profile.save();
+
+    res.status(200).json({ result: true, message: '프로필 숨기기가 해제되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
   }
 };

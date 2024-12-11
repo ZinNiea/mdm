@@ -31,14 +31,40 @@ router.put('/profiles/:profileId', upload.single('profileImage'), userController
 // 특정 프로필 조회 라우트
 router.get('/profiles/:profileId', userController.getProfile);
 
+// 프로필 검색 라우트 추가
+router.get('/profiles', userController.searchProfiles);
+
 // 팔로우 기능 라우트
 router.post('/users/:userId/follow', userController.followUser);
 router.post('/users/:userId/unfollow', userController.unfollowUser);
 
-// 특별한 친구 추가 라우트
-router.post('/profiles/:profileId/special-friends', userController.addSpecialFriend);
+// 프로필의 topFriends 조회 라우트 추가
+router.get('/profile/:profileId/top-friends', userController.getTopFriends);
 
-// 특별한 친구 제거 라우트
-router.delete('/profiles/:profileId/special-friends', userController.removeSpecialFriend);
+// 프로필의 topFriends 추가 라우트 추가
+router.post('/profile/:profileId/top-friends', userController.addTopFriend);
+
+// 프로필의 topFriends 삭제 라우트 추가
+router.delete('/profile/:profileId/top-friends/:friendId', userController.deleteTopFriend);
+
+// 이메일 중복 확인 라우트 추가
+router.post('/check-email', userController.checkEmail);
+
+// 닉네임 중복 확인 라우트 추가
+router.post('/check-nickname', userController.checkNickname);
+
+// 로그인 ID 중복 확인 라우트 추가
+router.post('/check-username', userController.checkUsername);
+
+// 프로필 신고 라우트 추가
+router.post('/profiles/:profileId/report', authenticateToken, userController.reportProfile);
+
+// 특정 프로필 차단 라우트
+router.post('/profile/:profileId/block', userController.blockProfile);
+router.delete('/profile/:profileId/block/:blockedProfileId', userController.unblockProfile);
+
+// 특정 프로필 숨기기 라우트
+router.post('/profile/:profileId/hide', userController.hideProfile);
+router.delete('/profile/:profileId/hide/:hiddenProfileId', userController.unhideProfile);
 
 module.exports = router;

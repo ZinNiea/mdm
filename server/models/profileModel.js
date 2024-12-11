@@ -54,6 +54,8 @@ const profileSchema = new mongoose.Schema({
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   topFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
+  blockedProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }], // 차단된 프로필
+  hiddenProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }], // 숨겨진 프로필
 });
 
 function interestsLimit(val) {

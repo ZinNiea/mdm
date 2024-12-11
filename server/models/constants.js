@@ -6,6 +6,7 @@ const MODELS = {
   COMMENT: 'Comment',
   REPORT: 'Report',
   COMMENTREPORT: 'CommentReport',
+  PROFILEREPORT: 'ProfileReport',
 
   AUCTIONITEM: 'AuctionItem',
   BID: 'Bid',
