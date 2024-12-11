@@ -335,3 +335,38 @@ exports.getInterests = async (req, res) => {
     });
   }
 };
+
+// 특정 프로필에 관심사를 추가하는 함수 추가
+exports.addInterest = async (req, res) => {
+  const { profileId } = req.params;
+  const { mainCategory, subCategory, bias } = req.body;
+
+  if (!mainCategory || !subCategory) {
+    return res.status(400).json({
+      result: false,
+      message: 'mainCategory와 subCategory가 필요합니다.'
+    });
+  }
+
+  try {
+    const profile = await Profile.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (profile.interests.length >= 5) {
+      return res.status(400).json({ result: false, message: '관심사는 최대 5개까지 추가할 수 있습니다.' });
+    }
+
+    const newInterest = { mainCategory, subCategory, bias };
+    profile.interests.push(newInterest);
+    await profile.save();
+
+    res.status(201).json({ result: true, message: '관심사가 성공적으로 추가되었습니다.', data: newInterest });
+  } catch (err) {
+    res.status(500).json({ 
+      result: false, 
+      message: err.message 
+    });
+  }
+};
