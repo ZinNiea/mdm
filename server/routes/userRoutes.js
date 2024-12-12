@@ -4,13 +4,14 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 
 // AWS S3 업로드 미들웨어 가져오기
-const { upload } = require('../middlewares/uploadMiddleware');
+const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
-router.post('/register', upload.single('profileImage'), userController.registerUser);
+router.post('/register', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.registerUser);
 router.post('/login', userController.login);
+router.post('/logout', userController.logout);
 router.delete('/:userId/delete', userController.deleteUser);
-router.put('/:userId/profile', upload.single('profileImage'), userController.addProfile);
+router.put('/:userId/profile', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.addProfile);
 router.get('/subcategories/:mainCategory', userController.getSubCategories);
 
 // 특정 프로필의 관심사 조회 라우트
@@ -26,7 +27,7 @@ router.delete('/profiles/:profileId/interests/:subCategory', userController.dele
 router.get('/:userId/profile', userController.getUserProfiles);
 
 // 특정 프로필 수정 라우트
-router.put('/profiles/:profileId', upload.single('profileImage'), userController.updateProfile);
+router.put('/profiles/:profileId', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.updateProfile);
 
 // 특정 프로필 조회 라우트
 router.get('/profiles/:profileId', userController.getProfile);
@@ -56,6 +57,12 @@ router.post('/check-nickname', userController.checkNickname);
 // 로그인 ID 중복 확인 라우트 추가
 router.post('/check-username', userController.checkUsername);
 
+// 비밀번호 재설정 요청 라우트
+router.post('/password-reset', userController.forgotPassword);
+
+// 비밀번호 재설정 라우트
+router.post('/password-reset/:token', userController.resetPassword);
+
 // 프로필 신고 라우트 추가
 router.post('/profiles/:profileId/report', authenticateToken, userController.reportProfile);
 
@@ -66,5 +73,35 @@ router.delete('/profile/:profileId/block/:blockedProfileId', userController.unbl
 // 특정 프로필 숨기기 라우트
 router.post('/profile/:profileId/hide', userController.hideProfile);
 router.delete('/profile/:profileId/hide/:hiddenProfileId', userController.unhideProfile);
+
+// 특정 프로필을 팔로우하는 라우트 추가
+router.post('/profiles/:profileId/follow/:targetProfileId', userController.followProfile);
+router.post('/profile/:profileId/follow/:followingId', userController.followProfile);
+
+// 특정 프로필의 팔로우를 해제하는 라우트 추가
+router.delete('/profiles/:profileId/unfollow/:followingId', userController.unfollowProfile);
+router.delete('/profile/:profileId/followings/:followingId', userController.unfollowProfile);
+
+// 특정 프로필의 팔���잉 목록을 조회하는 라우트 추가
+router.get('/profiles/:profileId/following', userController.getFollowingList);
+router.get('/profile/:profileId/followings', userController.getFollowingList);
+
+// 특정 프로필의 팔로워 목록을 조회하는 라우트 추가
+router.get('/profiles/:profileId/followers', userController.getFollowersList);
+router.get('/profile/:profileId/followers', userController.getFollowersList);
+
+// 유저의 알림을 조회하는 라우트 추가
+router.get('/profiles/:profileId/notifications', userController.getNotifications);
+router.get('/profile/:profileId/notifications', userController.getNotifications);
+
+// 특정 프로필의 차단된 프로필 목록 조회 라우트 추가
+router.get('/profile/:profileId/blocked-profiles', userController.getBlockedProfiles);
+router.get('profile/:profileId/block', userController.getBlockedProfiles);
+///profile/:profileId/block
+
+// 특정 프로필의 숨긴 프로필 목록 조회 라우트 추가
+router.get('/profile/:profileId/hidden-profiles', userController.getHiddenProfiles);
+router.get('profile/:profileId/hide', userController.getHiddenProfiles);
+///profile/:profileId/hide
 
 module.exports = router;

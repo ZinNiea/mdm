@@ -1,7 +1,7 @@
 // controllers/commentController.js
 const { Comment } = require('../models/commentModel');
 const { CommentReport } = require('../models/reportModel');
-const MODELS = require('../models/constants');
+const { MODELS } = require('../models/constants');
 
 // 댓글 추가 (대댓글 포함)
 exports.addComment = async (req, res) => {

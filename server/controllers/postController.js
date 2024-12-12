@@ -5,7 +5,8 @@ const { User } = require('../models/userModel');
 const { Report } = require('../models/reportModel');
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = process.env.SECRET_KEY;
-const MODELS = require('../models/constants');
+const { MODELS } = require('../models/constants');
+const { ViewLog } = require('../models/viewLogModel');
 
 // 게시물 전체 조회 또는 카테고리별, 검색어별 조회
 exports.getPosts = async (req, res) => {
@@ -37,7 +38,7 @@ exports.getPosts = async (req, res) => {
       .populate('author', 'nickname profileImage') // 프로필 정보 포함
       .sort({ createdAt: -1 }); // 최신순으로 정렬
 
-    // 각 게시��에 필요한 정보만 추출하여 새로운 객체 생성
+    // 각 게시물에 필요한 정보만 추출하여 새로운 객체 생성
     const postList = posts.map(post => ({
       id: post._id,
       content: post.content,
@@ -84,6 +85,13 @@ exports.getPostById = async (req, res) => {
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
+
+    // 조회수 증가
+    post.viewCount += 1;
+    await post.save();
+
+    // 조회 로그 기록
+    await ViewLog.create({ post: post._id });
 
     // 게시물 정보를 응답으로 반환합니다.
     res.status(200).json({
@@ -464,6 +472,47 @@ exports.getPostsByProfile = async (req, res) => {
     }));
 
     res.status(200).json({ success: true, data: postList });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 실시간 인기 키워드 랭킹 조회
+exports.getPopularKeywords = async (req, res) => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  try {
+    // 최근 1시간 내의 조회 로그를 집계하여 게시물별 조회수 증가량을 계산합니다.
+    const popularPosts = await ViewLog.aggregate([
+      { $match: { timestamp: { $gte: oneHourAgo } } },
+      { $group: { _id: '$post', viewCount: { $sum: 1 } } },
+      { $sort: { viewCount: -1 } },
+      { $limit: 5 },
+    ]);
+
+    // 인기 게시물의 내용을 가져오고 키워드를 추출합니다.
+    const postIds = popularPosts.map(p => p._id);
+    const posts = await Post.find({ _id: { $in: postIds } });
+
+    // 키워드 카운트
+    const keywordCount = {};
+    posts.forEach(post => {
+      const keywords = post.content.split(/\s+/);
+      keywords.forEach(keyword => {
+        if (keywordCount[keyword]) {
+          keywordCount[keyword] += 1;
+        } else {
+          keywordCount[keyword] = 1;
+        }
+      });
+    });
+
+    // 키워드 정렬
+    const sortedKeywords = Object.entries(keywordCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(entry => ({ keyword: entry[0], count: entry[1] }));
+
+    res.status(200).json({ success: true, keywords: sortedKeywords });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });

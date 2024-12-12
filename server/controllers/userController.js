@@ -13,8 +13,23 @@ const SALT_ROUNDS = 10;
 
 // 중복을 확인하는 유틸리티 함수를 가져옵니다.
 const { isUsernameTaken, isEmailTaken } = require('../utils/userUtils');
-const { upload, deleteImage } = require('../middlewares/uploadMiddleware');
+const { deleteImage } = require('../middlewares/uploadMiddleware');
 const { ProfileReport } = require('../models/reportModel');
+const { addTokenToBlacklist } = require('../middlewares/authMiddleware');
+
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+
+// nodemailer transporter 설정
+const transporter = nodemailer.createTransport({
+  service: 'Gmail', // 사용 중인 이메일 서비스 제공자
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+const { Notification } = require('../models/notificationModel');
 
 // 회원가입 기능
 exports.registerUser = async (req, res) => {
@@ -75,7 +90,7 @@ exports.registerUser = async (req, res) => {
 
     // 프로필 생성
   
-    // 삼항 연산자 사용��서, profileImage 있으면 profileImage 넣고, 없으면 profileImage 넣지 않는다.
+    // 삼항 연산자 사용해서, profileImage 있으면 profileImage 넣고, 없으면 profileImage 넣지 않는다.
     const newProfile = profileImage
       ? new Profile({
           nickname: nickname,
@@ -294,7 +309,7 @@ exports.deleteUser = async (req, res) => {
 exports.addProfile = async (req, res) => {
   //nickname, profileImage, mbti, intro, likeWork, likeSong
   const userId = req.params.userId; // URL 파라미터에서 유저 ID 추출
-  const { nickname, birthdate, phoneNumber, phoneVerified } = req.body;
+  const { nickname, birthdate, mbti, intro, likeWork, likeSong } = req.body;
   const profileImage = req.file ? req.file.location : null;
 
   try {
@@ -304,6 +319,10 @@ exports.addProfile = async (req, res) => {
       return res.status(404).json({ result: false, message: '유저를 찾을 수 없습니다.' });
     }
 
+    if (!nickname) {
+      return res.status(400).json({ result: false, message: '닉네임이 필요합니다.' });
+    }
+
     // 현재 프로필 수 확인
     if (user.profiles.length >= 5) {
       return res.status(400).json({ result: false, message: '프로필은 최대 5개까지 추가할 수 있습니다.' });
@@ -311,9 +330,13 @@ exports.addProfile = async (req, res) => {
 
     // 새 프로필 생성
     const newProfile = new Profile({
-      nickname,
-      profileImage,
-      birthdate,
+      nickname: nickname,
+      profileImage: profileImage || null,
+      birthdate: birthdate || null,
+      mbti: mbti || null,
+      introduction: intro || null,
+      likeWork: likeWork || null,
+      likeSong: likeSong || null,
     });
 
     await newProfile.save();
@@ -829,6 +852,247 @@ exports.unhideProfile = async (req, res) => {
     await profile.save();
 
     res.status(200).json({ result: true, message: '프로필 숨기기가 해제되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필을 팔로우하는 함수
+exports.followProfile = async (req, res) => {
+  // const { profileId, targetProfileId } = req.params;
+  const { profileId, followingId } = req.params;
+
+  if (profileId === followingId) {
+    return res.status(400).json({ result: false, message: '자기 자신을 팔로우할 수 없습니다.' });
+  }
+
+  try {
+    const profile = await Profile.findById(profileId);
+    const targetProfile = await Profile.findById(followingId);
+
+    if (!profile || !targetProfile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (profile.following.includes(followingId)) {
+      return res.status(400).json({ result: false, message: '이미 팔로우하고 있는 프로필입니다.' });
+    }
+
+    profile.following.push(followingId);
+    targetProfile.followers.push(profileId);
+
+    await profile.save();
+    await targetProfile.save();
+
+    res.status(200).json({ result: true, message: '프로필을 성공적으로 팔로우했습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필의 팔로우를 해제하는 함수
+exports.unfollowProfile = async (req, res) => {
+  // const { profileId, targetProfileId } = req.params;
+  const { profileId, followingId } = req.params;
+
+  try {
+    const profile = await Profile.findById(profileId);
+    const targetProfile = await Profile.findById(followingId);
+
+    if (!profile || !targetProfile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    if (!profile.following.includes(followingId)) {
+      return res.status(400).json({ result: false, message: '팔로우하고 있지 않은 프로필입니다.' });
+    }
+
+    profile.following = profile.following.filter(id => id.toString() !== followingId);
+    targetProfile.followers = targetProfile.followers.filter(id => id.toString() !== profileId);
+
+    await profile.save();
+    await targetProfile.save();
+
+    res.status(200).json({ result: true, message: '프로필의 팔로우를 성공적으로 해제했습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필의 팔로잉 목록을 조회하는 함수
+exports.getFollowingList = async (req, res) => {
+  const { profileId } = req.params;
+
+  try {
+    const profile = await Profile.findById(profileId).populate('following', 'nickname profileImage');
+
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ result: true, following: profile.following });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필의 팔로워 목록을 조회하는 함수
+exports.getFollowersList = async (req, res) => {
+  const { profileId } = req.params;
+
+  try {
+    const profile = await Profile.findById(profileId).populate('followers', 'nickname profileImage');
+
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ result: true, followers: profile.followers });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필의 차단된 프로필 목록을 조회하는 함수 추가
+exports.getBlockedProfiles = async (req, res) => {
+  const { profileId } = req.params;
+  try {
+    const profile = await Profile.findById(profileId).populate('blockedProfiles', 'nickname profileImage');
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ 
+      result: true, 
+      blockedProfiles: profile.blockedProfiles 
+    });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 특정 프로필의 숨긴 프로필 목록을 조회하는 함수 추가
+exports.getHiddenProfiles = async (req, res) => {
+  const { profileId } = req.params;
+  try {
+    const profile = await Profile.findById(profileId).populate('hiddenProfiles', 'nickname profileImage');
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ 
+      result: true, 
+      hiddenProfiles: profile.hiddenProfiles 
+    });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 로그아웃 기능 수정
+exports.logout = async (req, res) => {
+  const token = req.header('Authorization')?.split(' ')[1];
+  if (token) {
+    addTokenToBlacklist(token);
+  }
+  res.status(200).json({ result: true, message: '로그아웃 되었습니다.' });
+};
+
+// 비밀번호 재설정 요청 함수
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    // 토큰 생성
+    const token = crypto.randomBytes(20).toString('hex');
+
+    // 토큰 및 만료 시간 설정
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1시간 유효
+
+    await user.save();
+
+    // 이메일 옵션 설정
+    const mailOptions = {
+      to: user.email,
+      from: process.env.EMAIL_USER,
+      subject: '비밀번호 재설정 요청',
+      text: `비밀번호를 재설정하려면 다음 링크를 클릭하십시오:\n\n` +
+            `http://${process.env.BASE_URL}/user/password-reset/${token}\n\n` +
+            `1시간 내에 이 링크를 사용하십시오.`,
+    };
+
+    // 이메일 전송
+    transporter.sendMail(mailOptions, (err) => {
+      if (err) {
+        return res.status(500).json({ result: false, message: '이메일 전송에 실패했습니다.' });
+      }
+      res.status(200).json({ result: true, message: '비밀번호 재설정 이메일을 보냈습니다.' });
+    });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 비밀번호 재설정 함수
+exports.resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ result: false, message: '비밀번호 재설정 토큰이 유효하지 않거나 만료되었습니다.' });
+    }
+
+    // 비밀번호 해싱
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    // 성공 이메일 전송
+    const mailOptions = {
+      to: user.email,
+      from: process.env.EMAIL_USER,
+      subject: '비밀번호가 성공적으로 재설정되었습니다.',
+      text: `안녕하세요,\n\n` +
+            `귀하의 비밀번호가 성공적으로 재설정되었습니다.`,
+    };
+
+    transporter.sendMail(mailOptions, (err) => {
+      if (err) {
+        return res.status(500).json({ result: false, message: '성공 이메일 전송에 실패했습니다.' });
+      }
+      res.status(200).json({ result: true, message: '비밀번호가 성공적으로 재설정되었습니다.' });
+    });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 유저의 알림을 조회하는 함수
+exports.getNotifications = async (req, res) => {
+  const { profileId } = req.params;
+  const { category } = req.query; // 카테고리 추가
+
+  try {
+    const query = { profile: profileId };
+    if (category) {
+      query.category = category;
+    }
+    const notifications = await Notification.find(query).sort({ createdAt: -1 });
+    res.status(200).json({ result: true, notifications });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }

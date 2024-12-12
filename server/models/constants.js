@@ -11,6 +11,16 @@ const MODELS = {
   AUCTIONITEM: 'AuctionItem',
   BID: 'Bid',
   CHAT: 'Chat',
+  VIEWLOG: 'ViewLog',
+  NOTIFICATION: 'Notification',
 };
 
-module.exports = MODELS;
+const CHAT_CATEGORY = {
+  AUCTION: 'auction',
+  PROFILE: 'profile'
+};
+
+module.exports = {
+  MODELS,
+  CHAT_CATEGORY
+};

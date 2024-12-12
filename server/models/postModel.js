@@ -1,6 +1,6 @@
 // server/models/postModel.js
 const mongoose = require('mongoose');
-const MODELS = require('./constants');
+const { MODELS } = require('./constants');
 
 // 카테고리 상수 정의
 const CATEGORY = {
@@ -20,6 +20,7 @@ const postSchema = new mongoose.Schema({
     enum: Object.values(CATEGORY),
     default: CATEGORY.FRIENDS // 기본값 설정 (선택 사항)
   }, // 카테고리 필드 수정
+  viewCount: { type: Number, default: 0 },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.COMMENT }],
@@ -27,7 +28,7 @@ const postSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
-// 카테고리 상수를 모델에 추가하여 외부에서 접근 가능하도록 함
+// 카테고리 상수를 모델에 추가하여 외부에서 접근 가능하��록 함
 postSchema.statics.CATEGORY = CATEGORY;
 
 const Post = mongoose.model(MODELS.POST, postSchema);

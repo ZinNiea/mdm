@@ -11,13 +11,20 @@ aws.config.update({
 
 const s3 = new aws.S3();
 
-const upload = multer({
+// 이미지 유형 상수 정의
+const IMAGE_TYPES = {
+  PROFILE: 'profiles',
+  POST: 'posts',
+  AUCTION: 'auctions',
+};
+
+const upload = (folder) => multer({
   storage: multerS3({
     s3: s3,
     bucket: process.env.AWS_S3_BUCKET_NAME,
     acl: 'public-read',
     key: function (req, file, cb) {
-      cb(null, `profiles/${Date.now().toString()}_${file.originalname}`);
+      cb(null, `${folder}/${Date.now().toString()}_${file.originalname}`);
     },
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -40,4 +47,4 @@ const deleteImage = async (imageUrl) => {
   return s3.deleteObject(params).promise();
 };
 
-module.exports = { upload, deleteImage };
+module.exports = { upload, deleteImage, IMAGE_TYPES };

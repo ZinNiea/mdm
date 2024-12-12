@@ -1,6 +1,6 @@
 // models/Bid.js
 const mongoose = require('mongoose');
-const MODELS = require('./constants');
+const { MODELS } = require('./constants');
 
 const BidSchema = new mongoose.Schema({
   amount: { type: Number, required: true },

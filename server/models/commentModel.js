@@ -1,6 +1,6 @@
 // models/commentModel.js
 const mongoose = require('mongoose');
-const MODELS = require('./constants');
+const { MODELS } = require('./constants');
 
 const commentSchema = new mongoose.Schema({
   postId: {

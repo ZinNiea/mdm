@@ -1,6 +1,6 @@
 // models/auctionItem.js
 const mongoose = require('mongoose');
-const MODELS = require('./constants');
+const { MODELS } = require('./constants');
 
 const AuctionItemSchema = new mongoose.Schema({
   title: { type: String, required: true },

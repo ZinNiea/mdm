@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const postController = require('../controllers/postController');
 const commentController = require('../controllers/commentController');
-const { upload } = require('../middlewares/uploadMiddleware');
+const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
 
 // 게시물 전체 조회 또는 카테고리별 조회
 router.get('/posts', postController.getPosts);
@@ -12,10 +12,10 @@ router.get('/posts', postController.getPosts);
 router.get('/posts/:postId', postController.getPostById);
 
 // 게시물 작성 (최대 5장까지 이미지 업로드 허용)
-router.post('/posts', upload.array('images', 5), postController.createPost);
+router.post('/posts', upload(IMAGE_TYPES.POST).array('images', 5), postController.createPost);
 
 // 게시물 수정
-router.put('/posts/:postId', upload.array('images', 5), postController.updatePost);
+router.put('/posts/:postId', upload(IMAGE_TYPES.POST).array('images', 5), postController.updatePost);
 
 // 게시물 삭제
 router.delete('/posts/:postId', postController.deletePost);
@@ -55,5 +55,7 @@ router.post('/posts/:postId/comments/:commentId/report', commentController.repor
 /* 새로운 라우트: 특정 프로필의 게시글 목록 조회 */
 router.get('/posts/profile/:profileId', postController.getPostsByProfile);
 
+// 실시간 인기 키워드 랭킹 조회
+router.get('/popular-keywords', postController.getPopularKeywords);
 
 module.exports = router;

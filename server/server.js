@@ -5,6 +5,8 @@ const socketIo = require('socket.io');
 const PORT = process.env.PORT || 3000;
 
 const logger = require('./utils/logger'); // Winston 로거 가져오기
+const { Chat } = require('./models/chatModel'); // Chat 모델 가져오기
+const { ViewLog } = require('./models/viewLogModel'); // ViewLog 모델 가져오기
 
 // HTTP 서버 생성
 const server = http.createServer(app);
@@ -40,6 +42,25 @@ io.on('connection', (socket) => {
     }
     // 메시지 브로드캐스트
     io.to(roomId).emit('chatMessage', { senderId, message });
+  });
+
+  // 새로운 이벤트: 채팅방 나가기
+  socket.on('leaveRoom', async (data) => {
+    const { roomId, profileId } = data;
+    socket.leave(roomId);
+    console.log(`방 ${roomId}에서 나감: ${socket.id}`);
+
+    // 채팅방에서 유저 제거 로직 (필요 시 추가)
+    try {
+      const chatRoom = await Chat.findOne({ roomId });
+      if (chatRoom) {
+        chatRoom.participants = chatRoom.participants.filter(id => id !== profileId);
+        await chatRoom.save();
+        io.to(roomId).emit('userLeft', { profileId });
+      }
+    } catch (err) {
+      console.error(err);
+    }
   });
 
   socket.on('disconnect', () => {

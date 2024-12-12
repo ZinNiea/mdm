@@ -1,6 +1,6 @@
 // profileModel.js
 const mongoose = require('mongoose');
-const MODELS = require('./constants');
+const { MODELS } = require('./constants');
 
 const interestSchema = new mongoose.Schema({
   mainCategory: { type: String, required: true },

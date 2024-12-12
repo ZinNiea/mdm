@@ -3,7 +3,7 @@
 const request = require('supertest');
 const app = require('../app');
 const { Post } = require('../models/postModel');
-const MODELS = require('../models/constants');
+const { MODELS } = require('../models/constants');
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = '64nv7tUpIeA6Z8L71Ld2cq2kFRwAZuPB';
 

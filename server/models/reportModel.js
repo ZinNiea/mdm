@@ -1,6 +1,6 @@
 // models/Report.js
 const mongoose = require('mongoose');
-const MODELS = require('./constants');
+const { MODELS } = require('./constants');
 
 const ReportSchema = new mongoose.Schema({
   post: {

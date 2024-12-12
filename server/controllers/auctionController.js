@@ -4,10 +4,26 @@ const { AuctionItem } = require('../models/auctionItemModel');
 const { Bid } = require('../models/bidModel');
 const { Chat } = require('../models/chatModel');
 const { Report } = require('../models/reportModel');
-const { profile } = require('winston');
-const AWS = require('aws-sdk'); // AWS SDK 추가
-const s3 = new AWS.S3();
 const { deleteImage } = require('../middlewares/uploadMiddleware'); // deleteImage 함수 추가
+const schedule = require('node-schedule'); // node-schedule 라이브러리 추가
+const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
+
+// 경매 종료 함수 정의
+const endAuctionJob = async (auctionId, io) => {
+  try {
+    const item = await AuctionItem.findById(auctionId);
+    if (item && item.endTime > new Date()) {
+      item.endTime = new Date();
+      await item.save();
+      
+      if (item.highestBidder) {
+        await createChatRoomAndNotify(item.createdBy, item.highestBidder, item._id, io);
+      }
+    }
+  } catch (err) {
+    console.error(`경매 종료 실패: ${err.message}`);
+  }
+};
 
 /**
  * 경매 아이템 생성
@@ -28,7 +44,7 @@ exports.createAuctionItem = async (req, res) => {
     return res.status(400).send('유효한 duration 값을 입력해주세요.');
   }
 
-  // duration을 현재 시간에 더하여 endTime 계산 (duration: 시간 단위)
+  // duration 현재 시간에 더하여 endTime 계산 (duration: 시간 단위)
   const createdAt = new Date();
   const endTime = new Date(createdAt.getTime() + duration * 60 * 60 * 1000);
   const imageUrls = req.files.map(file => file.location); // S3에서의 이미지 URL
@@ -47,7 +63,15 @@ exports.createAuctionItem = async (req, res) => {
       createdAt: createdAt
     });
     await auctionItem.save();
-    // res.send('경매 아이템이 생성되었습니다.');
+
+    // 기존 setTimeout 제거
+
+    // node-schedule을 사용하여 경매 종료 작업 스케줄링
+    schedule.scheduleJob(endTime, () => {
+      const io = req.app.get('io'); // io 인스턴스 가져오기
+      endAuctionJob(auctionItem._id, io);
+    });
+
     res.status(201).send({ result: true, auctionId: auctionItem._id });
   } catch (err) {
     res.status(400).send(err.message);
@@ -156,8 +180,6 @@ exports.placeBid = async (req, res) => {
     });
     await bid.save();
 
-    // res.send('입찰이 성공적으로 이루어졌습니다.');
-    // res.status(201).send({ result: true });
     // 생성된 입찰의 URI를 응답 헤더에 포함
     res.status(201)
       .location(`/auctions/${item._id}/bids/${bid._id}`)
@@ -168,11 +190,12 @@ exports.placeBid = async (req, res) => {
 };
 
 
-// 공통 채팅방 생성 및 알림 헬퍼 함수 추가
+// 상수 사용하여 채팅방 생성 및 알림 헬퍼 함수 수정
 const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) => {
   const chatRoom = await Chat.create({
     participants: [sellerId, bidderId],
     auctionItem: auctionItemId,
+    category: CHAT_CATEGORY.AUCTION, // 상수 사용
   });
 
   const roomId = `auction_${chatRoom._id}`;
@@ -230,13 +253,26 @@ exports.instantBuy = async (req, res) => {
 exports.endAuction = async (req, res) => {
   try {
     const { auctionId } = req.params;
+
+    // 유효한 ObjectId인지 검증 (선택 사항)
+    if (!mongoose.Types.ObjectId.isValid(auctionId)) {
+      return res.status(400).json({ success: false, message: '유효하지 않은 경매 ID입니다.' });
+    }
+
     const item = await AuctionItem.findById(auctionId).populate('highestBidder');
 
-    if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-    if (item.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).send('경매를 종료할 권한이 없습니다.');
+    if (!item) {
+      return res.status(404).json({ success: false, message: '경매 아이템을 찾을 수 없습니다.' });
     }
-    if (item.endTime < new Date()) return res.status(400).send('경매가 이미 종료되었습니다.');
+
+    // 인증된 사용자인지 확인 (미들웨어에서 처리되지 않은 경우)
+    // if (!req.user || item.createdBy.toString() !== req.user._id.toString()) {
+    //   return res.status(403).json({ success: false, message: '경매를 종료할 권한이 없습니다.' });
+    // }
+
+    if (item.endTime < new Date()) {
+      return res.status(409).json({ success: false, message: '경매가 이미 종료되었습니다.' });
+    }
 
     item.endTime = new Date();
     await item.save();
@@ -244,14 +280,20 @@ exports.endAuction = async (req, res) => {
     const io = req.app.get('io');
 
     if (item.highestBidder) {
-      // 헬퍼 함수 호출하여 채팅방 생성 및 알림
       await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
-      res.send('경매가 종료되었습니다. 실시간 채팅방이 생성되었습니다.');
+      return res.status(200).json({ 
+        success: true, 
+        message: '경매가 종료되었으며, 실시간 채팅방이 생성되었습니다.' 
+      });
     } else {
-      res.send('경매가 종료되었으나, 입찰자가 없습니다.');
+      return res.status(200).json({ 
+        success: true, 
+        message: '경매가 종료되었으나, 입찰자가 없습니다.' 
+      });
     }
   } catch (err) {
-    res.status(400).send(err.message);
+    console.error(`경매 즉시 종료 오류: ${err.message}`);
+    return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 };
 

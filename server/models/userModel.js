@@ -1,7 +1,7 @@
 // server/user/userModel.js
 const mongoose = require('mongoose');
 const { Profile } = require('./profileModel');
-const MODELS = require('./constants');
+const { MODELS } = require('./constants');
 
 // 사용자 스키마 정의
 const userSchema = new mongoose.Schema({
@@ -49,6 +49,8 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: MODELS.PROFILE,
   },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
 });
 
 // 프로필 수 제한을 위한 유효성 검사 함수
