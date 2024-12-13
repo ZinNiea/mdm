@@ -46,7 +46,7 @@ exports.registerUser = async (req, res) => {
 
   // 정규표현식 생성
   const passwordRegex = new RegExp(
-    `^(?=.*[A-Za-z])(?=.*\\d)(?=.*[${allowedSpecialChars}])[A-Za-z\\d${allowedSpecialChars}]{8,20}$`
+    `^(?=.*[A-Za-z])(?=.*\\d)(?=.*[${allowedSpecialChars}])[A-Za-z\\d${allowedSpecialChars}]{4,20}$`
   );
 
   // 비밀번호 유효성 검사
