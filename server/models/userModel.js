@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: MODELS.PROFILE,
   },
-  resetPasswordToken: String,
+  resetPasswordCode: String,
   resetPasswordExpires: Date,
 });
 

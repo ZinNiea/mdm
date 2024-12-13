@@ -61,7 +61,7 @@ router.post('/check-username', userController.checkUsername);
 router.post('/password-reset', userController.forgotPassword);
 
 // 비밀번호 재설정 라우트
-router.post('/password-reset/:token', userController.resetPassword);
+router.post('/password-reset/verify', userController.resetPassword);
 
 // 프로필 신고 라우트 추가
 router.post('/profiles/:profileId/report', authenticateToken, userController.reportProfile);
@@ -82,7 +82,7 @@ router.post('/profile/:profileId/follow/:followingId', userController.followProf
 router.delete('/profiles/:profileId/unfollow/:followingId', userController.unfollowProfile);
 router.delete('/profile/:profileId/followings/:followingId', userController.unfollowProfile);
 
-// 특정 프로필의 팔���잉 목록을 조회하는 라우트 추가
+// 특정 프로필의 팔로잉 목록을 조회하는 라우트 추가
 router.get('/profiles/:profileId/following', userController.getFollowingList);
 router.get('/profile/:profileId/followings', userController.getFollowingList);
 

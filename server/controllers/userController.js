@@ -247,7 +247,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, username: user.username },
       SECRET_KEY,
-      { expiresIn: '1d' }
+      { expiresIn: '3d' }
     );
 
     // 프로필 목록 구성
@@ -998,7 +998,7 @@ exports.logout = async (req, res) => {
   res.status(200).json({ result: true, message: '로그아웃 되었습니다.' });
 };
 
-// 비밀번호 재설정 요청 함수
+// 비밀번호 재설정 요청 함수 수정
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
@@ -1007,75 +1007,51 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
     }
 
-    // 토큰 생성
-    const token = crypto.randomBytes(20).toString('hex');
-
-    // 토큰 및 만료 시간 설정
-    user.resetPasswordToken = token;
+    // 인증번호 생성
+    const authCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6자리 숫자
+    user.resetPasswordCode = authCode;
     user.resetPasswordExpires = Date.now() + 3600000; // 1시간 유효
-
     await user.save();
 
-    // 이메일 옵션 설정
+    // 이메일로 인증번호 전송
     const mailOptions = {
       to: user.email,
       from: process.env.EMAIL_USER,
-      subject: '비밀번호 재설정 요청',
-      text: `비밀번호를 재설정하려면 다음 링크를 클릭하십시오:\n\n` +
-            `http://${process.env.BASE_URL}/user/password-reset/${token}\n\n` +
-            `1시간 내에 이 링크를 사용하십시오.`,
+      subject: '비밀번호 재설정 인증번호',
+      text: `비밀번호를 재설정하려면 다음 인증번호를 입력하세요:\n\n` +
+            `${authCode}\n\n` +
+            `인증번호는 1시간 동안 유효합니다.`,
     };
-
-    // 이메일 전송
     transporter.sendMail(mailOptions, (err) => {
       if (err) {
         return res.status(500).json({ result: false, message: '이메일 전송에 실패했습니다.' });
       }
-      res.status(200).json({ result: true, message: '비밀번호 재설정 이메일을 보냈습니다.' });
+      res.status(200).json({ result: true, message: '인증번호가 이메일로 전송되었습니다.' });
     });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
 };
 
-// 비밀번호 재설정 함수
+// 비밀번호 재설정 함수 수정
 exports.resetPassword = async (req, res) => {
-  const { token } = req.params;
-  const { password } = req.body;
-
+  const { email, authCode, password } = req.body;
   try {
     const user = await User.findOne({
-      resetPasswordToken: token,
+      email: email,
+      resetPasswordCode: authCode,
       resetPasswordExpires: { $gt: Date.now() },
     });
-
     if (!user) {
-      return res.status(400).json({ result: false, message: '비밀번호 재설정 토큰이 유효하지 않거나 만료되었습니다.' });
+      return res.status(400).json({ result: false, message: '인증번호가 유효하지 않거나 만료되었습니다.' });
     }
-
     // 비밀번호 해싱
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     user.password = hashedPassword;
-    user.resetPasswordToken = undefined;
+    user.resetPasswordCode = undefined;
     user.resetPasswordExpires = undefined;
-
     await user.save();
-
-    // 성공 이메일 전송
-    const mailOptions = {
-      to: user.email,
-      from: process.env.EMAIL_USER,
-      subject: '비밀번호가 성공적으로 재설정되었습니다.',
-      text: `안녕하세요,\n\n` +
-            `귀하의 비밀번호가 성공적으로 재설정되었습니다.`,
-    };
-
-    transporter.sendMail(mailOptions, (err) => {
-      if (err) {
-        return res.status(500).json({ result: false, message: '성공 이메일 전송에 실패했습니다.' });
-      }
-      res.status(200).json({ result: true, message: '비밀번호가 성공적으로 재설정되었습니다.' });
-    });
+    res.status(200).json({ result: true, message: '비밀번호가 성공적으로 재설정되었습니다.' });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
