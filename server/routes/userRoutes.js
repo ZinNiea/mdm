@@ -11,7 +11,7 @@ router.post('/register', upload(IMAGE_TYPES.PROFILE).single('profileImage'), use
 router.post('/login', userController.login);
 router.post('/logout', userController.logout);
 router.delete('/:userId/delete', userController.deleteUser);
-router.put('/:userId/profile', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.addProfile);
+router.post('/:userId/profile', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.addProfile);
 router.get('/subcategories/:mainCategory', userController.getSubCategories);
 
 // 특정 프로필의 관심사 조회 라우트
@@ -25,6 +25,7 @@ router.delete('/profiles/:profileId/interests/:subCategory', userController.dele
 
 // 특정 유저의 프로필 목록 조회 라우트
 router.get('/:userId/profile', userController.getUserProfiles);
+router.get('/:userId/profiles', userController.getUserProfiles);
 
 // 특정 프로필 수정 라우트
 router.put('/profiles/:profileId', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.updateProfile);
@@ -103,5 +104,9 @@ router.get('profile/:profileId/block', userController.getBlockedProfiles);
 router.get('/profile/:profileId/hidden-profiles', userController.getHiddenProfiles);
 router.get('profile/:profileId/hide', userController.getHiddenProfiles);
 ///profile/:profileId/hide
+
+// 특정 프로필 삭제 라우트 추가
+router.delete('/profiles/:profileId', userController.deleteProfile);
+router.delete('/:userId/profile/:profileId', userController.deleteProfile);
 
 module.exports = router;

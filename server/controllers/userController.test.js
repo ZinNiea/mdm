@@ -195,7 +195,7 @@ describe('login', () => {
     expect(jwt.sign).toHaveBeenCalledWith(
       { id: 'userId123', username: 'testuser' },
       SECRET_KEY,
-      { expiresIn: '1d' }
+      { expiresIn: '3d' }
     );
   });
 });

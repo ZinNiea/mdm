@@ -259,6 +259,7 @@ exports.login = async (req, res) => {
       // 필요한 다른 필드 추가
     }));
 
+    //message, token user { userId, username, email, createdAt, profileId, nickname, profileImage, interests[]{subCategory} }
     res.status(200).json({ 
       message: '로그인 성공', 
       token,
@@ -307,7 +308,6 @@ exports.deleteUser = async (req, res) => {
 
 // 유저의 프로필을 추가하는 함수
 exports.addProfile = async (req, res) => {
-  //nickname, profileImage, mbti, intro, likeWork, likeSong
   const userId = req.params.userId; // URL 파라미터에서 유저 ID 추출
   const { nickname, birthdate, mbti, intro, likeWork, likeSong } = req.body;
   const profileImage = req.file ? req.file.location : null;
@@ -462,9 +462,9 @@ exports.deleteInterest = async (req, res) => {
 exports.getUserProfiles = async (req, res) => {
   const { userId } = req.params;
   try {
-    const user = await User.findById(userId).populate('profiles, nickname');
+    const user = await User.findById(userId).populate('profiles', 'nickname');
     if (!user) {
-      return res.status(404).json({ result: false, message: '유저를 찾을 수 없습니다.' });
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
     }
 
     res.status(200).json({ 
@@ -613,7 +613,7 @@ exports.unfollowUser = async (req, res) => {
 
 // 수정된 프로필 검색 기능
 exports.searchProfiles = async (req, res) => {
-  const { profileId, q, interests } = req.query;
+  const { profileId, q, interests, curProfileId } = req.query;
   const nickname = q;
   try {
     const query = {};
@@ -632,7 +632,23 @@ exports.searchProfiles = async (req, res) => {
     }
 
     const profiles = await Profile.find(query).select('nickname profileImage mbti gender interests');
-    res.status(200).json({ result: true, profiles });
+    let resultProfiles = profiles;
+
+    if (curProfileId) {
+      const currentProfile = await Profile.findById(curProfileId).select('following');
+      if (currentProfile) {
+        const followingSet = new Set(currentProfile.following.map(id => id.toString()));
+        resultProfiles = profiles.map(profile => {
+          const isFollowed = followingSet.has(profile._id.toString());
+          return {
+            ...profile.toObject(),
+            isFollowed,
+          };
+        });
+      }
+    }
+
+    res.status(200).json({ result: true, profiles: resultProfiles });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
@@ -1069,6 +1085,21 @@ exports.getNotifications = async (req, res) => {
     }
     const notifications = await Notification.find(query).sort({ createdAt: -1 });
     res.status(200).json({ result: true, notifications });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+exports.deleteProfile = async (req, res) => {
+  const { profileId } = req.params;
+
+  try {
+    const profile = await Profile.findByIdAndDelete(profileId);
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ result: true, message: '프로필이 성공적으로 삭제되었습니다.' });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }

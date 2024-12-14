@@ -1,5 +1,6 @@
 // server.js
-const app = require('./app');
+const express = require('express');
+const app = express();
 const http = require('http');
 const socketIo = require('socket.io');
 const PORT = process.env.PORT || 3000;
@@ -19,13 +20,48 @@ const io = socketIo(server, {
   }
 });
 
+const readCounts = {};
+
 // Socket.IO 연결 설정
 io.on('connection', (socket) => {
   console.log('새 클라이언트 접속:', socket.id);
 
-  socket.on('joinRoom', (roomId) => {
-    socket.join(roomId);
-    console.log(`방 ${roomId}에 참여: ${socket.id}`);
+  socket.on('createRoom', async (data) => {
+    const { roomId, participants } = data;
+    try {
+      // 참가자들을 정렬하여 비교
+      const sortedParticipants = participants.sort();
+      // 동일한 참가자들로 구성된 채팅방 검색
+      let chatRoom = await Chat.findOne({ 
+        participants: { $size: sortedParticipants.length, $all: sortedParticipants }
+      });
+      if (!chatRoom) {
+        // 채팅방 생성
+        chatRoom = new Chat({ roomId, participants: sortedParticipants, messages: [] });
+        await chatRoom.save();
+        console.log(`새로운 방 생성: ${roomId}`);
+      } else {
+        console.log(`이미 존재하는 방입니다: ${chatRoom.roomId}`);
+      }
+      // 방에 소켓 참여
+      socket.join(chatRoom.roomId);
+      readCounts[chatRoom.roomId] = 0;
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  socket.on('joinRoom', async (roomId) => {
+    const chatRoom = await Chat.findOne({ roomId });
+    if (chatRoom) {
+      socket.join(roomId);
+      console.log(`방 ${roomId}에 입장: ${socket.id}`);
+      socket.emit('updateReadCount', readCounts[roomId]);
+    } else {
+      console.log(`존재하지 않는 방입니다: ${roomId}`);
+      // 필요 시 클라이언트에 에러 메시지 전송
+      socket.emit('error', { message: '존재하지 않는 방입니다.' });
+    }
   });
 
   socket.on('chatMessage', async (data) => { 
@@ -42,6 +78,8 @@ io.on('connection', (socket) => {
     }
     // 메시지 브로드캐스트
     io.to(roomId).emit('chatMessage', { senderId, message });
+    readCounts[roomId] += 1;
+    io.to(roomId).emit('updateReadCount', readCounts[roomId]);
   });
 
   // 새로운 이벤트: 채팅방 나가기
