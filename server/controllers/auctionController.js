@@ -190,17 +190,18 @@ exports.placeBid = async (req, res) => {
 };
 
 
-// 상수 사용하여 채팅방 생성 및 알림 헬퍼 함수 수정
+// 수정된 createChatRoomAndNotify 함수
 const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) => {
   const chatRoom = await Chat.create({
     participants: [sellerId, bidderId],
     auctionItem: auctionItemId,
     category: CHAT_CATEGORY.AUCTION, // 상수 사용
+    messages: [],
+    createdAt: new Date()
   });
 
-  const roomId = `auction_${chatRoom._id}`;
-  chatRoom.roomId = roomId;
-  await chatRoom.save();
+  // roomId 대신 chatRoom._id 사용
+  const roomId = chatRoom._id.toString();
 
   // 판매자와 낙찰자에게 채팅방 정보 전송
   io.to(sellerId.toString()).emit('chatRoom', { roomId });
