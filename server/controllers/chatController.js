@@ -11,7 +11,7 @@ const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
 exports.getChatHistory = async (req, res) => {
   const { roomId } = req.params;
   try {
-    const chatRoom = await Chat.findOne({ roomId: roomId }).populate('messages.sender');
+    const chatRoom = await Chat.findById(roomId).populate('messages.sender');
     if (!chatRoom) return res.status(404).send('채팅방을 찾을 수 없습니다.');
     res.status(200).json(chatRoom.messages);
   } catch (err) {
@@ -28,7 +28,7 @@ exports.saveMessage = async (req, res) => {
   const { roomId } = req.params;
   const { senderId, message } = req.body;
   try {
-    const chatRoom = await Chat.findOne({ roomId: roomId });
+    const chatRoom = await Chat.findById(roomId);
     if (!chatRoom) return res.status(404).send('채팅방을 찾을 수 없습니다.');
     
     chatRoom.messages.push({ sender: senderId, message });
@@ -83,7 +83,7 @@ exports.getAuctionChatRooms = async (req, res) => {
 };
 
 /**
- * 프로필 ID 배열을 사용하여 채팅을 시작하거나 기존 채��방 ID 반환 (POST /api/chats/start-chat)
+ * 프로필 ID 배열을 사용하여 채팅을 시작하거나 기존 채팅방 ID 반환 (POST /api/chats/start-chat)
  * @param {Request} req
  * @param {Response} res
  */
@@ -238,14 +238,14 @@ exports.leaveChatRoom = async (req, res) => {
   const { profileId } = req.body;
 
   try {
-    const chatRoom = await Chat.findOne({ roomId: roomId });
+    const chatRoom = await Chat.findById(roomId);
     if (!chatRoom) return res.status(404).send('채팅방을 찾을 수 없습니다.');
 
     if (!chatRoom.participants.includes(profileId)) {
       return res.status(400).send('유저가 이 채팅방의 참가자가 아닙니다.');
     }
 
-    chatRoom.participants = chatRoom.participants.filter(id => id !== profileId);
+    chatRoom.participants = chatRoom.participants.filter(id => id.toString() !== profileId);
     await chatRoom.save();
 
     res.status(200).send('채팅방을 성공적으로 나갔습니다.');

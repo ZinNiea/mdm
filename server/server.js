@@ -26,7 +26,7 @@ io.on('connection', (socket) => {
   console.log('새 클라이언트 접속:', socket.id);
 
   socket.on('createRoom', async (data) => {
-    const { roomId, participants } = data;
+    const { participants } = data;
     try {
       // 참가자들을 정렬하여 비교
       const sortedParticipants = participants.sort();
@@ -36,26 +36,26 @@ io.on('connection', (socket) => {
       });
       if (!chatRoom) {
         // 채팅방 생성
-        chatRoom = new Chat({ roomId, participants: sortedParticipants, messages: [] });
+        chatRoom = new Chat({ participants: sortedParticipants, messages: [] });
         await chatRoom.save();
-        console.log(`새로운 방 생성: ${roomId}`);
+        console.log(`새로운 방 생성: ${chatRoom._id}`);
       } else {
-        console.log(`이미 존재하는 방입니다: ${chatRoom.roomId}`);
+        console.log(`이미 존재하는 방입니다: ${chatRoom._id}`);
       }
       // 방에 소켓 참여
-      socket.join(chatRoom.roomId);
-      readCounts[chatRoom.roomId] = 0;
+      socket.join(chatRoom._id.toString());
+      readCounts[chatRoom._id] = 0;
     } catch (err) {
       console.error(err);
     }
   });
 
   socket.on('joinRoom', async (roomId) => {
-    const chatRoom = await Chat.findOne({ roomId });
+    const chatRoom = await Chat.findById(roomId);
     if (chatRoom) {
       socket.join(roomId);
       console.log(`방 ${roomId}에 입장: ${socket.id}`);
-      socket.emit('updateReadCount', readCounts[roomId]);
+      socket.emit('updateReadCount', readCounts[roomId] || 0);
     } else {
       console.log(`존재하지 않는 방입니다: ${roomId}`);
       // 필요 시 클라이언트에 에러 메시지 전송
@@ -67,17 +67,16 @@ io.on('connection', (socket) => {
     const { roomId, senderId, message } = data;
     // 메시지 저장
     try {
-      const chatRoom = await Chat.findOne({ roomId });
+      const chatRoom = await Chat.findById(roomId);
       if (chatRoom) {
         chatRoom.messages.push({ sender: senderId, message });
         await chatRoom.save();
+        io.to(roomId).emit('chatMessage', { senderId, message });
       }
     } catch (err) {
       console.error(err);
     }
-    // 메시지 브로드캐스트
-    io.to(roomId).emit('chatMessage', { senderId, message });
-    readCounts[roomId] += 1;
+    readCounts[roomId] = (readCounts[roomId] || 0) + 1;
     io.to(roomId).emit('updateReadCount', readCounts[roomId]);
   });
 
@@ -89,9 +88,9 @@ io.on('connection', (socket) => {
 
     // 채팅방에서 유저 제거 로직 (필요 시 추가)
     try {
-      const chatRoom = await Chat.findOne({ roomId });
+      const chatRoom = await Chat.findById(roomId);
       if (chatRoom) {
-        chatRoom.participants = chatRoom.participants.filter(id => id !== profileId);
+        chatRoom.participants = chatRoom.participants.filter(id => id.toString() !== profileId);
         await chatRoom.save();
         io.to(roomId).emit('userLeft', { profileId });
       }
