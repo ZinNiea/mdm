@@ -2,6 +2,7 @@
 const app = require('./app');
 const http = require('http');
 const socketIo = require('socket.io');
+const chatController = require('./controllers/chatController'); // chatController 불러오기
 const PORT = process.env.PORT || 3000;
 
 const logger = require('./utils/logger'); // Winston 로거 가져오기
@@ -63,21 +64,58 @@ io.on('connection', (socket) => {
     }
   });
 
+  // socket.on('chatMessage', async (data) => { 
+  //   const { roomId, senderId, message } = data;
+  //   // 메시지 저장
+  //   try {
+  //     await chatController.saveMessage({ params: { roomId }, body: { senderId, message } }, null);
+
+  //     // 메시지를 방에 브로드캐스트
+  //     io.to(roomId).emit('chatMessage', { senderId, message, timestamp: new Date() });
+  //   } catch (err) {
+  //     console.error('메시지 저장 오류:', err);
+  //     socket.emit('error', { message: '메시지 저장에 실패했습니다.' });
+  //   }
+  //   readCounts[roomId] = (readCounts[roomId] || 0) + 1;
+  //   io.to(roomId).emit('updateReadCount', readCounts[roomId]);
+  // });
   socket.on('chatMessage', async (data) => { 
     const { roomId, senderId, message } = data;
-    // 메시지 저장
-    try {
-      const chatRoom = await Chat.findById(roomId);
-      if (chatRoom) {
-        chatRoom.messages.push({ sender: senderId, message });
-        await chatRoom.save();
-        io.to(roomId).emit('chatMessage', { senderId, message });
-      }
-    } catch (err) {
-      console.error(err);
+  
+    // 데이터 검증
+    if (!roomId || !senderId || !message) {
+      return socket.emit('error', { message: '유효하지 않은 메시지 데이터입니다.' });
     }
-    readCounts[roomId] = (readCounts[roomId] || 0) + 1;
-    io.to(roomId).emit('updateReadCount', readCounts[roomId]);
+  
+    try {
+      // 채팅방 존재 여부 및 사용자의 참여 확인
+      const chatRoom = await Chat.findById(roomId);
+      if (!chatRoom) {
+        return socket.emit('error', { message: '채팅방이 존재하지 않습니다.' });
+      }
+  
+      if (!chatRoom.participants.includes(senderId)) {
+        return socket.emit('error', { message: '채팅방에 참여하고 있지 않습니다.' });
+      }
+  
+      // 메시지 저장
+      await chatController.saveMessage(
+        { params: { roomId }, body: { senderId, message } },
+        { /* 필요 시 응답 객체 전달 */ }
+      );
+  
+      const timestamp = new Date();
+  
+      // 메시지를 방에 브로드캐스트
+      io.to(roomId).emit('chatMessage', { senderId, message, timestamp });
+  
+      // 읽음 카운트 업데이트
+      readCounts[roomId] = (readCounts[roomId] || 0) + 1;
+      io.to(roomId).emit('updateReadCount', readCounts[roomId]);
+    } catch (err) {
+      console.error('메시지 저장 오류:', err);
+      socket.emit('error', { message: '메시지 저장에 실패했습니다.' });
+    }
   });
 
   // 새로운 이벤트: 채팅방 나가기

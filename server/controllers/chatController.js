@@ -20,23 +20,32 @@ exports.getChatHistory = async (req, res) => {
 };
 
 /**
- * 메시지 저장(POST /api/chats/:roomId/message)
- * @param {Request} req
- * @param {Response} res
+ * 메시지 저장 함수 수정
+ * @param {Object} data - 메시지 데이터
+ * @param {Function} callback - 완료 후 호출할 콜백 함수
  */
-exports.saveMessage = async (req, res) => {
-  const { roomId } = req.params;
-  const { senderId, message } = req.body;
+exports.saveMessage = async (data, callback) => {
+  const { roomId } = data.params;
+  const { senderId, message } = data.body;
+
   try {
     const chatRoom = await Chat.findById(roomId);
-    if (!chatRoom) return res.status(404).send('채팅방을 찾을 수 없습니다.');
-    
-    chatRoom.messages.push({ sender: senderId, message });
+    if (!chatRoom) {
+      throw new Error('채팅방을 찾을 수 없습니다.');
+    }
+
+    chatRoom.messages.push({ sender: senderId, message, timestamp: new Date() });
     await chatRoom.save();
-    
-    res.status(201).send('메시지가 저장되었습니다.');
+
+    if (callback) {
+      callback(null);
+    }
   } catch (err) {
-    res.status(500).send(err.message);
+    if (callback) {
+      callback(err);
+    } else {
+      throw err;
+    }
   }
 };
 

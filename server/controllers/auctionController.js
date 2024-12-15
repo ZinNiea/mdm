@@ -64,8 +64,6 @@ exports.createAuctionItem = async (req, res) => {
     });
     await auctionItem.save();
 
-    // 기존 setTimeout 제거
-
     // node-schedule을 사용하여 경매 종료 작업 스케줄링
     schedule.scheduleJob(endTime, () => {
       const io = req.app.get('io'); // io 인스턴스 가져오기
@@ -190,7 +188,6 @@ exports.placeBid = async (req, res) => {
 };
 
 
-// 수정된 createChatRoomAndNotify 함수
 const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) => {
   const chatRoom = await Chat.create({
     participants: [sellerId, bidderId],
