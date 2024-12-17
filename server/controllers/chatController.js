@@ -64,7 +64,7 @@ exports.getUserChatRooms = async (req, res) => {
     }
 
     const chatRooms = await Chat.find(filter)
-      .select('roomId auctionItem createdAt') // 필요한 필드 선택
+      .select('_id auctionItem createdAt') // 필요한 필드 선택
       .populate('auctionItem', 'title'); // 경매 아이템의 제목 정보 포함 (필요 시 추가 필드 지정)
 
     res.status(200).json(chatRooms);
@@ -82,7 +82,7 @@ exports.getAuctionChatRooms = async (req, res) => {
   const { auctionId } = req.params;
   try {
     const chatRooms = await Chat.find({ auctionItem: auctionId })
-      .select('roomId participants createdAt') // 필요한 필드 선택
+      .select('_id participants createdAt') // 필요한 필드 선택
       .populate('participants', 'nickname profileImage'); // 참가자 정보 포함
 
     res.status(200).json(chatRooms);
@@ -97,7 +97,12 @@ exports.getAuctionChatRooms = async (req, res) => {
  * @param {Response} res
  */
 exports.startChat = async (req, res) => {
-  const { profileIds } = req.body;
+  const { profileIds, category, auctionItemId } = req.body;
+
+  // category 유효성 검사
+  if (!category || !Object.values(CHAT_CATEGORY).includes(category)) {
+    return res.status(400).json({ message: '유효한 category가 필요합니다.' });
+  }
 
   // 프로필 ID 배열 유효성 검사
   if (
@@ -108,127 +113,40 @@ exports.startChat = async (req, res) => {
     return res.status(400).json({ message: 'profileIds는 정확히 두 개의 고유한 ID를 포함하는 배열이어야 합니다.' });
   }
 
-  const [profileId1, profileId2] = profileIds;
-
   try {
-    // 이미 존재하는 채팅방 찾기 (참가자가 정확히 두 명인 경우)
-    const existingChat = await Chat.findOne({
-      participants: { $all: [profileId1, profileId2] },
-      'participants.2': { $exists: false } // 참가자가 두 명인 경우
-    });
+    const filter = {
+      participants: { $all: profileIds },
+      category: category,
+      'participants.2': { $exists: false },
+    };
+
+    if (category === CHAT_CATEGORY.AUCTION) {
+      if (!auctionItemId) {
+        return res.status(400).json({ message: '거래 채팅방은 auctionItemId가 필요합니다.' });
+      }
+      filter.auctionItem = auctionItemId;
+    }
+
+    // 이미 존재하는 채팅방 찾기
+    const existingChat = await Chat.findOne(filter);
 
     if (existingChat) {
       return res.status(200).json({ chatRoomId: existingChat._id });
     }
 
     // 새로운 채팅방 생성
-    const newChatRoom = new Chat({
-      participants: [profileId1, profileId2],
+    const newChatData = {
+      participants: profileIds,
+      category: category,
       createdAt: new Date(),
-      messages: []
-    });
+      messages: [],
+    };
 
-    await newChatRoom.save();
-
-    res.status(201).json({ chatRoomId: newChatRoom._id });
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-};
-
-/**
- * 거래 채팅방을 시작하거나 기존 채팅방 ID 반환 (POST /api/chats/start-auction-chat)
- * @param {Request} req
- * @param {Response} res
- */
-exports.startAuctionChat = async (req, res) => {
-  const { profileIds, auctionItemId } = req.body;
-
-  // 프로필 ID 배열 유효성 검사
-  if (
-    !Array.isArray(profileIds) ||
-    profileIds.length !== 2 ||
-    new Set(profileIds).size !== 2
-  ) {
-    return res.status(400).json({ message: 'profileIds는 정확히 두 개의 고유한 ID를 포함하는 배열이어야 합니다.' });
-  }
-
-  if (!auctionItemId) {
-    return res.status(400).json({ message: 'auctionItemId가 필요합니다.' });
-  }
-
-  const [profileId1, profileId2] = profileIds;
-
-  try {
-    // 이미 존재하는 거래 채팅방 찾기
-    const existingChat = await Chat.findOne({
-      participants: { $all: [profileId1, profileId2] },
-      auctionItem: auctionItemId,
-      category: CHAT_CATEGORY.AUCTION, // 상수 사용
-      'participants.2': { $exists: false } // 참가자가 두 명인 경우
-    });
-
-    if (existingChat) {
-      return res.status(200).json({ chatRoomId: existingChat._id });
+    if (category === CHAT_CATEGORY.AUCTION) {
+      newChatData.auctionItem = auctionItemId;
     }
 
-    // 새로운 거래 채팅방 생성
-    const newChatRoom = new Chat({
-      participants: [profileId1, profileId2],
-      auctionItem: auctionItemId,
-      category: CHAT_CATEGORY.AUCTION, // 상수 사용
-      createdAt: new Date(),
-      messages: []
-    });
-
-    await newChatRoom.save();
-
-    res.status(201).json({ chatRoomId: newChatRoom._id });
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-};
-
-/**
- * 프로필 채팅방을 시작하거나 기존 채팅방 ID 반환 (POST /api/chats/start-profile-chat)
- * @param {Request} req
- * @param {Response} res
- */
-exports.startProfileChat = async (req, res) => {
-  const { profileIds } = req.body;
-
-  // 프로필 ID 배열 유효성 검사
-  if (
-    !Array.isArray(profileIds) ||
-    profileIds.length !== 2 ||
-    new Set(profileIds).size !== 2
-  ) {
-    return res.status(400).json({ message: 'profileIds는 정확히 두 개의 고유한 ID를 포함하는 배열이어야 합니다.' });
-  }
-
-  const [profileId1, profileId2] = profileIds;
-
-  try {
-    // 이미 존재하는 프로필 채팅방 찾기
-    const existingChat = await Chat.findOne({
-      participants: { $all: [profileId1, profileId2] },
-      auctionItem: { $exists: false }, // auctionItem이 없는 경우
-      category: CHAT_CATEGORY.PROFILE, // 상수 사용
-      'participants.2': { $exists: false } // 참가자가 두 명인 경우
-    });
-
-    if (existingChat) {
-      return res.status(200).json({ chatRoomId: existingChat._id });
-    }
-
-    // 새로운 프로필 채팅방 생성
-    const newChatRoom = new Chat({
-      participants: [profileId1, profileId2],
-      category: CHAT_CATEGORY.PROFILE, // 상수 사용
-      createdAt: new Date(),
-      messages: []
-    });
-
+    const newChatRoom = new Chat(newChatData);
     await newChatRoom.save();
 
     res.status(201).json({ chatRoomId: newChatRoom._id });
@@ -288,6 +206,56 @@ exports.inviteToChatRoom = async (req, res) => {
     // 선택 사항: Socket.IO를 통해 실시간 알림 전송
     const io = req.app.get('io');
     io.to(roomId).emit('userInvited', { profileId });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+};
+
+/**
+ * 특정 유저가 참여 중인 채팅방 목록 조회(GET /api/chats/user/:userId/rooms)
+ * @param {Request} req
+ * @param {Response} res
+ */
+exports.getUserParticipatingRooms = async (req, res) => {
+  const { profileId } = req.query;
+  try {
+    const chatRooms = await Chat.find({ 'participants.profile': profileId })
+      .select('_id participants createdAt messages') 
+      .populate({
+        path: 'participants.profile',
+        select: 'nickname profileImage'
+      });
+
+    const roomsData = chatRooms.map(room => {
+      // 현재 유저를 제외한 참여자 정보
+      const otherParticipants = room.participants.filter(p => p.profile._id.toString() !== profileId);
+
+      // 마지막 메시지와 그 시간
+      const lastMessage = room.messages.length > 0 ? room.messages[room.messages.length - 1] : null;
+
+      // 읽지 않은 메시지 여부 판단
+      const currentUser = room.participants.find(p => p.profile._id.toString() === profileId);
+      const lastRead = currentUser ? currentUser.lastReadTimestamp : new Date(0);
+      const unreadMessages = room.messages.some(message => message.timestamp > lastRead);
+
+      return {
+        _id: room._id,
+        createdAt: room.createdAt,
+        lastMessage: lastMessage ? {
+          sender: lastMessage.sender,
+          message: lastMessage.message,
+          timestamp: lastMessage.timestamp
+        } : null,
+        unreadMessages: unreadMessages,
+        participants: otherParticipants.map(p => ({
+          _id: p.profile._id,
+          nickname: p.profile.nickname,
+          profileImage: p.profile.profileImage
+        }))
+      };
+    });
+
+    res.status(200).json(roomsData);
   } catch (err) {
     res.status(500).send(err.message);
   }
