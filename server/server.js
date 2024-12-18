@@ -111,11 +111,11 @@ io.on('connection', (socket) => {
       );
       console.log('메시지가 성공적으로 저장되었습니다.');
       socket.emit('messageSaved', { message: '메시지가 저장되었습니다.' });
-      
+
       const timestamp = new Date();
   
       // 메시지를 방에 브로드캐스트
-      io.to(roomId).emit('chatMessage', { senderId, message, timestamp });
+      io.to(roomId).emit('receiveMessage', { senderId, message, timestamp });
   
       // 읽음 카운트 업데이트
       readCounts[roomId] = (readCounts[roomId] || 0) + 1;
