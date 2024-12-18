@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
       // 방에 소켓 참여
       socket.join(chatRoom._id.toString());
       readCounts[chatRoom._id] = 0;
-      socket.emit('roomCreated', { roomId: chatRoom._id });
+      socket.emit('joinRoomSuccess', { roomId, message: '방에 성공적으로 참여했습니다.' });
     } catch (err) {
       console.error(err);
       socket.emit('error', { message: '방 생성 중 오류가 발생했습니다.' });
