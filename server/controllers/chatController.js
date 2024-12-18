@@ -1,4 +1,5 @@
 // controllers/chatController.js
+const mongoose = require('mongoose');
 const { Request, Response } = require('express');
 const { Chat } = require('../models/chatModel');
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
