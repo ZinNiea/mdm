@@ -107,10 +107,11 @@ io.on('connection', (socket) => {
   
       // 메시지 저장
       await chatController.saveMessage(
-        { params: { roomId }, body: { senderId, message } },
-        { /* 필요 시 응답 객체 전달 */ }
+        { params: { roomId }, body: { senderId, message } }
       );
-  
+      console.log('메시지가 성공적으로 저장되었습니다.');
+      socket.emit('messageSaved', { message: '메시지가 저장되었습니다.' });
+      
       const timestamp = new Date();
   
       // 메시지를 방에 브로드캐스트

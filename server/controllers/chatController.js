@@ -24,9 +24,13 @@ exports.getChatHistory = async (req, res) => {
  * @param {Object} data - 메시지 데이터
  * @param {Function} callback - 완료 후 호출할 콜백 함수
  */
-exports.saveMessage = async (data, callback) => {
+exports.saveMessage = async (data) => {
   const { roomId } = data.params;
   const { senderId, message } = data.body;
+
+  if (!mongoose.Types.ObjectId.isValid(roomId)) {
+    throw new Error('유효하지 않은 방 ID입니다.');
+  }
 
   try {
     const chatRoom = await Chat.findById(roomId);
@@ -37,15 +41,9 @@ exports.saveMessage = async (data, callback) => {
     chatRoom.messages.push({ sender: senderId, message, timestamp: new Date() });
     await chatRoom.save();
 
-    if (callback) {
-      callback(null);
-    }
+    return { success: true };
   } catch (err) {
-    if (callback) {
-      callback(err);
-    } else {
-      throw err;
-    }
+    throw err;
   }
 };
 
