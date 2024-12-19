@@ -1,18 +1,23 @@
-// server/services/redisClient.js
+// redisClient.js
 const redis = require('redis');
 
-const redisClient = redis.createClient({
-  host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT,
-  // 추가 설정이 필요한 경우 여기에 작성
+// Redis 클라이언트 생성
+const client = redis.createClient({
+  url: 'redis://localhost:6379' // Redis 서버의 URL 및 포트
 });
 
-const boo = await createClient()
-.on('error', err => console.error('Redis 오류:', err))
-.connect();
-
-redisClient.on('error', (err) => {
-  console.error('Redis 오류:', err);
+// 에러 핸들링
+client.on('error', (err) => {
+  console.error('Redis 클라이언트 오류:', err);
 });
 
-module.exports = redisClient;
+// Redis 서버에 연결
+client.connect()
+  .then(() => {
+    console.log('Redis에 성공적으로 연결되었습니다.');
+  })
+  .catch((err) => {
+    console.error('Redis 연결 오류:', err);
+  });
+
+module.exports = client;
