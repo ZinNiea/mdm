@@ -92,7 +92,7 @@ io.on('connection', (socket) => {
   
       // 메시지 저장
       await chatController.saveMessage({ params: { roomId }, body: { senderId, message } });
-      console.log('메시지가 성공적으로 저장되었습니다.');
+      logger.info('메시지가 성공적으로 저장되었습니다.');
       socket.emit('messageSaved', { message: '메시지가 저장되었습니다.' });
 
       const timestamp = new Date();
@@ -104,7 +104,7 @@ io.on('connection', (socket) => {
       readCounts[roomId] = (readCounts[roomId] || 0) + 1;
       io.to(roomId).emit('updateReadCount', readCounts[roomId]);
     } catch (err) {
-      console.error('메시지 저장 오류:', err);
+      logger.error('메시지 저장 오류:', err);
       socket.emit('error', { message: '메시지 저장에 실패했습니다.' });
     }
   });
