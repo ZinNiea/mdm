@@ -9,6 +9,8 @@ const logger = require('./utils/logger'); // Winston 로거 가져오기
 const { Chat } = require('./models/chatModel'); // Chat 모델 가져오기
 const { ViewLog } = require('./models/viewLogModel'); // ViewLog 모델 가져오기
 
+const mongoose = require('mongoose');
+
 // HTTP 서버 생성
 const server = http.createServer(app);
 
@@ -52,10 +54,19 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinRoom', async (roomId) => {
+
+    if(!mongoose.Types.ObjectId.isValid(roomId)) {
+      return socket.emit('error', { message: '유효하지 않은 방 ID입니다.' });
+    }
+
     const chatRoom = await Chat.findById(roomId);
     if (chatRoom) {
       socket.join(roomId);
       console.log(`방 ${roomId}에 입장: ${socket.id}`);
+
+      // 방의 이전 메시지들을 클라이언트에게 전송
+      socket.emit('chatHistory', chatRoom.messages);
+
       socket.emit('updateReadCount', readCounts[roomId] || 0);
     } else {
       console.log(`존재하지 않는 방입니다: ${roomId}`);

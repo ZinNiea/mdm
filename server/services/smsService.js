@@ -1,27 +1,23 @@
 // server/services/smsService.js
-const { MessageService } = require('@coolsms/node-sdk');
+const coolsms = require('coolsms-node-sdk').default;
 
 // coolsms SDK 초기화
-const messageService = new MessageService(process.env.COOLSMS_API_KEY, process.env.COOLSMS_API_SECRET);
+const sms = new coolsms('ENTER_YOUR_API_KEY', 'ENTER_YOUR_API_SECRET');
+const from = '01012345678'; // 발신 번호
 
-/**
- * SMS 발송 함수
- * @param {string} to - 수신자 전화번호
- * @param {string} message - 발송할 메시지 내용
- * @returns {Promise<object>} - 발송 결과
- */
 const sendSMS = async (to, message) => {
   try {
-    await messageService.sendOne({
+    const response = await sms.sendOne({
       to,
-      from: process.env.SENDER_PHONE_NUMBER, // 발신자 번호
+      from,
       text: message,
     });
-    return { success: true };
+    return response;
   } catch (error) {
-    console.error('SMS 발송 오류:', error);
-    return { success: false, error };
+    throw error;
   }
 };
 
-module.exports = { sendSMS };
+module.exports = {
+  sendSMS,
+};
