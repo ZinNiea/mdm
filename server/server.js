@@ -9,6 +9,8 @@ const logger = require('./utils/logger'); // Winston 로거 가져오기
 const { Chat } = require('./models/chatModel'); // Chat 모델 가져오기
 const { ViewLog } = require('./models/viewLogModel'); // ViewLog 모델 가져오기
 
+const mongoose = require('mongoose');
+
 // HTTP 서버 생성
 const server = http.createServer(app);
 
@@ -56,29 +58,38 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinRoom', async (data) => {
-    const { chatRoomId } = data;
+    const { roomId, profileId } = data; // profileId 추가
+
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return socket.emit('error', { message: '유효하지 않은 방 ID입니다.' });
+    }
+
     try {
-      const chatRoom = await Chat.findById(chatRoomId);
+      const chatRoom = await Chat.findById(roomId);
       if (chatRoom) {
-        socket.join(chatRoomId);
-        console.log(`방 ${chatRoomId}에 입장: ${socket.id}`);
-        socket.emit('joinRoomSuccess', {
-          roomId: chatRoomId,
-          message: '방에 성공적으로 참여했습니다.'
-        });
-        socket.emit('updateReadCount', readCounts[chatRoomId] || 0);
+        // 권한 검증: 사용자가 채팅방의 참가자인지 확인
+        if (!chatRoom.participants.includes(profileId)) {
+          return socket.emit('error', { message: '채팅방에 참여할 권한이 없습니다.' });
+        }
+
+        socket.join(roomId);
+        console.log(`방 ${roomId}에 입장: ${socket.id}`);
+
+        // 방의 이전 메시지들을 클라이언트에게 전송
+        socket.emit('chatHistory', chatRoom.messages);
+
+        socket.emit('updateReadCount', readCounts[roomId] || 0);
       } else {
-        console.log(`존재하지 않는 방입니다: ${chatRoomId}`);
-        // 필요 시 클라이언트에 에러 메시지 전송
+        console.log(`존재하지 않는 방입니다: ${roomId}`);
         socket.emit('error', { message: '존재하지 않는 방입니다.' });
       }
     } catch (err) {
       console.error(err);
-      socket.emit('error', { message: '방 참여 중 오류가 발생했습니다.' });
+      socket.emit('error', { message: '채팅방에 참가하는 중 오류가 발생했습니다.' });
     }
   });
 
-  socket.on('chatMessage', async (data) => {
+  socket.on('chatMessage', async (data) => { 
     const { roomId, senderId, message } = data;
 
     // 데이터 검증

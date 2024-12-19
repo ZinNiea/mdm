@@ -1105,3 +1105,37 @@ exports.deleteProfile = async (req, res) => {
     res.status(500).json({ result: false, message: err.message });
   }
 };
+
+exports.getUserIdByUsername = async (req, res) => {
+  const { username } = req.body;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+    res.status(200).json({ result: true, userId: user._id });f
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+exports.resetPasswordWithPhoneNumber = async (req, res) => {
+  const { username, phoneNumber, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ username, phoneNumber });
+    if (!user) {
+      return res.status(400).json({ result: false, message: '사용자 정보가 일치하지 않습니다.' });
+    }
+
+    // 비밀번호 해싱
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ result: true, message: '비밀번호가 성공적으로 변경되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
