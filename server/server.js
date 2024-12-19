@@ -30,9 +30,9 @@ io.on('connection', (socket) => {
     const { participants } = data;
     try {
       // 참가자들을 정렬하여 비교
-      const sortedParticipants = participants.sort();
+      const sortedParticipants = participants.slice().sort();
       // 동일한 참가자들로 구성된 채팅방 검색
-      let chatRoom = await Chat.findOne({ 
+      let chatRoom = await Chat.findOne({
         participants: { $size: sortedParticipants.length, $all: sortedParticipants }
       });
       if (!chatRoom) {
@@ -45,30 +45,37 @@ io.on('connection', (socket) => {
       }
       // 방에 소켓 참여
       socket.join(chatRoom._id.toString());
-      readCounts[chatRoom._id] = 0;
+      if (!readCounts.hasOwnProperty(chatRoom._id)) {
+        readCounts[chatRoom._id] = 0;
+      }
       socket.emit('joinRoomSuccess', { roomId: chatRoom._id, message: '방에 성공적으로 참여했습니다.' });
     } catch (err) {
       console.error(err);
       socket.emit('error', { message: '방 생성 중 오류가 발생했습니다.' });
     }
-  });
-
-  socket.on('joinRoom', async (data) => {
-    const { chatRoomId } = data;
-    const chatRoom = await Chat.findById(chatRoomId);
-    if (chatRoom) {
-      socket.join(chatRoomId);
-      console.log(`방 ${chatRoomId}에 입장: ${socket.id}`);
-      socket.emit('joinRoomSuccess', { 
-        roomId: chatRoomId, 
-        message: '방에 성공적으로 참여했습니다.' 
-      });
-      socket.emit('updateReadCount', readCounts[chatRoomId] || 0);
-    } else {
-      console.log(`존재하지 않는 방입니다: ${chatRoomId}`);
-      // 필요 시 클라이언트에 에러 메시지 전송
-      socket.emit('error', { message: '존재하지 않는 방입니다.' });
-    }
+    
+    socket.on('joinRoom', async (data) => {
+      const { chatRoomId } = data;
+      try {
+        const chatRoom = await Chat.findById(chatRoomId);
+        if (chatRoom) {
+          socket.join(chatRoomId);
+          console.log(`방 ${chatRoomId}에 입장: ${socket.id}`);
+          socket.emit('joinRoomSuccess', {
+            roomId: chatRoomId,
+            message: '방에 성공적으로 참여했습니다.'
+          });
+          socket.emit('updateReadCount', readCounts[chatRoomId] || 0);
+        } else {
+          console.log(`존재하지 않는 방입니다: ${chatRoomId}`);
+          // 필요 시 클라이언트에 에러 메시지 전송
+          socket.emit('error', { message: '존재하지 않는 방입니다.' });
+        }
+      } catch (err) {
+        console.error(err);
+        socket.emit('error', { message: '방 참여 중 오류가 발생했습니다.' });
+      }
+    });
   });
 
   socket.on('chatMessage', async (data) => {
