@@ -53,60 +53,60 @@ io.on('connection', (socket) => {
       console.error(err);
       socket.emit('error', { message: '방 생성 중 오류가 발생했습니다.' });
     }
-    
-    socket.on('joinRoom', async (data) => {
-      const { chatRoomId } = data;
-      try {
-        const chatRoom = await Chat.findById(chatRoomId);
-        if (chatRoom) {
-          socket.join(chatRoomId);
-          console.log(`방 ${chatRoomId}에 입장: ${socket.id}`);
-          socket.emit('joinRoomSuccess', {
-            roomId: chatRoomId,
-            message: '방에 성공적으로 참여했습니다.'
-          });
-          socket.emit('updateReadCount', readCounts[chatRoomId] || 0);
-        } else {
-          console.log(`존재하지 않는 방입니다: ${chatRoomId}`);
-          // 필요 시 클라이언트에 에러 메시지 전송
-          socket.emit('error', { message: '존재하지 않는 방입니다.' });
-        }
-      } catch (err) {
-        console.error(err);
-        socket.emit('error', { message: '방 참여 중 오류가 발생했습니다.' });
+  });
+
+  socket.on('joinRoom', async (data) => {
+    const { chatRoomId } = data;
+    try {
+      const chatRoom = await Chat.findById(chatRoomId);
+      if (chatRoom) {
+        socket.join(chatRoomId);
+        console.log(`방 ${chatRoomId}에 입장: ${socket.id}`);
+        socket.emit('joinRoomSuccess', {
+          roomId: chatRoomId,
+          message: '방에 성공적으로 참여했습니다.'
+        });
+        socket.emit('updateReadCount', readCounts[chatRoomId] || 0);
+      } else {
+        console.log(`존재하지 않는 방입니다: ${chatRoomId}`);
+        // 필요 시 클라이언트에 에러 메시지 전송
+        socket.emit('error', { message: '존재하지 않는 방입니다.' });
       }
-    });
+    } catch (err) {
+      console.error(err);
+      socket.emit('error', { message: '방 참여 중 오류가 발생했습니다.' });
+    }
   });
 
   socket.on('chatMessage', async (data) => {
     const { roomId, senderId, message } = data;
-  
+
     // 데이터 검증
     if (!roomId || !senderId || !message) {
       return socket.emit('error', { message: '유효하지 않은 메시지 데이터입니다.' });
     }
-  
+
     try {
       // 채팅방 존재 여부 및 사용자의 참여 확인
       const chatRoom = await Chat.findById(roomId);
       if (!chatRoom) {
         return socket.emit('error', { message: '채팅방이 존재하지 않습니다.' });
       }
-  
+
       if (!chatRoom.participants.includes(senderId)) {
         return socket.emit('error', { message: '채팅방에 참여하고 있지 않습니다.' });
       }
-  
+
       // 메시지 저장
       await chatController.saveMessage({ params: { roomId }, body: { senderId, message } });
       logger.info('메시지가 성공적으로 저장되었습니다.');
       socket.emit('messageSaved', { message: '메시지가 저장되었습니다.' });
 
       const timestamp = new Date();
-  
+
       // 메시지를 방에 브로드캐스트
       io.to(roomId).emit('broadcastMessage', { senderId, message, timestamp });
-  
+
       // 읽음 카운트 업데이트
       readCounts[roomId] = (readCounts[roomId] || 0) + 1;
       io.to(roomId).emit('updateReadCount', readCounts[roomId]);
