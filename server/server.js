@@ -71,22 +71,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // socket.on('chatMessage', async (data) => { 
-  //   const { roomId, senderId, message } = data;
-  //   // 메시지 저장
-  //   try {
-  //     await chatController.saveMessage({ params: { roomId }, body: { senderId, message } }, null);
-
-  //     // 메시지를 방에 브로드캐스트
-  //     io.to(roomId).emit('chatMessage', { senderId, message, timestamp: new Date() });
-  //   } catch (err) {
-  //     console.error('메시지 저장 오류:', err);
-  //     socket.emit('error', { message: '메시지 저장에 실패했습니다.' });
-  //   }
-  //   readCounts[roomId] = (readCounts[roomId] || 0) + 1;
-  //   io.to(roomId).emit('updateReadCount', readCounts[roomId]);
-  // });
-  socket.on('chatMessage', async (data) => { 
+  socket.on('chatMessage', async (data) => {
     const { roomId, senderId, message } = data;
   
     // 데이터 검증
@@ -106,16 +91,14 @@ io.on('connection', (socket) => {
       }
   
       // 메시지 저장
-      await chatController.saveMessage(
-        { params: { roomId }, body: { senderId, message } }
-      );
+      await chatController.saveMessage({ params: { roomId }, body: { senderId, message } });
       console.log('메시지가 성공적으로 저장되었습니다.');
       socket.emit('messageSaved', { message: '메시지가 저장되었습니다.' });
 
       const timestamp = new Date();
   
       // 메시지를 방에 브로드캐스트
-      io.to(roomId).emit('receiveMessage', { senderId, message, timestamp });
+      io.to(roomId).emit('broadcastMessage', { senderId, message, timestamp });
   
       // 읽음 카운트 업데이트
       readCounts[roomId] = (readCounts[roomId] || 0) + 1;
