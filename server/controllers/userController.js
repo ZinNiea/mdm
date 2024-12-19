@@ -520,7 +520,8 @@ exports.updateProfile = async (req, res) => {
 
 // 특정 프로필을 조회하는 함수 추가
 exports.getProfile = async (req, res) => {
-  const { profileId, targetProfileId } = req.params;
+  const { profileId } = req.params;
+  const { targetProfileId } = req.query;
   try {
     const profile = await Profile.findById(profileId).populate('topFriends', 'nickname profileImage');
     if (!profile) {
