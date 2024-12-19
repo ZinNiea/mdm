@@ -1,4 +1,4 @@
-
+// server/services/redisClient.js
 const redis = require('redis');
 
 const redisClient = redis.createClient({
@@ -6,6 +6,10 @@ const redisClient = redis.createClient({
   port: process.env.REDIS_PORT,
   // 추가 설정이 필요한 경우 여기에 작성
 });
+
+const boo = await createClient()
+.on('error', err => console.error('Redis 오류:', err))
+.connect();
 
 redisClient.on('error', (err) => {
   console.error('Redis 오류:', err);
