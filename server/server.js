@@ -53,43 +53,38 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('joinRoom', async (roomId) => {
+  socket.on('joinRoom', async (data) => {
+    const { roomId, profileId } = data; // profileId 추가
 
-    if(!mongoose.Types.ObjectId.isValid(roomId)) {
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
       return socket.emit('error', { message: '유효하지 않은 방 ID입니다.' });
     }
 
-    const chatRoom = await Chat.findById(roomId);
-    if (chatRoom) {
-      socket.join(roomId);
-      console.log(`방 ${roomId}에 입장: ${socket.id}`);
+    try {
+      const chatRoom = await Chat.findById(roomId);
+      if (chatRoom) {
+        // 권한 검증: 사용자가 채팅방의 참가자인지 확인
+        if (!chatRoom.participants.includes(profileId)) {
+          return socket.emit('error', { message: '채팅방에 참여할 권한이 없습니다.' });
+        }
 
-      // 방의 이전 메시지들을 클라이언트에게 전송
-      socket.emit('chatHistory', chatRoom.messages);
+        socket.join(roomId);
+        console.log(`방 ${roomId}에 입장: ${socket.id}`);
 
-      socket.emit('updateReadCount', readCounts[roomId] || 0);
-    } else {
-      console.log(`존재하지 않는 방입니다: ${roomId}`);
-      // 필요 시 클라이언트에 에러 메시지 전송
-      socket.emit('error', { message: '존재하지 않는 방입니다.' });
+        // 방의 이전 메시지들을 클라이언트에게 전송
+        socket.emit('chatHistory', chatRoom.messages);
+
+        socket.emit('updateReadCount', readCounts[roomId] || 0);
+      } else {
+        console.log(`존재하지 않는 방입니다: ${roomId}`);
+        socket.emit('error', { message: '존재하지 않는 방입니다.' });
+      }
+    } catch (err) {
+      console.error(err);
+      socket.emit('error', { message: '채팅방에 참가하는 중 오류가 발생했습니다.' });
     }
   });
 
-  // socket.on('chatMessage', async (data) => { 
-  //   const { roomId, senderId, message } = data;
-  //   // 메시지 저장
-  //   try {
-  //     await chatController.saveMessage({ params: { roomId }, body: { senderId, message } }, null);
-
-  //     // 메시지를 방에 브로드캐스트
-  //     io.to(roomId).emit('chatMessage', { senderId, message, timestamp: new Date() });
-  //   } catch (err) {
-  //     console.error('메시지 저장 오류:', err);
-  //     socket.emit('error', { message: '메시지 저장에 실패했습니다.' });
-  //   }
-  //   readCounts[roomId] = (readCounts[roomId] || 0) + 1;
-  //   io.to(roomId).emit('updateReadCount', readCounts[roomId]);
-  // });
   socket.on('chatMessage', async (data) => { 
     const { roomId, senderId, message } = data;
   
