@@ -108,15 +108,15 @@ io.on('connection', (socket) => {
         return socket.emit('error', { message: '채팅방에 참여하고 있지 않습니다.' });
       }
 
-      // 메시지 저장
-      await chatController.saveMessage({ params: { roomId }, body: { senderId, message } });
+      // 메시지 저장 및 메시지 ID 획득
+      const result = await chatController.saveMessage({ params: { roomId }, body: { senderId, message } });
       logger.info('메시지가 성공적으로 저장되었습니다.');
       socket.emit('messageSaved', { message: '메시지가 저장되었습니다.' });
 
       const timestamp = new Date();
 
       // 메시지를 방에 브로드캐스트
-      io.to(roomId).emit('broadcastMessage', { senderId, message, timestamp });
+      io.to(roomId).emit('broadcastMessage', { senderId, message, timestamp, messageId: result.messageId });
 
       // 읽음 카운트 업데이트
       readCounts[roomId] = (readCounts[roomId] || 0) + 1;

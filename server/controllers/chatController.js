@@ -39,10 +39,13 @@ exports.saveMessage = async (data) => {
       throw new Error('채팅방을 찾을 수 없습니다.');
     }
 
+    // 메시지 저장
     chatRoom.messages.push({ sender: senderId, message, timestamp: new Date() });
     await chatRoom.save();
 
-    return { success: true };
+    // 저장된 메시지의 고유 ID 반환
+    const savedMessage = chatRoom.messages[chatRoom.messages.length - 1];
+    return { success: true, messageId: savedMessage._id };
   } catch (err) {
     throw err;
   }
