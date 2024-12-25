@@ -12,7 +12,7 @@ const bcrypt = require('bcrypt');
 const SALT_ROUNDS = 10;
 
 // 중복을 확인하는 유틸리티 함수를 가져옵니다.
-const { isUsernameTaken, isEmailTaken } = require('../utils/userUtils');
+const { isUsernameTaken, isEmailTaken, isNicknameTaken } = require('../utils/userUtils');
 const { deleteImage } = require('../middlewares/uploadMiddleware');
 const { ProfileReport } = require('../models/reportModel');
 const { addTokenToBlacklist } = require('../middlewares/authMiddleware');
@@ -95,11 +95,9 @@ exports.registerUser = async (req, res) => {
       ? new Profile({
           nickname: nickname,
           profileImage: profileImage,
-          birthdate: age, // age가 birthdate라면 적절히 변환 필요
         })
       : new Profile({
           nickname: nickname,
-          birthdate: age, // age가 birthdate라면 적절히 변환 필요
         });
 
     await newProfile.save();
@@ -1093,13 +1091,30 @@ exports.getNotifications = async (req, res) => {
 };
 
 exports.deleteProfile = async (req, res) => {
-  const { profileId } = req.params;
+  const { userId, profileId } = req.params;
 
   try {
+    const user = await User.findById(userId).populate('profiles');
+    if (!user) {
+      return res.status(404).json({ result: false, message: '유저를 찾을 수 없습니다.' });
+    }
+
+    const profileCount = user.profiles.length;
+    if (profileCount <= 1) {
+      return res.status(400).json({ result: false, message: '삭제할 수 없습니다. 프로필은 최소 하나 이상 존재해야합니다.' });
+    }
+
     const profile = await Profile.findByIdAndDelete(profileId);
     if (!profile) {
       return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
     }
+
+    // 유저의 profiles 배열에서도 삭제된 프로필을 제거합니다.
+    user.profiles.pull(profileId);
+    if (user.mainProfile.toString() === profileId) {
+      user.mainProfile = user.profiles[0] || null;
+    }
+    await user.save();
 
     res.status(200).json({ result: true, message: '프로필이 성공적으로 삭제되었습니다.' });
   } catch (err) {
