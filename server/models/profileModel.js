@@ -11,6 +11,7 @@ const interestSchema = new mongoose.Schema({
 const profileSchema = new mongoose.Schema({
   nickname: {
     type: String,
+    unique: true,
     required: true,
   },
   profileImage: {
