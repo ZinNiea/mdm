@@ -110,7 +110,7 @@ router.delete('/profiles/:profileId', userController.deleteProfile);
 router.delete('/:userId/profile/:profileId', userController.deleteProfile);
 
 // 이메일과 휴대폰 번호로 사용자 ID 찾기 라우트 추가
-router.post('/find-user-id', userController.findUserId);
+router.post('/users/find', userController.findUserId);
 
 // username과 phoneNumber를 이용해 사용자의 유효성을 확인하는 라우트
 router.get('/users/validate', userController.checkUserExistence);
