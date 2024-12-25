@@ -85,6 +85,13 @@ exports.registerUser = async (req, res) => {
       });
     }
 
+    if (await isNicknameTaken(nickname)) {
+      return res.status(400).json({
+        result: false,
+        message: '이미 사용 중인 닉네임입니다.'
+      });
+    }
+
     // 비밀번호 해싱
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
