@@ -13,14 +13,18 @@ exports.getPosts = async (req, res) => {
   const { category, search, profileId } = req.query; // 쿼리 파라미터에서 카테고리와 검색어 추출
   let filter = {};
 
-  if (category) {
-    if (category === '친구' || Number(category) === 1) {
+  // category가 문자열일 경우 숫자로 변환
+  switch (category) {
+    case '친구':
+    case 'friends':
+    case '1':
       filter.category = 1;
-    } else if (category === '전체' || Number(category) === 3) {
+      break;
+    case '전체':
+    case 'public':
+    case '3':
       filter.category = 3;
-    } else {
-      filter.category = Number(category);
-    }
+      break;
   }
 
   if (search) {
