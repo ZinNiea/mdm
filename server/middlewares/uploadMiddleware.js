@@ -1,15 +1,16 @@
 // server/middlewares/uploadMiddleware.js
-const aws = require('aws-sdk');
+// AWS SDK v3로 변경
+const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 
-aws.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+const s3 = new S3Client({
   region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
 });
-
-const s3 = new aws.S3();
 
 // 이미지 유형 상수 정의
 const IMAGE_TYPES = {
@@ -37,14 +38,15 @@ const upload = (folder) => multer({
   },
 });
 
-// 이미지 삭제 함수 추가
+// 이미지 삭제 함수 수정
 const deleteImage = async (imageUrl) => {
   const key = imageUrl.split('/').pop();
   const params = {
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: key,
   };
-  return s3.deleteObject(params).promise();
+  const command = new DeleteObjectCommand(params);
+  return s3.send(command);
 };
 
 module.exports = { upload, deleteImage, IMAGE_TYPES };
