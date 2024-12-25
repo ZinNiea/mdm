@@ -53,7 +53,7 @@ exports.registerUser = async (req, res) => {
   if (!passwordRegex.test(password)) {
     return res.status(400).json({
       result: false,
-      message: `비밀번호는 최소 8자 이상, 영문 대소문자, 숫자, 특수문자(${allowedSpecialChars.split('').join('')})를 각각 최소 하나 이상 포함해야 합니다.`
+      message: `비밀번호는 최소 4자 이상, 영문 대소문자, 숫자, 특수문자(${allowedSpecialChars.split('').join('')})를 각각 최소 하나 이상 포함해야 합니다.`
     });
   }
 
@@ -1128,6 +1128,130 @@ exports.resetPasswordWithPhoneNumber = async (req, res) => {
     const user = await User.findOne({ username, phoneNumber });
     if (!user) {
       return res.status(400).json({ result: false, message: '사용자 정보가 일치하지 않습니다.' });
+    }
+
+    // 비밀번호 해싱
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ result: true, message: '비밀번호가 성공적으로 변경되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 이메일과 휴대폰 번호로 사용자 ID 찾기
+exports.findUserId = async (req, res) => {
+  const { email, phoneNumber } = req.body;
+
+  // 이메일 형식 검증
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      result: false,
+      message: '유효한 이메일 형식이 아닙니다.'
+    });
+  }
+
+  // 휴대폰 번호 형식 검증 (10-15자리 숫자)
+  const phoneRegex = /^\d{10,15}$/;
+  if (!phoneRegex.test(phoneNumber)) {
+    return res.status(400).json({
+      result: false,
+      message: '유효한 휴대폰 번호 형식이 아닙니다.'
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email: email, phoneNumber: phoneNumber });
+
+    if (!user) {
+      return res.status(404).json({
+        result: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    if (user.isDeleted) {
+      return res.status(404).json({
+        result: false,
+        message: '이미 탈퇴한 사용자입니다.'
+      });
+    }
+
+    res.status(200).json({
+      result: true,
+      userId: user._id
+    });
+  } catch (err) {
+    res.status(500).json({
+      result: false,
+      message: err.message
+    });
+  }
+};
+
+exports.checkUserExistence = async (req, res) => {
+  const { username, phoneNumber } = req.body;
+
+  // 데이터 유효성 검사
+  if (!username || !phoneNumber) {
+    return res.status(400).json({
+      result: false,
+      message: 'username과 phoneNumber가 필요합니다.',
+    });
+  }
+
+  try {
+    const user = await User.findOne({ username, phoneNumber });
+
+    if (!user) {
+      return res.status(404).json({
+        result: false,
+        message: '유효한 사용자가 아닙니다.',
+      });
+    }
+
+    res.status(200).json({
+      result: true,
+    });
+  } catch (error) {
+    res.status(500).json({
+      result: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.requestPasswordReset = async (req, res) => {
+  
+};
+
+exports.updatePassword = async (req, res) => {
+  const { username, newPassword } = req.body;
+
+  // 데이터 유효성 검사
+  if (!username || !newPassword) {
+    return res.status(400).json({
+      result: false,
+      message: 'username과 newPassword가 필요합니다.',
+    });
+  }
+
+  // 비밀번호 유효성 검사
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{4,20}$/;
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({
+      result: false,
+      message: '비밀번호는 최소 4자 이상, 영문 대소문자, 숫자, 특수문자를 포함해야 합니다.'
+    });
+  }
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
     }
 
     // 비밀번호 해싱
