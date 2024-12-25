@@ -33,7 +33,7 @@ const { Notification } = require('../models/notificationModel');
 
 // 회원가입 기능
 exports.registerUser = async (req, res) => {
-  const { username, password, email, age, nickname } = req.body;
+  const { username, password, email, age, nickname, phoneNumber } = req.body;
   // 업로드된 이미지의 URL 가져오기
   const profileImage = req.file ? req.file.location : null;
   const createdAt = new Date();
@@ -109,6 +109,7 @@ exports.registerUser = async (req, res) => {
       username: username, 
       email: email, 
       password: hashedPassword, 
+      phoneNumber: phoneNumber,
       createdAt: createdAt,
       profiles: [newProfile._id],
       mainProfile: newProfile._id,
