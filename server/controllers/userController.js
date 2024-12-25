@@ -33,7 +33,7 @@ const { Notification } = require('../models/notificationModel');
 
 // 회원가입 기능
 exports.registerUser = async (req, res) => {
-  const { username, password, email, age, nickname, phoneNumber } = req.body;
+  const { username, password, email, nickname, phoneNumber } = req.body;
   // 업로드된 이미지의 URL 가져오기
   const profileImage = req.file ? req.file.location : null;
   const createdAt = new Date();
@@ -60,14 +60,6 @@ exports.registerUser = async (req, res) => {
   try {
     // 이메일 도메인 추출
     const emailDomain = email.split('@')[1].toLowerCase();
-
-    // 도메인 유효성 검사
-    if (!allowedDomains.includes(emailDomain)) {
-      return res.status(400).json({ 
-        result: false, 
-        message: '허용되지 않은 이메일 도메인입니다. naver.com, kakao.com, nate.com 도메인만 허용됩니다.' 
-      });
-    }
 
     // 사용자 이름 중복 검사
     if (await isUsernameTaken(username)) {
