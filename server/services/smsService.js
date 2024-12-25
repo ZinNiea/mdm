@@ -2,8 +2,8 @@
 const coolsms = require('coolsms-node-sdk').default;
 
 // coolsms SDK 초기화
-const sms = new coolsms('ENTER_YOUR_API_KEY', 'ENTER_YOUR_API_SECRET');
-const from = '01012345678'; // 발신 번호
+const sms = new coolsms('NCSAEXVNH5UOIDCJ', 'CZTTVINLVNM2HHUJYVAKL32GNRWIAMGL');
+const from = '01032442463'; // 발신 번호
 
 const sendSMS = async (to, message) => {
   try {
