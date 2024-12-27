@@ -1,4 +1,5 @@
 // controllers/chatController.js
+const mongoose = require('mongoose');
 const { Request, Response } = require('express');
 const { Chat } = require('../models/chatModel');
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
@@ -24,9 +25,13 @@ exports.getChatHistory = async (req, res) => {
  * @param {Object} data - 메시지 데이터
  * @param {Function} callback - 완료 후 호출할 콜백 함수
  */
-exports.saveMessage = async (data, callback) => {
+exports.saveMessage = async (data) => {
   const { roomId } = data.params;
   const { senderId, message } = data.body;
+
+  if (!mongoose.Types.ObjectId.isValid(roomId)) {
+    throw new Error('유효하지 않은 방 ID입니다.');
+  }
 
   try {
     const chatRoom = await Chat.findById(roomId);
@@ -34,18 +39,15 @@ exports.saveMessage = async (data, callback) => {
       throw new Error('채팅방을 찾을 수 없습니다.');
     }
 
+    // 메시지 저장
     chatRoom.messages.push({ sender: senderId, message, timestamp: new Date() });
     await chatRoom.save();
 
-    if (callback) {
-      callback(null);
-    }
+    // 저장된 메시지의 고유 ID 반환
+    const savedMessage = chatRoom.messages[chatRoom.messages.length - 1];
+    return { success: true, messageId: savedMessage._id };
   } catch (err) {
-    if (callback) {
-      callback(err);
-    } else {
-      throw err;
-    }
+    throw err;
   }
 };
 

@@ -13,14 +13,18 @@ exports.getPosts = async (req, res) => {
   const { category, search, profileId } = req.query; // 쿼리 파라미터에서 카테고리와 검색어 추출
   let filter = {};
 
-  if (category) {
-    if (category === '친구' || Number(category) === 1) {
+  // category가 문자열일 경우 숫자로 변환
+  switch (category) {
+    case '친구':
+    case 'friends':
+    case '1':
       filter.category = 1;
-    } else if (category === '전체' || Number(category) === 3) {
+      break;
+    case '전체':
+    case 'public':
+    case '3':
       filter.category = 3;
-    } else {
-      filter.category = Number(category);
-    }
+      break;
   }
 
   if (search) {
@@ -131,8 +135,22 @@ exports.createPost = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-    const { content, category, profileId } = req.body;
+    let { content, category, profileId } = req.body;
     const images = req.files ? req.files.map(file => file.location) : [];
+
+    // category가 문자열일 경우 숫자로 변환
+    switch (category) {
+      case '친구':
+      case 'friends':
+      case '1':
+        category = 1;
+        break;
+      case '전체':
+      case 'public':
+      case '3':
+        category = 3;
+        break;
+    }
 
     // 프로필 소유자 검증
     const user = await User.findById(decoded.id);
@@ -176,26 +194,26 @@ exports.createPost = async (req, res) => {
 
 // 게시물 수정
 exports.updatePost = async (req, res) => {
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+  // const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
   const { postId } = req.params;
   const { content } = req.body;
   const images = req.files ? req.files.map(file => file.location) : [];
 
-  if (!token) {
-    return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
-  }
+  // if (!token) {
+  //   return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
+  // }
 
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
+    // const decoded = jwt.verify(token, SECRET_KEY);
     const post = await Post.findById(postId);
 
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
 
-    if (post.author.toString() !== decoded.id) {
-      return res.status(403).json({ success: false, message: '게시물을 수정할 권한이 없습니다.' });
-    }
+    // if (post.author.toString() !== decoded.id) {
+    //   return res.status(403).json({ success: false, message: '게시물을 수정할 권한이 없습니다.' });
+    // }
 
     post.content = content || post.content;
     // post.images = images || post.images;
@@ -229,24 +247,24 @@ exports.updatePost = async (req, res) => {
 
 // 게시물 삭제
 exports.deletePost = async (req, res) => {
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+  // const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
   const { postId } = req.params;
 
-  if (!token) {
-    return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
-  }
+  // if (!token) {
+  //   return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
+  // }
 
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
+    // const decoded = jwt.verify(token, SECRET_KEY);
     const post = await Post.findById(postId);
 
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
 
-    if (post.author.toString() !== decoded.id) {
-      return res.status(403).json({ success: false, message: '게시물을 삭제할 권한이 없습니다.' });
-    }
+    // if (post.author.toString() !== decoded.id) {
+    //   return res.status(403).json({ success: false, message: '게시물을 삭제할 권한이 없습니다.' });
+    // }
 
     await post.remove();
 

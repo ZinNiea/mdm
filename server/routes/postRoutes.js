@@ -4,12 +4,13 @@ const router = express.Router();
 const postController = require('../controllers/postController');
 const commentController = require('../controllers/commentController');
 const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 
 // 게시물 전체 조회 또는 카테고리별 조회
 router.get('/posts', postController.getPosts);
 
 // 특정 게시물 조회
-router.get('/posts/:postId', postController.getPostById);
+router.get('/posts/:postId', authenticateToken, postController.getPostById);
 
 // 게시물 작성 (최대 5장까지 이미지 업로드 허용)
 router.post('/posts', upload(IMAGE_TYPES.POST).array('images', 5), postController.createPost);

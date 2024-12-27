@@ -8,6 +8,7 @@ const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
 const auctionRouter = require('./routes/auctionRoutes');
 const chatRouter = require('./routes/chatRoutes');
+const authRouter = require('./routes/authRoutes');
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/user', userRouter);
 app.use('/post', postRouter);
 app.use('/auctions', auctionRouter);
 app.use('/chat', chatRouter);
+app.use('/auth', authRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');

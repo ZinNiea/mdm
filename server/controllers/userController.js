@@ -12,7 +12,7 @@ const bcrypt = require('bcrypt');
 const SALT_ROUNDS = 10;
 
 // 중복을 확인하는 유틸리티 함수를 가져옵니다.
-const { isUsernameTaken, isEmailTaken } = require('../utils/userUtils');
+const { isUsernameTaken, isEmailTaken, isNicknameTaken } = require('../utils/userUtils');
 const { deleteImage } = require('../middlewares/uploadMiddleware');
 const { ProfileReport } = require('../models/reportModel');
 const { addTokenToBlacklist } = require('../middlewares/authMiddleware');
@@ -33,7 +33,7 @@ const { Notification } = require('../models/notificationModel');
 
 // 회원가입 기능
 exports.registerUser = async (req, res) => {
-  const { username, password, email, age, nickname } = req.body;
+  const { username, password, email, nickname, phoneNumber } = req.body;
   // 업로드된 이미지의 URL 가져오기
   const profileImage = req.file ? req.file.location : null;
   const createdAt = new Date();
@@ -53,21 +53,13 @@ exports.registerUser = async (req, res) => {
   if (!passwordRegex.test(password)) {
     return res.status(400).json({
       result: false,
-      message: `비밀번호는 최소 8자 이상, 영문 대소문자, 숫자, 특수문자(${allowedSpecialChars.split('').join('')})를 각각 최소 하나 이상 포함해야 합니다.`
+      message: `비밀번호는 최소 4자 이상, 영문 대소문자, 숫자, 특수문자(${allowedSpecialChars.split('').join('')})를 각각 최소 하나 이상 포함해야 합니다.`
     });
   }
 
   try {
     // 이메일 도메인 추출
     const emailDomain = email.split('@')[1].toLowerCase();
-
-    // 도메인 유효성 검사
-    if (!allowedDomains.includes(emailDomain)) {
-      return res.status(400).json({ 
-        result: false, 
-        message: '허용되지 않은 이메일 도메인입니다. naver.com, kakao.com, nate.com 도메인만 허용됩니다.' 
-      });
-    }
 
     // 사용자 이름 중복 검사
     if (await isUsernameTaken(username)) {
@@ -85,6 +77,13 @@ exports.registerUser = async (req, res) => {
       });
     }
 
+    if (await isNicknameTaken(nickname)) {
+      return res.status(400).json({
+        result: false,
+        message: '이미 사용 중인 닉네임입니다.'
+      });
+    }
+
     // 비밀번호 해싱
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
@@ -95,11 +94,9 @@ exports.registerUser = async (req, res) => {
       ? new Profile({
           nickname: nickname,
           profileImage: profileImage,
-          birthdate: age, // age가 birthdate라면 적절히 변환 필요
         })
       : new Profile({
           nickname: nickname,
-          birthdate: age, // age가 birthdate라면 적절히 변환 필요
         });
 
     await newProfile.save();
@@ -109,6 +106,7 @@ exports.registerUser = async (req, res) => {
       username: username, 
       email: email, 
       password: hashedPassword, 
+      phoneNumber: phoneNumber,
       createdAt: createdAt,
       profiles: [newProfile._id],
       mainProfile: newProfile._id,
@@ -520,7 +518,8 @@ exports.updateProfile = async (req, res) => {
 
 // 특정 프로필을 조회하는 함수 추가
 exports.getProfile = async (req, res) => {
-  const { profileId, targetProfileId } = req.params;
+  const { profileId } = req.params;
+  const { targetProfileId } = req.query;
   try {
     const profile = await Profile.findById(profileId).populate('topFriends', 'nickname profileImage');
     if (!profile) {
@@ -1091,15 +1090,190 @@ exports.getNotifications = async (req, res) => {
 };
 
 exports.deleteProfile = async (req, res) => {
-  const { profileId } = req.params;
+  const { userId, profileId } = req.params;
 
   try {
+    const user = await User.findById(userId).populate('profiles');
+    if (!user) {
+      return res.status(404).json({ result: false, message: '유저를 찾을 수 없습니다.' });
+    }
+
+    const profileCount = user.profiles.length;
+    if (profileCount <= 1) {
+      return res.status(400).json({ result: false, message: '삭제할 수 없습니다. 프로필은 최소 하나 이상 존재해야합니다.' });
+    }
+
     const profile = await Profile.findByIdAndDelete(profileId);
     if (!profile) {
       return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
     }
 
+    // 유저의 profiles 배열에서도 삭제된 프로필을 제거합니다.
+    user.profiles.pull(profileId);
+    if (user.mainProfile.toString() === profileId) {
+      user.mainProfile = user.profiles[0] || null;
+    }
+    await user.save();
+
     res.status(200).json({ result: true, message: '프로필이 성공적으로 삭제되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+exports.getUserIdByUsername = async (req, res) => {
+  const { username } = req.body;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+    res.status(200).json({ result: true, userId: user._id });f
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+exports.resetPasswordWithPhoneNumber = async (req, res) => {
+  const { username, phoneNumber, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ username, phoneNumber });
+    if (!user) {
+      return res.status(400).json({ result: false, message: '사용자 정보가 일치하지 않습니다.' });
+    }
+
+    // 비밀번호 해싱
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ result: true, message: '비밀번호가 성공적으로 변경되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+// 이메일과 휴대폰 번호로 사용자 ID 찾기
+exports.findUserId = async (req, res) => {
+  const { email, phoneNumber } = req.body;
+
+  // 이메일 형식 검증
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      result: false,
+      message: '유효한 이메일 형식이 아닙니다.'
+    });
+  }
+
+  // 휴대폰 번호 형식 검증 (10-15자리 숫자)
+  const phoneRegex = /^\d{10,15}$/;
+  if (!phoneRegex.test(phoneNumber)) {
+    return res.status(400).json({
+      result: false,
+      message: '유효한 휴대폰 번호 형식이 아닙니다.'
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email: email, phoneNumber: phoneNumber });
+
+    if (!user) {
+      return res.status(404).json({
+        result: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    if (user.isDeleted) {
+      return res.status(404).json({
+        result: false,
+        message: '이미 탈퇴한 사용자입니다.'
+      });
+    }
+
+    res.status(200).json({
+      result: true,
+      userId: user._id
+    });
+  } catch (err) {
+    res.status(500).json({
+      result: false,
+      message: err.message
+    });
+  }
+};
+
+exports.checkUserExistence = async (req, res) => {
+  const { username, phoneNumber } = req.body;
+
+  // 데이터 유효성 검사
+  if (!username || !phoneNumber) {
+    return res.status(400).json({
+      result: false,
+      message: 'username과 phoneNumber가 필요합니다.',
+    });
+  }
+
+  try {
+    const user = await User.findOne({ username, phoneNumber });
+
+    if (!user) {
+      return res.status(404).json({
+        result: false,
+        message: '유효한 사용자가 아닙니다.',
+      });
+    }
+
+    res.status(200).json({
+      result: true,
+    });
+  } catch (error) {
+    res.status(500).json({
+      result: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.requestPasswordReset = async (req, res) => {
+  
+};
+
+exports.updatePassword = async (req, res) => {
+  const { username, newPassword } = req.body;
+
+  // 데이터 유효성 검사
+  if (!username || !newPassword) {
+    return res.status(400).json({
+      result: false,
+      message: 'username과 newPassword가 필요합니다.',
+    });
+  }
+
+  // 비밀번호 유효성 검사
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{4,20}$/;
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({
+      result: false,
+      message: '비밀번호는 최소 4자 이상, 영문 대소문자, 숫자, 특수문자를 포함해야 합니다.'
+    });
+  }
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    // 비밀번호 해싱
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ result: true, message: '비밀번호가 성공적으로 변경되었습니다.' });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
