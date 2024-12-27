@@ -52,6 +52,7 @@ const profileSchema = new mongoose.Schema({
     type: [interestSchema],
     validate: [interestsLimit, '최대 5개의 관심사만 가질 수 있습니다.']
   },
+  bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.POST }],
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   topFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],

@@ -22,7 +22,6 @@ const postSchema = new mongoose.Schema({
   }, // 카테고리 필드 수정
   viewCount: { type: Number, default: 0 },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
-  bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.COMMENT }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

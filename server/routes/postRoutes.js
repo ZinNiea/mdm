@@ -7,28 +7,28 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
 // 게시물 전체 조회 또는 카테고리별 조회
-router.get('/posts', postController.getPosts);
+router.get('/', postController.getPosts);
 
 // 특정 게시물 조회
-router.get('/posts/:postId', authenticateToken, postController.getPostById);
+router.get('/:postId', authenticateToken, postController.getPostById);
 
 // 게시물 작성 (최대 5장까지 이미지 업로드 허용)
-router.post('/posts', upload(IMAGE_TYPES.POST).array('images', 5), postController.createPost);
+router.post('/', upload(IMAGE_TYPES.POST).array('images', 5), postController.createPost);
 
 // 게시물 수정
-router.put('/posts/:postId', upload(IMAGE_TYPES.POST).array('images', 5), postController.updatePost);
+router.put('/:postId', upload(IMAGE_TYPES.POST).array('images', 5), postController.updatePost);
 
 // 게시물 삭제
-router.delete('/posts/:postId', postController.deletePost);
+router.delete('/:postId', postController.deletePost);
 
 // 게시물 신고
-router.post('/posts/:postId/report', postController.reportPost);
+router.post('/:postId/report', postController.reportPost);
 
 // 좋아요 실행/취소
-router.post('/posts/:postId/likes', postController.toggleLike);
+router.post('/:postId/likes', postController.toggleLike);
 
 // 북마크 실행/취소
-router.post('/posts/:postId/bookmarks', postController.toggleBookmark);
+router.post('/:postId/bookmarks', postController.toggleBookmark);
 
 // 북마크 게시물 조회
 router.get('/users/:userId/bookmarks', postController.getBookmarkedPosts);

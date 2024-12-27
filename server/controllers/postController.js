@@ -2,6 +2,7 @@
 require('dotenv').config();
 const { Post } = require('../models/postModel');
 const { User } = require('../models/userModel');
+const { Profile } = require('../models/profileModel');
 const { Report } = require('../models/reportModel');
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = process.env.SECRET_KEY;
@@ -359,14 +360,18 @@ exports.toggleBookmark = async (req, res) => {
     if (!post) {
       return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
     }
+    const profile = await Profile.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
+    }
 
-    if (post.bookmarks.includes(profileId)) {
-      post.bookmarks.pull(profileId);
-      await post.save();
+    if (profile.bookmarks.includes(postId)) {
+      profile.bookmarks.pull(postId);
+      await profile.save();
       return res.status(200).json({ result: true, message: '북마크가 취소되었습니다.' });
     } else {
-      post.bookmarks.push(profileId);
-      await post.save();
+      profile.bookmarks.push(postId);
+      await profile.save();
       return res.status(200).json({ result: true, message: '게시물이 북마크에 추가되었습니다.' });
     }
   } catch (error) {
