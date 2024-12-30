@@ -137,6 +137,7 @@ exports.getAuctionItemById = async (req, res) => {
       related: item.related,
       imageUrls: item.images,
       highestBidPrice: item.currentBid,
+      highestBidder: item.highestBidder ? item.highestBidder.username : null,
       likeCount: item.likes.length,
     };
     res.status(200).send(data);
