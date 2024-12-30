@@ -119,7 +119,7 @@ exports.getAuctionItems = async (req, res) => {
 exports.getAuctionItemById = async (req, res) => {
   try {
     const item = await AuctionItem.findById(req.params.auctionId)
-      .populate('highestBidder', 'username')
+      .populate('highestBidder', 'nickname')
       .populate('createdBy', 'nickname profileImage rating');
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
     const data = {
@@ -137,7 +137,7 @@ exports.getAuctionItemById = async (req, res) => {
       related: item.related,
       imageUrls: item.images,
       highestBidPrice: item.currentBid,
-      highestBidder: item.highestBidder ? item.highestBidder.username : null,
+      highestBiddersNickname: item.highestBidder ? item.highestBidder.nickname : null,
       likeCount: item.likes.length,
     };
     res.status(200).send(data);
