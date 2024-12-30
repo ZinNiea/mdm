@@ -1,0 +1,19 @@
+openapi: 3.0.0
+info:
+  title: My Express API
+  version: 1.0.0
+  description: API documentation using Swagger
+servers:
+  - url: http://localhost:3000
+paths:
+  /hello:
+    get:
+      summary: 간단한 인사말을 반환합니다.
+      responses:
+        '200':
+          description: 성공적으로 인사말을 반환했습니다.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Hello World!

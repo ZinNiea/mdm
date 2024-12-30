@@ -7,6 +7,7 @@ const userController = require('../controllers/userController');
 const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
+
 router.post('/register', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.registerUser);
 router.post('/login', userController.login);
 router.post('/logout', userController.logout);

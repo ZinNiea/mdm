@@ -15,6 +15,7 @@ const app = express();
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerSpec = require('./docs/swaggerOptions');
 
 // app.set('trust proxy', 1); 'trust proxy'를 1로 설정하면 클라이언트의 IP 주소를 신뢰합니다.
 app.set('trust proxy', 1);
@@ -25,6 +26,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 // MongoDB 연결
 connectDB();
+
+// Swagger 미들웨어 적용
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // CORS 미들웨어 적용
 app.use(cors());

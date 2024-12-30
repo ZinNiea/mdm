@@ -31,7 +31,13 @@ const transporter = nodemailer.createTransport({
 
 const { Notification } = require('../models/notificationModel');
 
-// 회원가입 기능
+/**
+ * 회원가입
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ * @returns 
+ */
 exports.registerUser = async (req, res) => {
   const { username, password, email, nickname, phoneNumber } = req.body;
   // 업로드된 이미지의 URL 가져오기
