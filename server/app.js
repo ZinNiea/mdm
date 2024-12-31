@@ -51,4 +51,8 @@ app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
 });
 
+app.get('/hello', (req, res) => {
+  res.send('Hello, World! \n swagger-ui-express is working');
+});
+
 module.exports = app;
