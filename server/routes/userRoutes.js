@@ -29,6 +29,28 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *         description: 회원가입에 성공했습니다.
  */
 router.post('/register', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.registerUser);
+
+/**
+ * @swagger
+ * /users/login:
+ *   post:
+ *     summary: 사용자 로그인
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 로그인이 성공했습니다.
+ */
 router.post('/login', userController.login);
 router.post('/logout', userController.logout);
 router.delete('/:userId/delete', userController.deleteUser);
