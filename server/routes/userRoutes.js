@@ -7,7 +7,27 @@ const userController = require('../controllers/userController');
 const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
-
+/**
+ * @swagger
+ * /users/register:
+ *   post:
+ *     summary: 사용자 등록
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 회원가입에 성공했습니다.
+ */
 router.post('/register', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.registerUser);
 router.post('/login', userController.login);
 router.post('/logout', userController.logout);
