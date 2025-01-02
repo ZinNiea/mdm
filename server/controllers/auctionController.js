@@ -122,6 +122,10 @@ exports.getAuctionItemById = async (req, res) => {
       .populate('highestBidder', 'nickname')
       .populate('createdBy', 'nickname profileImage rating');
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
+
+    item.views += 1;
+    await item.save();
+    
     const data = {
       authorId: item.createdBy._id,
       authorNickname: item.createdBy.nickname,
