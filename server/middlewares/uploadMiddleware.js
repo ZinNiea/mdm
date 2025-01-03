@@ -24,9 +24,15 @@ const upload = (folder) => multer({
     s3: s3,
     bucket: process.env.AWS_S3_BUCKET_NAME,
     acl: 'public-read',
-    key: function (req, file, cb) {
-      cb(null, `${folder}/${Date.now().toString()}_${file.originalname}`);
+    metadata: function (req, file, cb) {
+      cb(null, { fieldName: file.fieldname });
     },
+    // key: function (req, file, cb) {
+    //   cb(null, `${folder}/${Date.now().toString()}_${file.originalname}`);
+    // },
+    key: function (req, file, cb) {
+      cb(null, Date.now().toString() + '_' + file.originalname);
+    }
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
