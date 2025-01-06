@@ -9,6 +9,19 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
 
+function verifyTokenAndGetUserId(req) {
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+  if (!token) throw new Error('인증 토큰이 필요합니다.');
+  const decoded = jwt.verify(token, SECRET_KEY);
+  return decoded.id;
+}
+
+async function findPostOrFail(postId) {
+  const post = await Post.findById(postId);
+  if (!post) throw new Error('게시물을 찾을 수 없습니다.');
+  return post;
+}
+
 // 게시물 전체 조회 또는 카테고리별, 검색어별 조회
 exports.getPosts = async (req, res) => {
   const { category, search, profileId } = req.query; // 쿼리 파라미터에서 카테고리와 검색어 추출
@@ -43,22 +56,22 @@ exports.getPosts = async (req, res) => {
       .populate('author', 'nickname profileImage') // 프로필 정보 포함
       .sort({ createdAt: -1 }); // 최신순으로 정렬
 
-      const postIds = posts.map(post => post._id);
-      const bookmarkCounts = await Profile.aggregate([
-        { $match: { bookmarks: { $in: postIds } } },
-        { $unwind: '$bookmarks' },
-        { $match: { bookmarks: { $in: postIds } } },
-        { $group: { _id: '$bookmarks', count: { $sum: 1 } } },
-      ]);
+    const postIds = posts.map(post => post._id);
+    const bookmarkCounts = await Profile.aggregate([
+      { $match: { bookmarks: { $in: postIds } } },
+      { $unwind: '$bookmarks' },
+      { $match: { bookmarks: { $in: postIds } } },
+      { $group: { _id: '$bookmarks', count: { $sum: 1 } } },
+    ]);
 
-      const bookmarkMap = {};
-      bookmarkCounts.forEach(item => {
-        bookmarkMap[item._id] = item.count;
-      });
+    const bookmarkMap = {};
+    bookmarkCounts.forEach(item => {
+      bookmarkMap[item._id] = item.count;
+    });
 
-      // 현재 사용자의 북마크 조회
-      const userProfile = await Profile.findById(profileId).select('bookmarks');
-      const userBookmarks = userProfile.bookmarks.map(id => id.toString());
+    // 현재 사용자의 북마크 조회
+    const userProfile = await Profile.findById(profileId).select('bookmarks');
+    const userBookmarks = userProfile.bookmarks.map(id => id.toString());
 
     // 각 게시물에 필요한 정보만 추출하여 새로운 객체 생성
     const postList = posts.map(post => ({
@@ -84,29 +97,9 @@ exports.getPosts = async (req, res) => {
 
 // 설명: getPostById 함수는 특정 게시물을 조회하는 API 엔드포인트를 처리합니다.
 exports.getPostById = async (req, res) => {
-  // 요청 헤더에서 인증 토큰을 추출합니다.
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
-  const { postId } = req.params;
-
-  // 토큰이 없으면 401 상태 코드와 함께 인증 필요 메시지를 반환합니다.
-  if (!token) {
-    return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
-  }
-
   try {
-    // 토큰을 검증하고 디코딩하여 사용자 ID를 추출합니다.
-    const decoded = jwt.verify(token, SECRET_KEY);
-    const userId = decoded.id;
-
-    // postId를 사용하여 게시물을 데이터베이스에서 조회하고, author와 comments.author 필드를 populating 합니다.
-    const post = await Post.findById(postId)
-      .populate('author', 'nickname profileImage');
-      // .populate('comments.author', 'nickname profileImage');
-
-    // 게시물이 존재하지 않으면 404 상태 코드와 함께 오류 메시지를 반환합니다.
-    if (!post) {
-      return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
-    }
+    const userId = verifyTokenAndGetUserId(req);
+    const post = await findPostOrFail(req.params.postId);
 
     // 조회수 증가
     post.viewCount += 1;
@@ -145,14 +138,8 @@ exports.getPostById = async (req, res) => {
 
 // 게시물 작성
 exports.createPost = async (req, res) => {
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
-  }
-
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
+    const userId = verifyTokenAndGetUserId(req);
     let { content, category, profileId } = req.body;
     const images = req.files ? req.files.map(file => file.location) : [];
 
@@ -212,29 +199,18 @@ exports.createPost = async (req, res) => {
 
 // 게시물 수정
 exports.updatePost = async (req, res) => {
-  // const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
   const { postId } = req.params;
   const { content } = req.body;
   const images = req.files ? req.files.map(file => file.location) : [];
 
-  // if (!token) {
-  //   return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
-  // }
-
   try {
-    // const decoded = jwt.verify(token, SECRET_KEY);
-    const post = await Post.findById(postId);
+    const post = await findPostOrFail(postId);
 
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
 
-    // if (post.author.toString() !== decoded.id) {
-    //   return res.status(403).json({ success: false, message: '게시물을 수정할 권한이 없습니다.' });
-    // }
-
     post.content = content || post.content;
-    // post.images = images || post.images;
     // 이미지 업데이트
     if (images && images.length > 0) {
       // 기존 이미지 삭제 로직 추가 (필요 시)
@@ -265,24 +241,14 @@ exports.updatePost = async (req, res) => {
 
 // 게시물 삭제
 exports.deletePost = async (req, res) => {
-  // const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
   const { postId } = req.params;
 
-  // if (!token) {
-  //   return res.status(401).json({ success: false, message: '인증 토큰이 필요합니다.' });
-  // }
-
   try {
-    // const decoded = jwt.verify(token, SECRET_KEY);
-    const post = await Post.findById(postId);
+    const post = await findPostOrFail(postId);
 
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
-
-    // if (post.author.toString() !== decoded.id) {
-    //   return res.status(403).json({ success: false, message: '게시물을 삭제할 권한이 없습니다.' });
-    // }
 
     await post.remove();
 
@@ -329,22 +295,12 @@ exports.reportPost = async (req, res) => {
 
 // 좋아요/좋아요 취소
 exports.toggleLike = async (req, res) => {
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
   const { postId } = req.params;
   const { profileId } = req.body;
 
-  if (!token) {
-    return res.status(401).json({ result: false, message: '인증 토큰이 필요합니다.' });
-  }
-
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    const userId = decoded.id;
-
-    const post = await Post.findById(postId);
-    if (!post) {
-      return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
-    }
+    const userId = verifyTokenAndGetUserId(req);
+    const post = await findPostOrFail(postId);
 
     if (post.likes.includes(profileId)) {
       post.likes.pull(profileId);
@@ -468,7 +424,7 @@ exports.getInterests = async (req, res) => {
 // 북마크 게시물 조회
 exports.getBookmarkedPosts = async (req, res) => {
   const { profileId } = req.params;
-  
+
   try {
     const bookmarkedPosts = await Post.find({ bookmarks: profileId })
       .populate('author', 'nickname profileImage')
@@ -493,7 +449,7 @@ exports.getBookmarkedPosts = async (req, res) => {
  */
 exports.getPostsByProfile = async (req, res) => {
   const { profileId } = req.params;
-  
+
   //postList => { postId, content, createdAt, likeCount, commentCount, bookmarkCount }
   try {
     // 프로필 ID로 게시글 필터링
