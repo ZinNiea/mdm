@@ -39,9 +39,26 @@ exports.getPosts = async (req, res) => {
 
   try {
     const posts = await Post.find(filter)
-      .select('_id content author createdAt likes comments bookmarks') // 필요한 필드만 선택
+      .select('_id content author createdAt likes comments') // 필요한 필드만 선택
       .populate('author', 'nickname profileImage') // 프로필 정보 포함
       .sort({ createdAt: -1 }); // 최신순으로 정렬
+
+      const postIds = posts.map(post => post._id);
+      const bookmarkCounts = await Profile.aggregate([
+        { $match: { bookmarks: { $in: postIds } } },
+        { $unwind: '$bookmarks' },
+        { $match: { bookmarks: { $in: postIds } } },
+        { $group: { _id: '$bookmarks', count: { $sum: 1 } } },
+      ]);
+
+      const bookmarkMap = {};
+      bookmarkCounts.forEach(item => {
+        bookmarkMap[item._id] = item.count;
+      });
+
+      // 현재 사용자의 북마크 조회
+      const userProfile = await Profile.findById(profileId).select('bookmarks');
+      const userBookmarks = userProfile.bookmarks.map(id => id.toString());
 
     // 각 게시물에 필요한 정보만 추출하여 새로운 객체 생성
     const postList = posts.map(post => ({
@@ -53,9 +70,9 @@ exports.getPosts = async (req, res) => {
       createdAt: post.createdAt,
       likesCount: post.likes.length,
       commentCount: post.comments.length,
-      bookmarkCount: post.bookmarks.length,
       likeStatus: post.likes.includes(profileId),
-      bookmarkStatus: post.bookmarks.includes(profileId),
+      bookmarkCount: bookmarkMap[post._id] || 0,
+      bookmarkStatus: userBookmarks.includes(post._id.toString()),
     }));
 
     res.status(200).json({ success: true, data: postList });
