@@ -60,7 +60,7 @@ exports.getUserChatRooms = async (req, res) => {
   const { profileId } = req.params;
   const { category } = req.query; // category 추가
   try {
-    const filter = { participants: profileId };
+    const filter = { participants: mongoose.Types.ObjectId(profileId) };
     if (category) {
       filter.category = category;
     }
@@ -83,9 +83,7 @@ exports.getUserChatRooms = async (req, res) => {
 exports.getAuctionChatRooms = async (req, res) => {
   const { auctionId } = req.params;
   try {
-    const chatRooms = await Chat.find({
-      auctionItem: new mongoose.Types.ObjectId(auctionId),
-    })
+    const chatRooms = await Chat.find({ auctionItem: auctionId })
       .select('_id participants createdAt') // 필요한 필드 선택
       .populate('participants', 'nickname profileImage'); // 참가자 정보 포함
 
