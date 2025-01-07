@@ -60,7 +60,7 @@ exports.getUserChatRooms = async (req, res) => {
   const { profileId } = req.params;
   const { category } = req.query; // category 추가
   try {
-    const filter = { participants: mongoose.Types.ObjectId(profileId) };
+    const filter = { 'participants.profile': new mongoose.Types.ObjectId(profileId) };
     if (category) {
       filter.category = category;
     }
