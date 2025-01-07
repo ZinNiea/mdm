@@ -83,7 +83,9 @@ exports.getUserChatRooms = async (req, res) => {
 exports.getAuctionChatRooms = async (req, res) => {
   const { auctionId } = req.params;
   try {
-    const chatRooms = await Chat.find({ auctionItem: auctionId })
+    const chatRooms = await Chat.find({
+      auctionItem: new mongoose.Types.ObjectId(auctionId),
+    })
       .select('_id participants createdAt') // 필요한 필드 선택
       .populate('participants', 'nickname profileImage'); // 참가자 정보 포함
 

@@ -22,6 +22,14 @@ async function findPostOrFail(postId) {
   return post;
 }
 
+function isBookmarked(userBookmarks, postId) {
+  return userBookmarks.includes(postId.toString());
+}
+
+function isPostBookmarked(postBookmarks, userId) {
+  return postBookmarks.includes(userId);
+}
+
 // 게시물 전체 조회 또는 카테고리별, 검색어별 조회
 exports.getPosts = async (req, res) => {
   const { category, search, profileId } = req.query; // 쿼리 파라미터에서 카테고리와 검색어 추출
@@ -85,7 +93,7 @@ exports.getPosts = async (req, res) => {
       commentCount: post.comments.length,
       likeStatus: post.likes.includes(profileId),
       bookmarkCount: bookmarkMap[post._id] || 0,
-      bookmarkStatus: userBookmarks.includes(post._id.toString()),
+      bookmarkStatus: isBookmarked(userBookmarks, post._id), 
     }));
 
     res.status(200).json({ success: true, data: postList });
@@ -122,7 +130,7 @@ exports.getPostById = async (req, res) => {
         likeStatus: post.likes.includes(userId),
         commentCount: post.comments.length,
         bookmarkCount: post.bookmarks.length,
-        bookmarkStatus: post.bookmarks.includes(userId),
+        bookmarkStatus: isPostBookmarked(post.bookmarks, userId),
       }
     });
   } catch (error) {
