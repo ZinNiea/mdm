@@ -166,7 +166,7 @@ exports.createPost = async (req, res) => {
     }
 
     // 프로필 소유자 검증
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: '유저를 찾을 수 없습니다.' });
     }

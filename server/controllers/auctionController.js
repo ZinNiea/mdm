@@ -72,7 +72,7 @@ exports.createAuctionItem = async (req, res) => {
 
     res.status(201).send({ result: true, auctionId: auctionItem._id });
   } catch (err) {
-    res.status(400).send(err.message);
+    res.status(500).send(err.message);
   }
 };
 
