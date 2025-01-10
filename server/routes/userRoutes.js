@@ -16,7 +16,7 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data: // 변경: application/json에서 multipart/form-data로 변경
  *           schema:
  *             type: object
  *             properties:
@@ -24,6 +24,9 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *                 type: string
  *               password:
  *                 type: string
+ *               profileImage: // 추가: 프로필 이미지 파일 업로드
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       201:
  *         description: 회원가입에 성공했습니다.
@@ -97,6 +100,14 @@ router.delete('/:userId/delete', userController.deleteUser);
  *           type: string
  *     requestBody:
  *       required: false
+ *       content:
+ *         multipart/form-data: // 추가: 프로필 이미지 업로드 가능하도록 설정
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       201:
  *         description: 프로필이 추가됨

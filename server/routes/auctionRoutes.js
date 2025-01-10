@@ -30,6 +30,123 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
  *   post:
  *     summary: 경매 아이템 생성
  *     tags: [Auctions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - profileId
+ *               - title
+ *               - content
+ *               - category
+ *               - startingbid
+ *               - buyNowPrice
+ *               - duration
+ *             properties:
+ *               profileId:
+ *                 type: string
+ *                 description: 경매를 생성하는 프로필의 ID
+ *               title:
+ *                 type: string
+ *                 description: 경매 아이템의 제목
+ *               content:
+ *                 type: string
+ *                 description: 경매 아이템의 설명
+ *               category:
+ *                 type: string
+ *                 description: 경매 아이템의 카테고리
+ *                 enum: [거래, 나눔, 이벤트]
+ *               startingbid:
+ *                 type: number
+ *                 description: 시작 입찰 가격
+ *               buyNowPrice:
+ *                 type: number
+ *                 description: 즉시 구매 가격
+ *               duration:
+ *                 type: number
+ *                 description: 경매 지속 시간 (시간 단위)
+ *               related:
+ *                 type: string
+ *                 description: 관련 정보
+ *               images:
+ *                 type: array
+ *                 description: 업로드할 이미지 파일들 (최대 4개)
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: 경매 아이템이 성공적으로 생성되었습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: boolean
+ *                 auctionId:
+ *                   type: string
+ *       400:
+ *         description: 잘못된 요청입니다.
+ */
+
+/**
+ * @swagger
+ * /auctions:
+ *   get:
+ *     summary: 경매 아이템 목록 조회
+ *     tags: [Auctions]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: 검색 쿼리
+ *       - in: query
+ *         name: profileId
+ *         schema:
+ *           type: string
+ *         description: 프로필 ID
+ *     responses:
+ *       200:
+ *         description: 경매 아이템 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   auctionId:
+ *                     type: string
+ *                     description: 경매 아이템의 ID
+ *                   related:
+ *                     type: string
+ *                     description: 관련 정보
+ *                   title:
+ *                     type: string
+ *                     description: 경매 아이템의 제목
+ *                   highest_bid_price:
+ *                     type: number
+ *                     description: 현재 최고 입찰 가격
+ *                   duration:
+ *                     type: number
+ *                     description: 남은 경매 시간 (시간 단위)
+ *                   views:
+ *                     type: number
+ *                     description: 조회수
+ *                   likes_count:
+ *                     type: number
+ *                     description: 좋아요 개수
+ *                   image_urls:
+ *                     type: array
+ *                     description: 이미지 URL 목록
+ *                     items:
+ *                       type: string
+ *       400:
+ *         description: 잘못된 요청입니다.
  */
 router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionController.createAuctionItem);
 
@@ -83,8 +200,16 @@ router.put('/:auctionId', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctio
  *         schema:
  *           type: string
  *     requestBody:
- *       description: 입찰 가격 정보
  *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               price:
+ *                 type: number
+ *               profileId:
+ *                 type: string
  *     responses:
  *       201:
  *         description: 입찰 성공

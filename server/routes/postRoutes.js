@@ -15,6 +15,25 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *   post:
  *     summary: 게시물 작성
  *     tags: [Posts]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: 게시물이 작성되었습니다.
  */
 router.get('/posts', postController.getPosts);
 router.post('/posts', upload(IMAGE_TYPES.POST).array('images', 5), postController.createPost);
@@ -28,6 +47,31 @@ router.post('/posts', upload(IMAGE_TYPES.POST).array('images', 5), postControlle
  *   put:
  *     summary: 게시물 수정
  *     tags: [Posts]
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: 게시물이 수정되었습니다.
  *   delete:
  *     summary: 게시물 삭제
  *     tags: [Posts]
