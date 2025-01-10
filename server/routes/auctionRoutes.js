@@ -8,26 +8,6 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
  * @swagger
  * /auctions:
  *   post:
- *     summary: 경매 아이템을 생성합니다.
- *     consumes:
- *       - multipart/form-data
- *     parameters:
- *       - in: formData
- *         name: images
- *         type: array
- *         items:
- *           type: file
- *         description: 업로드할 이미지 파일들 (최대 4개)
- *     responses:
- *       201:
- *         description: 경매 아이템이 성공적으로 생성되었습니다.
- *       400:
- *         description: 잘못된 요청입니다.
- */
-/**
- * @swagger
- * /auctions:
- *   post:
  *     summary: 경매 아이템 생성
  *     tags: [Auctions]
  *     requestBody:
@@ -91,6 +71,7 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
  *       400:
  *         description: 잘못된 요청입니다.
  */
+router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionController.createAuctionItem);
 
 /**
  * @swagger
@@ -147,15 +128,6 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
  *                       type: string
  *       400:
  *         description: 잘못된 요청입니다.
- */
-router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionController.createAuctionItem);
-
-/**
- * @swagger
- * /auctions:
- *   get:
- *     summary: 경매 아이템 목록 조회
- *     tags: [Auctions]
  */
 router.get('/', auctionController.getAuctionItems);
 
