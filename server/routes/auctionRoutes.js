@@ -69,7 +69,11 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
  *                 auctionId:
  *                   type: string
  *       400:
- *         description: 잘못된 요청입니다.
+ *         description: 요청 데이터가 잘못되었습니다. 필수 필드가 누락되었거나 형식이 올바르지 않습니다.
+ *       401:
+ *         description: 인증이 필요합니다. 유효한 인증 토큰을 제공해야 합니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionController.createAuctionItem);
 
@@ -92,7 +96,7 @@ router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionControll
  *         description: 프로필 ID
  *     responses:
  *       200:
- *         description: 경매 아이템 목록 조회 성공
+ *         description: 경매 아이템 목록을 성공적으로 조회하였습니다.
  *         content:
  *           application/json:
  *             schema:
@@ -127,7 +131,11 @@ router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionControll
  *                     items:
  *                       type: string
  *       400:
- *         description: 잘못된 요청입니다.
+ *         description: 잘못된 쿼리 파라미터가 제공되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다. 유효한 인증 토큰을 제공해야 합니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.get('/', auctionController.getAuctionItems);
 
@@ -137,6 +145,26 @@ router.get('/', auctionController.getAuctionItems);
  *   get:
  *     summary: 특정 경매 아이템 조회
  *     tags: [Auctions]
+ *     parameters:
+ *       - in: path
+ *         name: auctionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 조회할 경매 아이템의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 지정된 경매 아이템을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuctionItem'
+ *       400:
+ *         description: 잘못된 auctionId 형식입니다.
+ *       404:
+ *         description: 지정된 경매 아이템을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  *   delete:
  *     summary: 경매 아이템 삭제
  *     tags: [Auctions]
@@ -146,14 +174,71 @@ router.get('/', auctionController.getAuctionItems);
  *         required: true
  *         schema:
  *           type: string
+ *         description: 삭제할 경매 아이템의 고유 ID
  *     responses:
  *       200:
- *         description: 아이템 삭제됨
+ *         description: 경매 아이템이 성공적으로 삭제되었습니다.
+ *       400:
+ *         description: 잘못된 auctionId 형식입니다.
  *       404:
- *         description: 항목을 찾을 수 없음
+ *         description: 삭제할 경매 아이템을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  *   put:
  *     summary: 경매 아이템 수정
  *     tags: [Auctions]
+ *     parameters:
+ *       - in: path
+ *         name: auctionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 수정할 경매 아이템의 고유 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [거래, 나눔, 이벤트]
+ *               startingbid:
+ *                 type: number
+ *               buyNowPrice:
+ *                 type: number
+ *               duration:
+ *                 type: number
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: 경매 아이템이 성공적으로 수정되었습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: boolean
+ *                 auctionId:
+ *                   type: string
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 수정할 경매 아이템을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.get('/:auctionId', auctionController.getAuctionItemById);
 router.delete('/:auctionId', auctionController.deleteAuctionItem);
@@ -171,6 +256,7 @@ router.put('/:auctionId', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctio
  *         required: true
  *         schema:
  *           type: string
+ *         description: 입찰할 경매 아이템의 고유 ID
  *     requestBody:
  *       required: true
  *       content:
@@ -180,15 +266,32 @@ router.put('/:auctionId', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctio
  *             properties:
  *               price:
  *                 type: number
+ *                 description: 입찰 가격
  *               profileId:
  *                 type: string
+ *                 description: 입찰하는 사용자의 프로필 ID
  *     responses:
  *       201:
- *         description: 입찰 성공
+ *         description: 입찰에 성공하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: boolean
+ *                 bidId:
+ *                   type: string
  *       400:
- *         description: 잘못된 요청
+ *         description: 요청 데이터가 잘못되었습니다. 필수 필드가 누락되었거나 형식이 올바르지 않습니다.
+ *       401:
+ *         description: 인증이 필요합니다. 유효한 인증 토큰을 제공해야 합니다.
  *       404:
- *         description: 경매를 찾을 수 없음
+ *         description: 지정된 경매 아이템을 찾을 수 없습니다.
+ *       409:
+ *         description: 이미 입찰한 가격이 존재하거나, 입찰 가격이 현재 최고 가격보다 낮습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/:auctionId/bids', auctionController.placeBid);
 
@@ -204,11 +307,29 @@ router.post('/:auctionId/bids', auctionController.placeBid);
  *         required: true
  *         schema:
  *           type: string
+ *         description: 즉시 구매할 경매 아이템의 고유 ID
  *     responses:
  *       201:
- *         description: 즉시구매 성공
+ *         description: 즉시 구매가 성공적으로 완료되었습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: boolean
+ *                 purchaseId:
+ *                   type: string
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 경매를 찾을 수 없음
+ *         description: 지정된 경매 아이템을 찾을 수 없습니다.
+ *       409:
+ *         description: 해당 경매 아이템은 이미 판매되었거나 종료되었습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/:auctionId/instant-buys', auctionController.instantBuy);
 
@@ -224,11 +345,18 @@ router.post('/:auctionId/instant-buys', auctionController.instantBuy);
  *         required: true
  *         schema:
  *           type: string
+ *         description: 종료할 경매 아이템의 고유 ID
  *     responses:
  *       200:
- *         description: 경매 종료됨
+ *         description: 경매가 성공적으로 종료되었습니다.
+ *       400:
+ *         description: 잘못된 auctionId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 경매를 찾을 수 없음
+ *         description: 종료할 경매 아이템을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/:auctionId/end', auctionController.endAuction);
 
@@ -244,18 +372,24 @@ router.post('/:auctionId/end', auctionController.endAuction);
  *         required: true
  *         schema:
  *           type: string
- *         description: 프로필의 고유 식별자
+ *         description: 조회할 프로필의 고유 식별자
  *     responses:
  *       200:
- *         description: 경매 아이템 목록 조회 성공
+ *         description: 지정된 프로필이 생성한 경매 아이템 목록을 성공적으로 조회하였습니다.
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/AuctionItem'
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 프로필을 찾을 수 없음
+ *         description: 지정된 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.get('/profile/:profileId', auctionController.getAuctionsByProfile);
 
@@ -271,14 +405,32 @@ router.get('/profile/:profileId', auctionController.getAuctionsByProfile);
  *         required: true
  *         schema:
  *           type: string
+ *         description: 신고할 경매 아이템의 고유 ID
  *     requestBody:
  *       description: 신고 상세 내용
  *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: 신고 사유
+ *               details:
+ *                 type: string
+ *                 description: 추가 신고 내용
  *     responses:
  *       200:
- *         description: 신고 접수됨
+ *         description: 신고가 성공적으로 접수되었습니다.
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 경매를 찾을 수 없음
+ *         description: 신고할 경매 아이템을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/:auctionId/reports', auctionController.reportAuctionItem);
 
@@ -290,15 +442,21 @@ router.post('/:auctionId/reports', auctionController.reportAuctionItem);
  *     tags: [Posts]
  *     responses:
  *       200:
- *         description: 인기 키워드 목록 조회 성공
+ *         description: 실시간 인기 키워드 목록을 성공적으로 조회하였습니다.
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 type: string
+ *       400:
+ *         description: 잘못된 요청입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
  *         description: 인기 키워드를 찾을 수 없음
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 
 module.exports = router;

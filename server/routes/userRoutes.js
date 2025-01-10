@@ -16,7 +16,7 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data: // 변경: application/json에서 multipart/form-data로 변경
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -24,12 +24,26 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *                 type: string
  *               password:
  *                 type: string
- *               profileImage: // 추가: 프로필 이미지 파일 업로드
+ *               profileImage:
  *                 type: string
  *                 format: binary
  *     responses:
  *       201:
  *         description: 회원가입에 성공했습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                   description: 생성된 사용자의 고유 ID
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다. 필수 필드가 누락되었거나 형식이 올바르지 않습니다.
+ *       409:
+ *         description: 사용자 이름이 이미 존재합니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/register', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.registerUser);
 
@@ -53,6 +67,20 @@ router.post('/register', upload(IMAGE_TYPES.PROFILE).single('profileImage'), use
  *     responses:
  *       200:
  *         description: 로그인이 성공했습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: 인증 토큰
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증에 실패했습니다. 사용자 이름 또는 비밀번호가 올바르지 않습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/login', userController.login);
 
@@ -64,7 +92,11 @@ router.post('/login', userController.login);
  *     tags: [Users]
  *     responses:
  *       200:
- *         description: 로그아웃 처리
+ *         description: 로그아웃 처리되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/logout', userController.logout);
 
@@ -80,11 +112,22 @@ router.post('/logout', userController.logout);
  *         required: true
  *         schema:
  *           type: string
+ *         description: 삭제할 사용자의 고유 ID
  *     responses:
  *       200:
- *         description: 삭제됨
+ *         description: 사용자가 성공적으로 삭제되었습니다.
+ *       400:
+ *         description: 잘못된 userId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       403:
+ *         description: 사용자 삭제 권한이 없습니다.
+ *       404:
+ *         description: 삭제할 사용자를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.delete('/:userId/delete', userController.deleteUser);
+router.delete('/:userId/delete', authenticateToken, userController.deleteUser);
 
 /**
  * @swagger
@@ -98,10 +141,11 @@ router.delete('/:userId/delete', userController.deleteUser);
  *         required: true
  *         schema:
  *           type: string
+ *         description: 프로필을 추가할 사용자의 고유 ID
  *     requestBody:
  *       required: false
  *       content:
- *         multipart/form-data: // 추가: 프로필 이미지 업로드 가능하도록 설정
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -110,9 +154,17 @@ router.delete('/:userId/delete', userController.deleteUser);
  *                 format: binary
  *     responses:
  *       201:
- *         description: 프로필이 추가됨
+ *         description: 프로필이 성공적으로 추가되었습니다.
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 사용자를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/:userId/profile', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.addProfile);
+router.post('/:userId/profile', authenticateToken, upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.addProfile);
 
 /**
  * @swagger
@@ -126,9 +178,22 @@ router.post('/:userId/profile', upload(IMAGE_TYPES.PROFILE).single('profileImage
  *         required: true
  *         schema:
  *           type: string
+ *         description: 메인 카테고리 이름
  *     responses:
  *       200:
- *         description: 서브카테고리 목록
+ *         description: 서브카테고리 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ *       400:
+ *         description: 잘못된 mainCategory 형식입니다.
+ *       404:
+ *         description: 메인 카테고리를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.get('/subcategories/:mainCategory', userController.getSubCategories);
 
@@ -139,12 +204,70 @@ router.get('/subcategories/:mainCategory', userController.getSubCategories);
  *   get:
  *     summary: 관심사 조회
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 관심사를 조회할 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 관심사 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  *   post:
  *     summary: 관심사 추가
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 관심사를 추가할 프로필의 고유 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - subCategory
+ *             properties:
+ *               subCategory:
+ *                 type: string
+ *                 description: 추가할 관심사의 서브카테고리
+ *     responses:
+ *       201:
+ *         description: 관심사가 성공적으로 추가되었습니다.
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/profiles/:profileId/interests', userController.getInterests);
-router.post('/profiles/:profileId/interests', userController.addInterest);
+router.get('/profiles/:profileId/interests', authenticateToken, userController.getInterests);
+router.post('/profiles/:profileId/interests', authenticateToken, userController.addInterest);
 
 /**
  * @swagger
@@ -152,14 +275,36 @@ router.post('/profiles/:profileId/interests', userController.addInterest);
  *   delete:
  *     summary: 관심사 삭제
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 관심사를 삭제할 프로필의 고유 ID
  *       - in: path
  *         name: subCategory
  *         required: true
  *         schema:
  *           type: string
+ *         description: 삭제할 관심사의 서브카테고리
+ *     responses:
+ *       200:
+ *         description: 관심사가 성공적으로 삭제되었습니다.
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       403:
+ *         description: 관심사 삭제 권한이 없습니다.
+ *       404:
+ *         description: 삭제할 관심사를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.delete('/profiles/:profileId/interests/:subCategory', userController.deleteInterest);
+router.delete('/profiles/:profileId/interests/:subCategory', authenticateToken, userController.deleteInterest);
 
 /**
  * @swagger
@@ -167,15 +312,35 @@ router.delete('/profiles/:profileId/interests/:subCategory', userController.dele
  *   get:
  *     summary: 사용자 프로필 목록
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 프로필 목록을 조회할 사용자의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 사용자의 프로필 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Profile'
+ *       400:
+ *         description: 잘못된 userId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 사용자를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/:userId/profile', userController.getUserProfiles);
-router.get('/:userId/profiles', userController.getUserProfiles);
+router.get('/:userId/profile', authenticateToken, userController.getUserProfiles);
+router.get('/:userId/profiles', authenticateToken, userController.getUserProfiles);
 
 /**
  * @swagger
@@ -183,16 +348,94 @@ router.get('/:userId/profiles', userController.getUserProfiles);
  *   put:
  *     summary: 프로필 수정
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 수정할 프로필의 고유 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: 프로필이 성공적으로 수정되었습니다.
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       403:
+ *         description: 프로필 수정 권한이 없습니다.
+ *       404:
+ *         description: 수정할 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  *   get:
  *     summary: 특정 프로필 조회
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 조회할 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 프로필을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Profile'
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  *   delete:
  *     summary: 특정 프로필 삭제
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 삭제할 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 프로필이 성공적으로 삭제되었습니다.
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       403:
+ *         description: 프로필 삭제 권한이 없습니다.
+ *       404:
+ *         description: 삭제할 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.put('/profiles/:profileId', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.updateProfile);
-router.get('/profiles/:profileId', userController.getProfile);
-router.delete('/profiles/:profileId', userController.deleteProfile);
+router.put('/profiles/:profileId', authenticateToken, upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.updateProfile);
+router.get('/profiles/:profileId', authenticateToken, userController.getProfile);
+router.delete('/profiles/:profileId', authenticateToken, userController.deleteProfile);
 
 /**
  * @swagger
@@ -200,8 +443,29 @@ router.delete('/profiles/:profileId', userController.deleteProfile);
  *   get:
  *     summary: 프로필 검색
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: 검색할 프로필의 키워드
+ *     responses:
+ *       200:
+ *         description: 프로필 검색이 성공적으로 완료되었습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Profile'
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/profiles', userController.searchProfiles);
+router.get('/profiles', authenticateToken, userController.searchProfiles);
 
 /**
  * @swagger
@@ -209,13 +473,53 @@ router.get('/profiles', userController.searchProfiles);
  *   post:
  *     summary: 사용자 팔로우
  *     tags: [Follow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 팔로우할 사용자의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 사용자를 성공적으로 팔로우했습니다.
+ *       400:
+ *         description: 잘못된 userId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 팔로우할 사용자를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  * /users/users/{userId}/unfollow:
  *   post:
  *     summary: 사용자 언팔로우
  *     tags: [Follow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 언팔로우할 사용자의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 사용자를 성공적으로 언팔로우했습니다.
+ *       400:
+ *         description: 잘못된 userId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 언팔로우할 사용자를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/users/:userId/follow', userController.followUser);
-router.post('/users/:userId/unfollow', userController.unfollowUser);
+router.post('/users/:userId/follow', authenticateToken, userController.followUser);
+router.post('/users/:userId/unfollow', authenticateToken, userController.unfollowUser);
 
 /**
  * @swagger
@@ -223,12 +527,72 @@ router.post('/users/:userId/unfollow', userController.unfollowUser);
  *   get:
  *     summary: topFriends 조회
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: topFriends를 조회할 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: topFriends 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Profile'
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  *   post:
  *     summary: topFriends 추가
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: topFriends를 추가할 프로필의 고유 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - friendId
+ *             properties:
+ *               friendId:
+ *                 type: string
+ *                 description: 추가할 친구의 프로필 ID
+ *     responses:
+ *       201:
+ *         description: topFriends가 성공적으로 추가되었습니다.
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       403:
+ *         description: topFriends 추가 권한이 없습니다.
+ *       404:
+ *         description: 추가할 친구의 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/profile/:profileId/top-friends', userController.getTopFriends);
-router.post('/profile/:profileId/top-friends', userController.addTopFriend);
+router.get('/profile/:profileId/top-friends', authenticateToken, userController.getTopFriends);
+router.post('/profile/:profileId/top-friends', authenticateToken, userController.addTopFriend);
 
 /**
  * @swagger
@@ -236,171 +600,36 @@ router.post('/profile/:profileId/top-friends', userController.addTopFriend);
  *   delete:
  *     summary: topFriends 삭제
  *     tags: [Profiles]
- */
-router.delete('/profile/:profileId/top-friends/:friendId', userController.deleteTopFriend);
-
-/**
- * @swagger
- * /users/check-email:
- *   post:
- *     summary: 이메일 중복 확인
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *     responses:
- *       200:
- *         description: 이메일 사용 가능 여부
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 available:
- *                   type: boolean
- *       400:
- *         description: 잘못된 요청
- */
-router.post('/check-email', userController.checkEmail);
-
-/**
- * @swagger
- * /users/check-nickname:
- *   post:
- *     summary: 닉네임 중복 확인
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               nickname:
- *                 type: string
- *     responses:
- *       200:
- *         description: 닉네임 사용 가능 여부
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 available:
- *                   type: boolean
- *       400:
- *         description: 잘못된 요청
- */
-router.post('/check-nickname', userController.checkNickname);
-
-/**
- * @swagger
- * /users/check-username:
- *   post:
- *     summary: 로그인 ID 중복 확인
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *     responses:
- *       200:
- *         description: 로그인 ID 사용 가능 여부
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 available:
- *                   type: boolean
- *       400:
- *         description: 잘못된 요청
- */
-router.post('/check-username', userController.checkUsername);
-
-/**
- * @swagger
- * /users/password-reset:
- *   post:
- *     summary: 비밀번호 재설정 요청
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *     responses:
- *       200:
- *         description: 비밀번호 재설정 요청 성공
- *       400:
- *         description: 잘못된 요청
- */
-router.post('/password-reset', userController.forgotPassword);
-
-/**
- * @swagger
- * /users/password-reset/verify:
- *   post:
- *     summary: 비밀번호 재설정
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               token:
- *                 type: string
- *               newPassword:
- *                 type: string
- *     responses:
- *       200:
- *         description: 비밀번호 재설정 성공
- *       400:
- *         description: 잘못된 요청 또는 유효하지 않은 토큰
- */
-router.post('/password-reset/verify', userController.resetPassword);
-
-/**
- * @swagger
- * /users/profiles/{profileId}/report:
- *   post:
- *     summary: 프로필 신고
- *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: profileId
  *         required: true
  *         schema:
  *           type: string
- *     requestBody:
- *       description: 신고 사유 등의 정보
- *       required: false
+ *         description: topFriends를 삭제할 프로필의 고유 ID
+ *       - in: path
+ *         name: friendId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 삭제할 친구의 프로필 ID
  *     responses:
  *       200:
- *         description: 신고 접수됨
+ *         description: topFriends가 성공적으로 삭제되었습니다.
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       403:
+ *         description: topFriends 삭제 권한이 없습니다.
  *       404:
- *         description: 프로필을 찾을 수 없음
+ *         description: 삭제할 친구의 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/profiles/:profileId/report', authenticateToken, userController.reportProfile);
+router.delete('/profile/:profileId/top-friends/:friendId', authenticateToken, userController.deleteTopFriend);
 
 /**
  * @swagger
@@ -408,40 +637,59 @@ router.post('/profiles/:profileId/report', authenticateToken, userController.rep
  *   post:
  *     summary: 특정 프로필 차단
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: profileId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 차단할 프로필의 고유 ID
  *     responses:
  *       201:
- *         description: 차단 완료
+ *         description: 프로필이 성공적으로 차단되었습니다.
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 프로필을 찾을 수 없음
+ *         description: 차단할 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  * /users/profile/{profileId}/block/{blockedProfileId}:
  *   delete:
  *     summary: 특정 프로필 차단 해제
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: profileId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 차단을 해제할 프로필의 고유 ID
  *       - in: path
  *         name: blockedProfileId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 차단 해제할 프로필의 고유 ID
  *     responses:
  *       200:
- *         description: 차단 해제됨
+ *         description: 프로필 차단이 성공적으로 해제되었습니다.
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 프로필을 찾을 수 없음
+ *         description: 차단 해제할 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/profile/:profileId/block', userController.blockProfile);
-router.delete('/profile/:profileId/block/:blockedProfileId', userController.unblockProfile);
+router.post('/profile/:profileId/block', authenticateToken, userController.blockProfile);
+router.delete('/profile/:profileId/block/:blockedProfileId', authenticateToken, userController.unblockProfile);
 
 /**
  * @swagger
@@ -449,40 +697,59 @@ router.delete('/profile/:profileId/block/:blockedProfileId', userController.unbl
  *   post:
  *     summary: 특정 프로필 숨기기
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: profileId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 숨기려는 프로필의 고유 ID
  *     responses:
  *       201:
- *         description: 숨김 처리됨
+ *         description: 프로필이 성공적으로 숨김 처리되었습니다.
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 프로필을 찾을 수 없음
+ *         description: 숨기려는 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  * /users/profile/{profileId}/hide/{hiddenProfileId}:
  *   delete:
  *     summary: 특정 프로필 숨기기 해제
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: profileId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 숨기기를 해제할 프로필의 고유 ID
  *       - in: path
  *         name: hiddenProfileId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 숨기기 해제할 프로필의 고유 ID
  *     responses:
  *       200:
- *         description: 숨김 해제됨
+ *         description: 프로필 숨기기가 성공적으로 해제되었습니다.
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 프로필을 찾을 수 없음
+ *         description: 숨기기 해제할 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/profile/:profileId/hide', userController.hideProfile);
-router.delete('/profile/:profileId/hide/:hiddenProfileId', userController.unhideProfile);
+router.post('/profile/:profileId/hide', authenticateToken, userController.hideProfile);
+router.delete('/profile/:profileId/hide/:hiddenProfileId', authenticateToken, userController.unhideProfile);
 
 /**
  * @swagger
@@ -490,15 +757,65 @@ router.delete('/profile/:profileId/hide/:hiddenProfileId', userController.unhide
  *   post:
  *     summary: 특정 프로필 팔로우
  *     tags: [Follow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 팔로우할 프로필의 고유 ID
+ *       - in: path
+ *         name: targetProfileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 팔로우 대상 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 프로필을 성공적으로 팔로우했습니다.
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 팔로우할 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  * /users/profiles/{profileId}/unfollow/{followingId}:
  *   delete:
  *     summary: 특정 프로필 언팔로우
  *     tags: [Follow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 언팔로우할 프로필의 고유 ID
+ *       - in: path
+ *         name: followingId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 언팔로우 대상 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 프로필을 성공적으로 언팔로우했습니다.
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 언팔로우할 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/profiles/:profileId/follow/:targetProfileId', userController.followProfile);
-router.post('/profile/:profileId/follow/:followingId', userController.followProfile);
-router.delete('/profiles/:profileId/unfollow/:followingId', userController.unfollowProfile);
-router.delete('/profile/:profileId/followings/:followingId', userController.unfollowProfile);
+router.post('/profiles/:profileId/follow/:targetProfileId', authenticateToken, userController.followProfile);
+router.delete('/profiles/:profileId/unfollow/:followingId', authenticateToken, userController.unfollowProfile);
 
 /**
  * @swagger
@@ -506,15 +823,67 @@ router.delete('/profile/:profileId/followings/:followingId', userController.unfo
  *   get:
  *     summary: 특정 프로필의 팔로잉 목록 조회
  *     tags: [Follow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 팔로잉 목록을 조회할 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 팔로잉 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Profile'
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  * /users/profiles/{profileId}/followers:
  *   get:
  *     summary: 특정 프로필의 팔로워 목록 조회
  *     tags: [Follow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 팔로워 목록을 조회할 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 팔로워 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Profile'
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/profiles/:profileId/following', userController.getFollowingList);
-router.get('/profile/:profileId/followings', userController.getFollowingList);
-router.get('/profiles/:profileId/followers', userController.getFollowersList);
-router.get('/profile/:profileId/followers', userController.getFollowersList);
+router.get('/profiles/:profileId/following', authenticateToken, userController.getFollowingList);
+router.get('/profiles/:profileId/followers', authenticateToken, userController.getFollowersList);
+router.get('/profile/:profileId/following', authenticateToken, userController.getFollowingList);
+router.get('/profile/:profileId/followers', authenticateToken, userController.getFollowersList);
 
 /**
  * @swagger
@@ -522,9 +891,34 @@ router.get('/profile/:profileId/followers', userController.getFollowersList);
  *   get:
  *     summary: 특정 프로필의 알림 목록 조회
  *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 알림을 조회할 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 알림 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Notification'
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/profiles/:profileId/notifications', userController.getNotifications);
-router.get('/profile/:profileId/notifications', userController.getNotifications);
+router.get('/profiles/:profileId/notifications', authenticateToken, userController.getNotifications);
 
 /**
  * @swagger
@@ -532,37 +926,67 @@ router.get('/profile/:profileId/notifications', userController.getNotifications)
  *   get:
  *     summary: 특정 프로필의 차단 목록 조회
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: profileId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 차단 목록을 조회할 프로필의 고유 ID
  *     responses:
  *       200:
- *         description: 차단된 프로필 목록
+ *         description: 차단된 프로필 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Profile'
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 프로필을 찾을 수 없음
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  * /users/profile/{profileId}/hidden-profiles:
  *   get:
  *     summary: 특정 프로필의 숨긴 프로필 목록 조회
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: profileId
  *         required: true
  *         schema:
  *           type: string
+ *         description: 숨긴 프로필 목록을 조회할 프로필의 고유 ID
  *     responses:
  *       200:
- *         description: 숨긴 프로필 목록
+ *         description: 숨긴 프로필 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Profile'
+ *       400:
+ *         description: 잘못된 profileId 형식입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
  *       404:
- *         description: 프로필을 찾을 수 없음
+ *         description: 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/profile/:profileId/blocked-profiles', userController.getBlockedProfiles);
-router.get('profile/:profileId/block', userController.getBlockedProfiles);
-router.get('/profile/:profileId/hidden-profiles', userController.getHiddenProfiles);
-router.get('profile/:profileId/hide', userController.getHiddenProfiles);
+router.get('/profile/:profileId/blocked-profiles', authenticateToken, userController.getBlockedProfiles);
+router.get('/profile/:profileId/block', authenticateToken, userController.getBlockedProfiles);
+router.get('/profile/:profileId/hidden-profiles', authenticateToken, userController.getHiddenProfiles);
+router.get('/profile/:profileId/hide', authenticateToken, userController.getHiddenProfiles);
 
 /**
  * @swagger
@@ -570,8 +994,36 @@ router.get('profile/:profileId/hide', userController.getHiddenProfiles);
  *   delete:
  *     summary: 특정 프로필 삭제
  *     tags: [Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 프로필이 속한 사용자의 고유 ID
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 삭제할 프로필의 고유 ID
+ *     responses:
+ *       200:
+ *         description: 프로필이 성공적으로 삭제되었습니다.
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       403:
+ *         description: 프로필 삭제 권한이 없습니다.
+ *       404:
+ *         description: 삭제할 프로필을 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.delete('/:userId/profile/:profileId', userController.deleteProfile);
+router.delete('/:userId/profile/:profileId', authenticateToken, userController.deleteProfile);
 
 /**
  * @swagger
@@ -579,8 +1031,42 @@ router.delete('/:userId/profile/:profileId', userController.deleteProfile);
  *   post:
  *     summary: 이메일과 휴대폰 번호로 사용자 ID 찾기
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - phoneNumber
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phoneNumber:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 사용자 ID가 성공적으로 조회되었습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                   description: 조회된 사용자의 고유 ID
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       404:
+ *         description: 일치하는 사용자를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/users/find', userController.findUserId);
+router.post('/users/find', authenticateToken, userController.findUserId);
 
 /**
  * @swagger
@@ -588,8 +1074,36 @@ router.post('/users/find', userController.findUserId);
  *   get:
  *     summary: username과 phoneNumber로 존재여부 확인
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: username
+ *         schema:
+ *           type: string
+ *         description: 확인할 사용자 이름
+ *       - in: query
+ *         name: phoneNumber
+ *         schema:
+ *           type: string
+ *         description: 확인할 휴대폰 번호
+ *     responses:
+ *       200:
+ *         description: 사용자 존재 여부가 성공적으로 확인되었습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 exists:
+ *                   type: boolean
+ *                   description: 사용자의 존재 여부
+ *       400:
+ *         description: 잘못된 요청 파라미터가 제공되었습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/users/validate', userController.checkUserExistence);
+router.get('/users/validate', authenticateToken, userController.checkUserExistence);
 
 /**
  * @swagger
@@ -597,7 +1111,38 @@ router.get('/users/validate', userController.checkUserExistence);
  *   put:
  *     summary: 비밀번호 업데이트
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - newPassword
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: 비밀번호를 업데이트할 사용자의 고유 ID
+ *               newPassword:
+ *                 type: string
+ *                 description: 새로운 비밀번호
+ *     responses:
+ *       200:
+ *         description: 비밀번호가 성공적으로 업데이트되었습니다.
+ *       400:
+ *         description: 요청 데이터가 잘못되었습니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       403:
+ *         description: 비밀번호 업데이트 권한이 없습니다.
+ *       404:
+ *         description: 사용자를 찾을 수 없습니다.
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.put('/users/password-reset', userController.updatePassword);
+router.put('/users/password-reset', authenticateToken, userController.updatePassword);
 
 module.exports = router;
