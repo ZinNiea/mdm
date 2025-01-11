@@ -26,7 +26,35 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Post'
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   content:
+ *                     type: string
+ *                   authorId:
+ *                     type: string
+ *                   authorNickname:
+ *                     type: string
+ *                   authorImage:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *                   likesCount:
+ *                     type: integer
+ *                   commentCount:
+ *                     type: integer
+ *                   likeStatus:
+ *                     type: boolean
+ *                   bookmarkCount:
+ *                     type: integer
+ *                   bookmarkStatus:
+ *                     type: boolean
+ *                   images:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       format: binary
  *       400:
  *         description: 잘못된 쿼리 파라미터가 제공되었습니다.
  *       401:
@@ -102,7 +130,35 @@ router.post('/posts', authenticateToken, upload(IMAGE_TYPES.POST).array('images'
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Post'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     postId:
+ *                       type: string
+ *                     content:
+ *                       type: string
+ *                     authorId:
+ *                       type: string
+ *                     authorNickname:
+ *                       type: string
+ *                     authorImage:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                     likesCount:
+ *                       type: integer
+ *                     likeStatus:
+ *                       type: boolean
+ *                     commentCount:
+ *                       type: integer
+ *                     bookmarkCount:
+ *                       type: integer
+ *                     bookmarkStatus:
+ *                       type: boolean
  *       400:
  *         description: 잘못된 postId 형식입니다.
  *       401:

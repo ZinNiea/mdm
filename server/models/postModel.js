@@ -23,11 +23,12 @@ const postSchema = new mongoose.Schema({
   viewCount: { type: Number, default: 0 },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.COMMENT }],
+  bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }], // 북마크한 프로필 ID 추가
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
 
-// 카테고리 상수를 모델에 추가하여 외부에서 접근 가능하��록 함
+// 카테고리 상수를 모델에 추가하여 외부에서 접근 가능하도록 함
 postSchema.statics.CATEGORY = CATEGORY;
 
 const Post = mongoose.model(MODELS.POST, postSchema);

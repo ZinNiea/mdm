@@ -60,26 +60,12 @@ exports.getPosts = async (req, res) => {
 
   try {
     const posts = await Post.find(filter)
-      .select('_id content author createdAt likes comments') // 필요한 필드만 선택
+      .select('_id content author createdAt likes comments images bookmarks') // bookmarks 필드 포함
       .populate('author', 'nickname profileImage') // 프로필 정보 포함
       .sort({ createdAt: -1 }); // 최신순으로 정렬
 
-    const postIds = posts.map(post => post._id);
-    const bookmarkCounts = await Profile.aggregate([
-      { $match: { bookmarks: { $in: postIds } } },
-      { $unwind: '$bookmarks' },
-      { $match: { bookmarks: { $in: postIds } } },
-      { $group: { _id: '$bookmarks', count: { $sum: 1 } } },
-    ]);
-
-    const bookmarkMap = {};
-    bookmarkCounts.forEach(item => {
-      bookmarkMap[item._id] = item.count;
-    });
-
-    // 현재 사용자의 북마크 조회
-    const userProfile = await Profile.findById(profileId).select('bookmarks');
-    const userBookmarks = userProfile.bookmarks.map(id => id.toString());
+    // 현재 사용자의 북마크 프로필 ID
+    const userProfileId = profileId;
 
     // 각 게시물에 필요한 정보만 추출하여 새로운 객체 생성
     const postList = posts.map(post => ({
@@ -92,8 +78,9 @@ exports.getPosts = async (req, res) => {
       likesCount: post.likes.length,
       commentCount: post.comments.length,
       likeStatus: post.likes.includes(profileId),
-      bookmarkCount: bookmarkMap[post._id] || 0,
-      bookmarkStatus: isBookmarked(userBookmarks, post._id), 
+      bookmarkCount: post.bookmarks.length, // bookmarkCount 직접 계산
+      bookmarkStatus: post.bookmarks.includes(userProfileId), // bookmarkStatus 직접 계산
+      images: post.images, // 이미지 목록 추가
     }));
 
     res.status(200).json({ success: true, data: postList });
@@ -106,7 +93,8 @@ exports.getPosts = async (req, res) => {
 // 설명: getPostById 함수는 특정 게시물을 조회하는 API 엔드포인트를 처리합니다.
 exports.getPostById = async (req, res) => {
   try {
-    const userId = verifyTokenAndGetUserId(req);
+    // const userId = verifyTokenAndGetUserId(req);
+    const profileId = req.user.profileId; // userId 대신 profileId 사용
     const post = await findPostOrFail(req.params.postId);
 
     // 조회수 증가
@@ -127,10 +115,10 @@ exports.getPostById = async (req, res) => {
         authorImage: post.author.profileImage,
         createdAt: post.createdAt,
         likesCount: post.likes.length,
-        likeStatus: post.likes.includes(userId),
+        likeStatus: post.likes.includes(profileId),
         commentCount: post.comments.length,
-        bookmarkCount: post.bookmarks.length,
-        bookmarkStatus: isPostBookmarked(post.bookmarks, userId),
+        bookmarkCount: post.bookmarks.length, // 수정된 코드
+        bookmarkStatus: post.bookmarks.includes(profileId), // 수정된 코드
       }
     });
   } catch (error) {
@@ -348,11 +336,15 @@ exports.toggleBookmark = async (req, res) => {
 
     if (profile.bookmarks.includes(postId)) {
       profile.bookmarks.pull(postId);
+      post.bookmarks.pull(profileId); // Post.bookmarks 업데이트
       await profile.save();
+      await post.save();
       return res.status(200).json({ result: true, message: '북마크가 취소되었습니다.' });
     } else {
       profile.bookmarks.push(postId);
+      post.bookmarks.push(profileId); // Post.bookmarks 업데이트
       await profile.save();
+      await post.save();
       return res.status(200).json({ result: true, message: '게시물이 북마크에 추가되었습니다.' });
     }
   } catch (error) {
