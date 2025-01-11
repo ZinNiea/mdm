@@ -96,7 +96,9 @@ exports.getPostById = async (req, res) => {
     // const userId = verifyTokenAndGetUserId(req);
     const profileId = req.user.profileId; // userId 대신 profileId 사용
     const postId = req.params.postId; // postId 정의 추가
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId)
+      .populate('author', 'nickname profileImage'); // author 필드 populate 추가
+
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
