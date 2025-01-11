@@ -95,7 +95,11 @@ exports.getPostById = async (req, res) => {
   try {
     // const userId = verifyTokenAndGetUserId(req);
     const profileId = req.user.profileId; // userId 대신 profileId 사용
-    const post = await findPostOrFail(req.params.postId);
+    const postId = req.params.postId; // postId 정의 추가
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
+    }
 
     // 조회수 증가
     post.viewCount += 1;
