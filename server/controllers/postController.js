@@ -119,6 +119,7 @@ exports.getPostById = async (req, res) => {
         commentCount: post.comments.length,
         bookmarkCount: post.bookmarks.length, // 수정된 코드
         bookmarkStatus: post.bookmarks.includes(profileId), // 수정된 코드
+        images: post.images, // 이미지 목록 추가
       }
     });
   } catch (error) {
