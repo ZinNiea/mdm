@@ -235,7 +235,7 @@ router.post('/posts', authenticateToken, upload(IMAGE_TYPES.POST).array('images'
  *         description: 삭제할 게시물의 고유 ID
  *     responses:
  *       200:
- *         description: 게시물이 성공적으로 삭제되었습니다.
+*         description: 게시물이 성공적으로 삭제되었습니다.
  *       400:
  *         description: 잘못된 postId 형식입니다.
  *       401:

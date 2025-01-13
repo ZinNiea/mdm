@@ -1145,4 +1145,95 @@ router.get('/users/validate', authenticateToken, userController.checkUserExisten
  */
 router.put('/users/password-reset', authenticateToken, userController.updatePassword);
 
+/**
+ * @swagger
+ * /users/check-email:
+ *   post:
+ *     summary: 이메일 중복 확인
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: 이메일 사용 가능 여부
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available:
+ *                   type: boolean
+ *       400:
+ *         description: 잘못된 요청
+ */
+router.post('/check-email', userController.checkEmail);
+
+/**
+ * @swagger
+ * /users/check-nickname:
+ *   post:
+ *     summary: 닉네임 중복 확인
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nickname:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 닉네임 사용 가능 여부
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available:
+ *                   type: boolean
+ *       400:
+ *         description: 잘못된 요청
+ */
+router.post('/check-nickname', userController.checkNickname);
+
+/**
+ * @swagger
+ * /users/check-username:
+ *   post:
+ *     summary: 로그인 ID 중복 확인
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 로그인 ID 사용 가능 여부
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available:
+ *                   type: boolean
+ *       400:
+ *         description: 잘못된 요청
+ */
+router.post('/check-username', userController.checkUsername);
+
 module.exports = router;
