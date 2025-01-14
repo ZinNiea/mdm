@@ -54,10 +54,6 @@ exports.getPosts = async (req, res) => {
     filter.content = { $regex: search, $options: 'i' };
   }
 
-  if (profileId) {
-    filter.author = profileId;
-  }
-
   try {
     const posts = await Post.find(filter)
       .select('_id content author createdAt likes comments images bookmarks') // bookmarks 필드 포함
