@@ -18,6 +18,16 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *         schema:
  *           type: string
  *         description: 게시물의 카테고리 필터링
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: 검색어
+ *       - in: query
+ *         name: profileId
+ *         schema:
+ *           type: string
+ *         description: 프로필 ID
  *     responses:
  *       200:
  *         description: 게시물을 성공적으로 조회하였습니다.
