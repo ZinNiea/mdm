@@ -687,4 +687,30 @@ router.post('/posts/:postId/comments/:commentId/report', authenticateToken, comm
  */
 router.get('/posts/profile/:profileId', authenticateToken, postController.getPostsByProfile);
 
+/**
+ * @swagger
+ * /popular-keywords:
+ *   get:
+ *     summary: 실시간 인기 키워드 랭킹 조회
+ *     tags: [Posts]
+ *     responses:
+ *       200:
+ *         description: 실시간 인기 키워드 목록을 성공적으로 조회하였습니다.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ *       400:
+ *         description: 잘못된 요청입니다.
+ *       401:
+ *         description: 인증이 필요합니다.
+ *       404:
+ *         description: 인기 키워드를 찾을 수 없음
+ *       500:
+ *         description: 서버 내부 오류가 발생하였습니다.
+ */
+router.get('/popular-keywords', postController.getPopularKeywords);
+
 module.exports = router;
