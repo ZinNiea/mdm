@@ -32,7 +32,7 @@ function isPostBookmarked(postBookmarks, userId) {
 
 // 게시물 전체 조회 또는 카테고리별, 검색어별 조회
 exports.getPosts = async (req, res) => {
-  const { category, search, profileId } = req.query; // 쿼리 파라미터에서 카테고리와 검색어 추출
+  const { category, q, oq, profileId } = req.query; // 'oq' 추가
   let filter = {};
 
   // category가 문자열일 경우 숫자로 변환
@@ -49,9 +49,9 @@ exports.getPosts = async (req, res) => {
       break;
   }
 
-  if (search) {
+  if (q) { // 'search'를 'q'로 변경
     // 대소문자 구분 없이 content 필드에서 검색어 포함 여부 확인
-    filter.content = { $regex: search, $options: 'i' };
+    filter.content = { $regex: q, $options: 'i' };
   }
 
   try {

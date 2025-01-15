@@ -19,10 +19,15 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
  *           type: string
  *         description: 게시물의 카테고리 필터링
  *       - in: query
- *         name: search
+ *         name: q
  *         schema:
  *           type: string
- *         description: 검색어
+ *         description: 검색어(자동완성을 거친 최종 검색어)
+ *       - in: query
+ *         name: oq
+ *         schema:
+ *           type: string
+ *         description: 검색어(사용자가 입력한 원본 검색어)
  *       - in: query
  *         name: profileId
  *         schema:
