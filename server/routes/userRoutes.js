@@ -1027,7 +1027,7 @@ router.delete('/:userId/profile/:profileId', authenticateToken, userController.d
 
 /**
  * @swagger
- * /users/users/find:
+ * /users/find:
  *   post:
  *     summary: 이메일과 휴대폰 번호로 사용자 ID 찾기
  *     tags: [Users]
@@ -1070,7 +1070,7 @@ router.post('/users/find', authenticateToken, userController.findUserId);
 
 /**
  * @swagger
- * /users/users/validate:
+ * /users/validate:
  *   get:
  *     summary: username과 phoneNumber로 존재여부 확인
  *     tags: [Users]
@@ -1107,7 +1107,7 @@ router.get('/users/validate', authenticateToken, userController.checkUserExisten
 
 /**
  * @swagger
- * /users/users/password-reset:
+ * /users/password-reset:
  *   put:
  *     summary: 비밀번호 업데이트
  *     tags: [Users]
