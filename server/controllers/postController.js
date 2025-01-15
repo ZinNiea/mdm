@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const SECRET_KEY = process.env.SECRET_KEY;
 const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
+const mongoose = require('mongoose');
 
 function verifyTokenAndGetUserId(req) {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
@@ -28,6 +29,28 @@ function isBookmarked(userBookmarks, postId) {
 
 function isPostBookmarked(postBookmarks, userId) {
   return postBookmarks.includes(userId);
+}
+
+async function getPostsExcludingBlocked(profileId) {
+  // profileId 검증 추가
+  if (!profileId) {
+    throw new Error('프로필 ID가 필요합니다.');
+  }
+
+  // profileId의 유효성 검사 (예: 유효한 ObjectId인지 확인)
+  if (!mongoose.Types.ObjectId.isValid(profileId)) {
+    throw new Error('유효하지 않은 프로필 ID입니다.');
+  }
+
+  const profile = await Profile.findById(profileId);
+  if (!profile) throw new Error('프로필을 찾을 수 없습니다.');
+
+  const blockedProfiles = profile.blockedProfiles || [];
+  const posts = await Post.find({ author: { $nin: blockedProfiles } })
+    .populate('author', 'nickname profileImage')
+    .sort({ createdAt: -1 });
+
+  return posts;
 }
 
 // 게시물 전체 조회 또는 카테고리별, 검색어별 조회
