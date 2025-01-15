@@ -94,6 +94,11 @@ router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionControll
  *         schema:
  *           type: string
  *         description: 프로필 ID
+ *       # - in: query
+ *       #   name: oq
+ *       #   schema:
+ *       #     type: string
+ *       #   description: 유저가 입력한 원본 문자열
  *     responses:
  *       200:
  *         description: 경매 아이템 목록을 성공적으로 조회하였습니다.

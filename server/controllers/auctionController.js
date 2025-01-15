@@ -83,9 +83,17 @@ exports.createAuctionItem = async (req, res) => {
  * @param {Response} res 
  */
 exports.getAuctionItems = async (req, res) => {
-  const { q, profileId } = req.query;
+  const { q, /* oq, */ profileId } = req.query; // 'oq' 파라미터 주석 처리
   try {
-    const items = await AuctionItem.find();
+    let filter = {};
+    if (q) { // 자동완성 적용 후 최종 검색어
+      filter.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } }
+      ];
+    }
+
+    const items = await AuctionItem.find(filter); // 수정된 filter 적용
 
     const now = new Date();
 
