@@ -504,13 +504,13 @@ exports.updateProfile = async (req, res) => {
     }
 
     // 기타 필드 업데이트
-    if (nickname) profile.nickname = nickname;
-    if (birthdate) profile.birthdate = birthdate;
-    if (gender) profile.gender = gender;
-    if (mbti) profile.mbti = mbti;
-    if (intro) profile.introduction = intro;
-    if (likeWork) profile.likeWork = likeWork;
-    if (likeSong) profile.likeSong = likeSong;
+    if (nickname !== undefined) profile.nickname = nickname;
+    if (birthdate !== undefined) profile.birthdate = birthdate;
+    if (gender !== undefined) profile.gender = gender;
+    if (mbti !== undefined) profile.mbti = mbti;
+    if (intro !== undefined) profile.introduction = intro;
+    if (likeWork !== undefined) profile.likeWork = likeWork;
+    if (likeSong !== undefined) profile.likeSong = likeSong;
 
     profile.updatedAt = new Date();
 
