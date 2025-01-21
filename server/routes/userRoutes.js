@@ -753,7 +753,7 @@ router.delete('/profile/:profileId/hide/:hiddenProfileId', authenticateToken, us
 
 /**
  * @swagger
- * /users/profiles/{profileId}/follow/{targetProfileId}:
+ * /users/profiles/{profileId}/follow/{followingId}:
  *   post:
  *     summary: 특정 프로필 팔로우
  *     tags: [Follow]
