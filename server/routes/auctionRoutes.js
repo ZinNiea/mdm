@@ -24,6 +24,7 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
  *               - startingbid
  *               - buyNowPrice
  *               - duration
+ *               - images
  *             properties:
  *               profileId:
  *                 type: string
@@ -52,7 +53,7 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
  *                 description: 관련 정보
  *               images:
  *                 type: array
- *                 description: 업로드할 이미지 파일들 (최대 4개)
+ *                 description: 업로드할 이미지 파일들 (최대 4개, 각 파일 크기 최대 5MB)
  *                 items:
  *                   type: string
  *                   format: binary
@@ -268,6 +269,9 @@ router.put('/:auctionId', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctio
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - price
+ *               - profileId
  *             properties:
  *               price:
  *                 type: number

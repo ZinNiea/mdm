@@ -31,7 +31,7 @@ const endAuctionJob = async (auctionId, io) => {
  * @param {Response} res
  */
 exports.createAuctionItem = async (req, res) => {
-  const { profileId, title, content, category, startingbid, buyNowPrice, duration, related} = req.body;
+  const { profileId, title, content, category, startingbid, buyNowPrice, duration, related } = req.body;
 
   // 요청 파라미터 검증 추가
   if (!profileId || typeof profileId !== 'string') {
@@ -55,6 +55,22 @@ exports.createAuctionItem = async (req, res) => {
   }
   if (isNaN(duration) || duration <= 0) {
     return res.status(400).send('유효하지 않은 duration입니다.');
+  }
+
+  // 이미지 파일 검증 추가
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).send('이미지 파일이 필요합니다.');
+  }
+  if (req.files.length > 4) {
+    return res.status(400).send('이미지 파일은 최대 4개까지 업로드할 수 있습니다.');
+  }
+  for (const file of req.files) {
+    if (!file.mimetype.startsWith('image/')) {
+      return res.status(400).send('유효하지 않은 이미지 파일입니다.');
+    }
+    if (file.size > 5 * 1024 * 1024) { // 5MB 제한
+      return res.status(400).send('이미지 파일 크기는 5MB를 초과할 수 없습니다.');
+    }
   }
 
   // duration 현재 시간에 더하여 endTime 계산 (duration: 시간 단위)
@@ -436,6 +452,21 @@ exports.updateAuctionItem = async (req, res) => {
   }
   if (buyNowPrice && (isNaN(buyNowPrice) || buyNowPrice <= 0)) {
     return res.status(400).send('유효하지 않은 buyNowPrice입니다.');
+  }
+
+  // 이미지 파일 검증 추가
+  if (imageFiles && imageFiles.length > 4) {
+    return res.status(400).send('이미지 파일은 최대 4개까지 업로드할 수 있습니다.');
+  }
+  if (imageFiles) {
+    for (const file of imageFiles) {
+      if (!file.mimetype.startsWith('image/')) {
+        return res.status(400).send('유효하지 않은 이미지 파일입니다.');
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB 제한
+        return res.status(400).send('이미지 파일 크기는 5MB를 초과할 수 없습니다.');
+      }
+    }
   }
 
   try {
