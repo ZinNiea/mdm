@@ -327,8 +327,6 @@ router.post('/:auctionId/bids', auctionController.placeBid);
  *                   type: string
  *       400:
  *         description: 요청 데이터가 잘못되었습니다.
- *       401:
- *         description: 인증이 필요합니다.
  *       404:
  *         description: 지정된 경매 아이템을 찾을 수 없습니다.
  *       409:

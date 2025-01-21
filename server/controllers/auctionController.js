@@ -33,20 +33,34 @@ const endAuctionJob = async (auctionId, io) => {
 exports.createAuctionItem = async (req, res) => {
   const { profileId, title, content, category, startingbid, buyNowPrice, duration, related} = req.body;
 
-  // 카테고리 유효성 검사
-  const validCategories = ['거래', '나눔', '이벤트'];
-  if (!validCategories.includes(category)) {
-    return res.status(400).send('유효하지 않은 카테고리입니다.');
+  // 요청 파라미터 검증 추가
+  if (!profileId || typeof profileId !== 'string') {
+    return res.status(400).send('유효하지 않은 profileId입니다.');
   }
-
-  // 경매 기간 유효성 검사
+  if (!title || typeof title !== 'string') {
+    return res.status(400).send('유효하지 않은 title입니다.');
+  }
+  if (!content || typeof content !== 'string') {
+    return res.status(400).send('유효하지 않은 content입니다.');
+  }
+  const validCategories = ['거래', '나눔', '이벤트'];
+  if (!category || !validCategories.includes(category)) {
+    return res.status(400).send('유효하지 않은 category입니다.');
+  }
+  if (isNaN(startingbid) || startingbid <= 0) {
+    return res.status(400).send('유효하지 않은 startingbid입니다.');
+  }
+  if (isNaN(buyNowPrice) || buyNowPrice <= 0) {
+    return res.status(400).send('유효하지 않은 buyNowPrice입니다.');
+  }
   if (isNaN(duration) || duration <= 0) {
-    return res.status(400).send('유효한 duration 값을 입력해주세요.');
+    return res.status(400).send('유효하지 않은 duration입니다.');
   }
 
   // duration 현재 시간에 더하여 endTime 계산 (duration: 시간 단위)
   const createdAt = new Date();
   const endTime = new Date(createdAt.getTime() + duration * 60 * 60 * 1000);
+
   const imageUrls = req.files.map(file => file.location); // S3에서의 이미지 URL
 
   try {
@@ -403,6 +417,26 @@ exports.deleteAuctionItem = async (req, res) => {
 exports.updateAuctionItem = async (req, res) => {
   const { auctionId, profileId, title, content, duration, buyNowPrice } = req.body;
   const imageFiles = req.files;
+
+  // 요청 파라미터 검증 추가
+  if (!auctionId || typeof auctionId !== 'string') {
+    return res.status(400).send('유효하지 않은 auctionId입니다.');
+  }
+  if (!profileId || typeof profileId !== 'string') {
+    return res.status(400).send('유효하지 않은 profileId입니다.');
+  }
+  if (title && typeof title !== 'string') {
+    return res.status(400).send('유효하지 않은 title입니다.');
+  }
+  if (content && typeof content !== 'string') {
+    return res.status(400).send('유효하지 않은 content입니다.');
+  }
+  if (duration && (isNaN(duration) || duration <= 0)) {
+    return res.status(400).send('유효하지 않은 duration입니다.');
+  }
+  if (buyNowPrice && (isNaN(buyNowPrice) || buyNowPrice <= 0)) {
+    return res.status(400).send('유효하지 않은 buyNowPrice입니다.');
+  }
 
   try {
     const auctionItem = await AuctionItem.findById(auctionId);
