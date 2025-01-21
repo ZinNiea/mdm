@@ -767,7 +767,7 @@ router.delete('/profile/:profileId/hide/:hiddenProfileId', authenticateToken, us
  *           type: string
  *         description: 팔로우할 프로필의 고유 ID
  *       - in: path
- *         name: targetProfileId
+ *         name: followingId
  *         required: true
  *         schema:
  *           type: string
