@@ -814,7 +814,7 @@ router.delete('/profile/:profileId/hide/:hiddenProfileId', authenticateToken, us
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/profiles/:profileId/follow/:targetProfileId', authenticateToken, userController.followProfile);
+router.post('/profiles/:profileId/follow/:followingId', authenticateToken, userController.followProfile);
 router.delete('/profiles/:profileId/unfollow/:followingId', authenticateToken, userController.unfollowProfile);
 
 /**
