@@ -527,7 +527,7 @@ exports.getProfile = async (req, res) => {
   const { profileId } = req.params;
   const { targetProfileId } = req.query;
   try {
-    const profile = await Profile.findById(profileId).populate('topFriends', 'nickname profileImage');
+    const profile = await Profile.findById(targetProfileId).populate('topFriends', 'nickname profileImage');
     if (!profile) {
       return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
     }
@@ -545,7 +545,7 @@ exports.getProfile = async (req, res) => {
         intro: profile.introduction,
       },
       interests: profile.interests,
-      followingState: profile.following.includes(targetProfileId),
+      followingState: profile.following.includes(profileId),
       followingCount: profile.following.length,
       followersCount: profile.followers.length,
       topFriends: profile.topFriends
