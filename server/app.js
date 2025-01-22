@@ -78,11 +78,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(loggingMiddleware);
 
 // 라우터 등록
-app.use('/user', userRouter);
-app.use('/post', postRouter);
-app.use('/auctions', auctionRouter);
-app.use('/chat', chatRouter);
-app.use('/auth', authRouter);
+app.use('/user', asyncHandler(userRouter));
+app.use('/post', asyncHandler(postRouter));
+app.use('/auctions', asyncHandler(auctionRouter));
+app.use('/chat', asyncHandler(chatRouter));
+app.use('/auth', asyncHandler(authRouter));
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');

@@ -80,31 +80,27 @@ exports.createAuctionItem = asyncHandler(async (req, res) => {
 
   const imageUrls = req.files.map(file => file.location); // S3에서의 이미지 URL
 
-  try {
-    const auctionItem = new AuctionItem({
-      title: title,
-      description: content,
-      category: category,
-      startingPrice: startingbid,
-      instantBuyPrice: buyNowPrice,
-      endTime: endTime,
-      createdBy: profileId,
-      images: imageUrls,
-      related: related,
-      createdAt: createdAt
-    });
-    await auctionItem.save();
+  const auctionItem = new AuctionItem({
+    title: title,
+    description: content,
+    category: category,
+    startingPrice: startingbid,
+    instantBuyPrice: buyNowPrice,
+    endTime: endTime,
+    createdBy: profileId,
+    images: imageUrls,
+    related: related,
+    createdAt: createdAt
+  });
+  await auctionItem.save();
 
-    // node-schedule을 사용하여 경매 종료 작업 스케줄링
-    schedule.scheduleJob(endTime, () => {
-      const io = req.app.get('io'); // io 인스턴스 가져오기
-      endAuctionJob(auctionItem._id, io);
-    });
+  // node-schedule을 사용하여 경매 종료 작업 스케줄링
+  schedule.scheduleJob(endTime, () => {
+    const io = req.app.get('io'); // io 인스턴스 가져오기
+    endAuctionJob(auctionItem._id, io);
+  });
 
-    res.status(201).send({ result: true, auctionId: auctionItem._id });
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
+  res.status(201).send({ result: true, auctionId: auctionItem._id });
 });
 
 
@@ -115,38 +111,34 @@ exports.createAuctionItem = asyncHandler(async (req, res) => {
  */
 exports.getAuctionItems = asyncHandler(async (req, res) => {
   const { q, /* oq, */ profileId } = req.query; // 'oq' 파라미터 주석 처리
-  try {
-    let filter = {};
-    if (q) { // 자동완성 적용 후 최종 검색어
-      filter.$or = [
-        { title: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } }
-      ];
-    }
-
-    const items = await AuctionItem.find(filter); // 수정된 filter 적용
-
-    const now = new Date();
-
-    const data = items.map(item => {
-      const duration = Math.max(0, Math.ceil((item.endTime - now) / 1000 / 60 / 60));
-
-      return {
-        auctionId: item._id,
-        related: item.related,
-        title: item.title,
-        highest_bid_price: item.currentBid,
-        duration: duration,
-        views: item.views,
-        likes_count: item.likes.length,
-        image_urls: item.images ? [item.images[0]] : [],
-      };
-
-    });
-    res.status(200).send(data);
-  } catch (err) {
-    res.status(400).send(err.message);
+  let filter = {};
+  if (q) { // 자동완성 적용 후 최종 검색어
+    filter.$or = [
+      { title: { $regex: q, $options: 'i' } },
+      { description: { $regex: q, $options: 'i' } }
+    ];
   }
+
+  const items = await AuctionItem.find(filter); // 수정된 filter 적용
+
+  const now = new Date();
+
+  const data = items.map(item => {
+    const duration = Math.max(0, Math.ceil((item.endTime - now) / 1000 / 60 / 60));
+
+    return {
+      auctionId: item._id,
+      related: item.related,
+      title: item.title,
+      highest_bid_price: item.currentBid,
+      duration: duration,
+      views: item.views,
+      likes_count: item.likes.length,
+      image_urls: item.images ? [item.images[0]] : [],
+    };
+
+  });
+  res.status(200).send(data);
 });
 
 /**
@@ -156,37 +148,33 @@ exports.getAuctionItems = asyncHandler(async (req, res) => {
  * @returns 
  */
 exports.getAuctionItemById = asyncHandler(async (req, res) => {
-  try {
-    const item = await AuctionItem.findById(req.params.auctionId)
-      .populate('highestBidder', 'nickname')
-      .populate('createdBy', 'nickname profileImage rating');
-    if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
+  const item = await AuctionItem.findById(req.params.auctionId)
+    .populate('highestBidder', 'nickname')
+    .populate('createdBy', 'nickname profileImage rating');
+  if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
 
-    item.views += 1;
-    await item.save();
-    
-    const data = {
-      authorId: item.createdBy._id,
-      authorNickname: item.createdBy.nickname,
-      authorImage: item.createdBy.profileImage,
-      authorRating: item.createdBy.rating,
-      title: item.title,
-      content: item.description,
-      viewCount: item.views,
-      startingBid: item.startingPrice,
-      buyNowPrice: item.instantBuyPrice,
-      createdAt: item.createdAt,
-      endTime: item.endTime,
-      related: item.related,
-      imageUrls: item.images,
-      highestBidPrice: item.currentBid,
-      highestBiddersNickname: item.highestBidder ? item.highestBidder.nickname : null,
-      likeCount: item.likes.length,
-    };
-    res.status(200).send(data);
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
+  item.views += 1;
+  await item.save();
+  
+  const data = {
+    authorId: item.createdBy._id,
+    authorNickname: item.createdBy.nickname,
+    authorImage: item.createdBy.profileImage,
+    authorRating: item.createdBy.rating,
+    title: item.title,
+    content: item.description,
+    viewCount: item.views,
+    startingBid: item.startingPrice,
+    buyNowPrice: item.instantBuyPrice,
+    createdAt: item.createdAt,
+    endTime: item.endTime,
+    related: item.related,
+    imageUrls: item.images,
+    highestBidPrice: item.currentBid,
+    highestBiddersNickname: item.highestBidder ? item.highestBidder.nickname : null,
+    likeCount: item.likes.length,
+  };
+  res.status(200).send(data);
 });
 
 /**
@@ -199,36 +187,32 @@ exports.placeBid = asyncHandler(async (req, res) => {
   const { auctionId } = req.params;
   const { price, profileId } = req.body;
   const amount = price;
-  try {
-    const item = await AuctionItem.findById(auctionId);
-    if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-    if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
+  const item = await AuctionItem.findById(auctionId);
+  if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
+  if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
 
-    const bidAmount = amount;
-    if (bidAmount < item.startingPrice || bidAmount <= item.currentBid) {
-      return res.status(400).send('입찰 금액이 너무 낮습니다.');
-    }
-
-    item.currentBid = bidAmount;
-    // item.highestBidder = req.user._id;
-    item.highestBidder = profileId;
-    await item.save();
-
-    const bid = new Bid({
-      amount: bidAmount,
-      bidder: profileId,
-      auctionItem: item._id,
-      bidTime: new Date()
-    });
-    await bid.save();
-
-    // 생성된 입찰의 URI를 응답 헤더에 포함
-    res.status(201)
-      .location(`/auctions/${item._id}/bids/${bid._id}`)
-      .send({ result: true });
-  } catch (err) {
-    res.status(400).send(err.message);
+  const bidAmount = amount;
+  if (bidAmount < item.startingPrice || bidAmount <= item.currentBid) {
+    return res.status(400).send('입찰 금액이 너무 낮습니다.');
   }
+
+  item.currentBid = bidAmount;
+  // item.highestBidder = req.user._id;
+  item.highestBidder = profileId;
+  await item.save();
+
+  const bid = new Bid({
+    amount: bidAmount,
+    bidder: profileId,
+    auctionItem: item._id,
+    bidTime: new Date()
+  });
+  await bid.save();
+
+  // 생성된 입찰의 URI를 응답 헤더에 포함
+  res.status(201)
+    .location(`/auctions/${item._id}/bids/${bid._id}`)
+    .send({ result: true });
 });
 
 
@@ -256,34 +240,30 @@ const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) =>
  * @returns 
  */
 exports.instantBuy = asyncHandler(async (req, res) => {
-  try {
-    const item = await AuctionItem.findById(req.params.auctionId);
-    if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-    if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
-    if (!item.instantBuyPrice) return res.status(400).send('즉시구매가 불가능한 아이템입니다.');
+  const item = await AuctionItem.findById(req.params.auctionId);
+  if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
+  if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
+  if (!item.instantBuyPrice) return res.status(400).send('즉시구매가 불가능한 아이템입니다.');
 
-    item.currentBid = item.instantBuyPrice;
-    item.highestBidder = req.body.bidder_id;
-    item.endTime = new Date(); // 경매 종료
-    await item.save();
+  item.currentBid = item.instantBuyPrice;
+  item.highestBidder = req.body.bidder_id;
+  item.endTime = new Date(); // 경매 종료
+  await item.save();
 
-    const bid = new Bid({
-      amount: item.instantBuyPrice,
-      bidder: req.body.bidder_id,
-      auctionItem: item._id
-    });
-    await bid.save();
+  const bid = new Bid({
+    amount: item.instantBuyPrice,
+    bidder: req.body.bidder_id,
+    auctionItem: item._id
+  });
+  await bid.save();
 
-    // 헬퍼 함수 호출하여 채팅방 생성 및 알림
-    const io = req.app.get('io');
-    await createChatRoomAndNotify(item.createdBy, req.body.bidder_id, item._id, io);
+  // 헬퍼 함수 호출하여 채팅방 생성 및 알림
+  const io = req.app.get('io');
+  await createChatRoomAndNotify(item.createdBy, req.body.bidder_id, item._id, io);
 
-    res.status(201)
-      .location(`/auctions/${item._id}/bids/${bid._id}`)
-      .send({ result: true });
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
+  res.status(201)
+    .location(`/auctions/${item._id}/bids/${bid._id}`)
+    .send({ result: true });
 });
 
 /**
@@ -293,49 +273,44 @@ exports.instantBuy = asyncHandler(async (req, res) => {
  * @returns 
  */
 exports.endAuction = asyncHandler(async (req, res) => {
-  try {
-    const { auctionId } = req.params;
+  const { auctionId } = req.params;
 
-    // 유효한 ObjectId인지 검증 (선택 사항)
-    if (!mongoose.Types.ObjectId.isValid(auctionId)) {
-      return res.status(400).json({ success: false, message: '유효하지 않은 경매 ID입니다.' });
-    }
+  // 유효한 ObjectId인지 검증 (선택 사항)
+  if (!mongoose.Types.ObjectId.isValid(auctionId)) {
+    return res.status(400).json({ success: false, message: '유효하지 않은 경매 ID입니다.' });
+  }
 
-    const item = await AuctionItem.findById(auctionId).populate('highestBidder');
+  const item = await AuctionItem.findById(auctionId).populate('highestBidder');
 
-    if (!item) {
-      return res.status(404).json({ success: false, message: '경매 아이템을 찾을 수 없습니다.' });
-    }
+  if (!item) {
+    return res.status(404).json({ success: false, message: '경매 아이템을 찾을 수 없습니다.' });
+  }
 
-    // 인증된 사용자인지 확인 (미들웨어에서 처리되지 않은 경우)
-    // if (!req.user || item.createdBy.toString() !== req.user._id.toString()) {
-    //   return res.status(403).json({ success: false, message: '경매를 종료할 권한이 없습니다.' });
-    // }
+  // 인증된 사용자인지 확인 (미들웨어에서 처리되지 않은 경우)
+  // if (!req.user || item.createdBy.toString() !== req.user._id.toString()) {
+  //   return res.status(403).json({ success: false, message: '경매를 종료할 권한이 없습니다.' });
+  // }
 
-    if (item.endTime < new Date()) {
-      return res.status(409).json({ success: false, message: '경매가 이미 종료되었습니다.' });
-    }
+  if (item.endTime < new Date()) {
+    return res.status(409).json({ success: false, message: '경매가 이미 종료되었습니다.' });
+  }
 
-    item.endTime = new Date();
-    await item.save();
+  item.endTime = new Date();
+  await item.save();
 
-    const io = req.app.get('io');
+  const io = req.app.get('io');
 
-    if (item.highestBidder) {
-      await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
-      return res.status(200).json({ 
-        success: true, 
-        message: '경매가 종료되었으며, 실시간 채팅방이 생성되었습니다.' 
-      });
-    } else {
-      return res.status(200).json({ 
-        success: true, 
-        message: '경매가 종료되었으나, 입찰자가 없습니다.' 
-      });
-    }
-  } catch (err) {
-    console.error(`경매 즉시 종료 오류: ${err.message}`);
-    return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  if (item.highestBidder) {
+    await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
+    return res.status(200).json({ 
+      success: true, 
+      message: '경매가 종료되었으며, 실시간 채팅방이 생성되었습니다.' 
+    });
+  } else {
+    return res.status(200).json({ 
+      success: true, 
+      message: '경매가 종료되었으나, 입찰자가 없습니다.' 
+    });
   }
 });
 
@@ -346,28 +321,23 @@ exports.endAuction = asyncHandler(async (req, res) => {
  */
 exports.getAuctionsByProfile = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
-  try {
-    const auctions = await AuctionItem.find({ createdBy: profileId })
-      .select('title related currentBid endTime views likes images')
-      .populate('likes', 'nickname') // 좋아요를 누른 사용자 정보 포함 (필요 시)
-      .sort({ createdAt: -1 }); // 최신 순 정렬
+  const auctions = await AuctionItem.find({ createdBy: profileId })
+    .select('title related currentBid endTime views likes images')
+    .populate('likes', 'nickname') // 좋아요를 누른 사용자 정보 포함 (필요 시)
+    .sort({ createdAt: -1 }); // 최신 순 정렬
 
-    const postList = auctions.map(auction => ({
-      auctionId: auction._id,
-      related: auction.related,
-      title: auction.title,
-      highest_bid_price: auction.currentBid,
-      endTime: auction.endTime,
-      viewCount: auction.views,
-      likeCount: auction.likes.length,
-      imageUrl: auction.images ? [auction.images[0]] : [],
-    }));
+  const postList = auctions.map(auction => ({
+    auctionId: auction._id,
+    related: auction.related,
+    title: auction.title,
+    highest_bid_price: auction.currentBid,
+    endTime: auction.endTime,
+    viewCount: auction.views,
+    likeCount: auction.likes.length,
+    imageUrl: auction.images ? [auction.images[0]] : [],
+  }));
 
-    res.status(200).json({ success: true, data: postList });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  res.status(200).json({ success: true, data: postList });
 });
 
 /**
@@ -377,27 +347,23 @@ exports.getAuctionsByProfile = asyncHandler(async (req, res) => {
  * @returns 
  */
 exports.reportAuctionItem = asyncHandler(async (req, res) => {
-  try {
-    const { auctionId } = req.params; // 신고할 게시글 ID
-    const { category, content, profileId } = req.body; // 신고 카테고리와 내용
-    
-    const auctionItem = await AuctionItem.findById(auctionId);
-    if (!auctionItem) {
-      return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
-    }
-
-    const report = new Report({
-      auctionItem: auctionItem._id,
-      reporter: profileId,
-      category: category,
-      content: content,
-    });
-    await report.save();
-
-    res.status(200).json({ result: true, message: '게시글이 신고되었습니다.' });
-  } catch (error) {
-    res.status(500).json({ result: false, message: error.message });
+  const { auctionId } = req.params; // 신고할 게시글 ID
+  const { category, content, profileId } = req.body; // 신고 카테고리와 내용
+  
+  const auctionItem = await AuctionItem.findById(auctionId);
+  if (!auctionItem) {
+    return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
   }
+
+  const report = new Report({
+    auctionItem: auctionItem._id,
+    reporter: profileId,
+    category: category,
+    content: content,
+  });
+  await report.save();
+
+  res.status(200).json({ result: true, message: '게시글이 신고되었습니다.' });
 });
 
 /**
@@ -406,24 +372,20 @@ exports.reportAuctionItem = asyncHandler(async (req, res) => {
  * @param {Response} res
  */
 exports.deleteAuctionItem = asyncHandler(async (req, res) => {
-  try {
-    const { auctionId } = req.params;
-    const { profileId } = req.body;
-    const auctionItem = await AuctionItem.findById(auctionId);
+  const { auctionId } = req.params;
+  const { profileId } = req.body;
+  const auctionItem = await AuctionItem.findById(auctionId);
 
-    if (!auctionItem) {
-      return res.status(404).send('아이템을 찾을 수 없습니다.');
-    }
-
-    if (auctionItem.createdBy.toString() !== profileId.toString()) {
-      return res.status(403).send('경매를 삭제할 권한이 없습니다.');
-    }
-
-    await AuctionItem.findByIdAndDelete(auctionId);
-    res.status(200).json({ message: '경매 아이템이 삭제되었습니다.'});
-  } catch (err) {
-    res.status(400).send(err.message);
+  if (!auctionItem) {
+    return res.status(404).send('아이템을 찾을 수 없습니다.');
   }
+
+  if (auctionItem.createdBy.toString() !== profileId.toString()) {
+    return res.status(403).send('경매를 삭제할 권한이 없습니다.');
+  }
+
+  await AuctionItem.findByIdAndDelete(auctionId);
+  res.status(200).json({ message: '경매 아이템이 삭제되었습니다.'});
 });
 
 /**
@@ -470,41 +432,37 @@ exports.updateAuctionItem = asyncHandler(async (req, res) => {
     }
   }
 
-  try {
-    const auctionItem = await AuctionItem.findById(auctionId);
-    if (!auctionItem) {
-      return res.status(404).send('아이템을 찾을 수 없습니다.');
-    }
-
-    if (auctionItem.createdBy.toString() !== profileId.toString()) {
-      return res.status(403).send('경매를 수정할 권한이 없습니다.');
-    }
-
-    // 기존 이미지 삭제
-    const imagesToDelete = auctionItem.images;
-    for (const imageUrl of imagesToDelete) {
-      await deleteImage(imageUrl);
-    }
-
-    // 수정할 필드 업데이트
-    if (title) auctionItem.title = title;
-    if (content) auctionItem.description = content;
-    if (duration && !isNaN(duration) && duration > 0) {
-      auctionItem.endTime = new Date(Date.now() + duration * 60 * 60 * 1000);
-    }
-    if (buyNowPrice) auctionItem.instantBuyPrice = buyNowPrice;
-
-    // 새로운 이미지 저장
-    if (imageFiles && imageFiles.length > 0) {
-      const newImageUrls = imageFiles.map(file => file.location);
-      auctionItem.images = newImageUrls;
-    } else {
-      auctionItem.images = [];
-    }
-
-    await auctionItem.save();
-    res.status(200).send({ result: true, auctionId: auctionItem._id });
-  } catch (err) {
-    res.status(400).send(err.message);
+  const auctionItem = await AuctionItem.findById(auctionId);
+  if (!auctionItem) {
+    return res.status(404).send('아이템을 찾을 수 없습니다.');
   }
+
+  if (auctionItem.createdBy.toString() !== profileId.toString()) {
+    return res.status(403).send('경매를 수정할 권한이 없습니다.');
+  }
+
+  // 기존 이미지 삭제
+  const imagesToDelete = auctionItem.images;
+  for (const imageUrl of imagesToDelete) {
+    await deleteImage(imageUrl);
+  }
+
+  // 수정할 필드 업데이트
+  if (title) auctionItem.title = title;
+  if (content) auctionItem.description = content;
+  if (duration && !isNaN(duration) && duration > 0) {
+    auctionItem.endTime = new Date(Date.now() + duration * 60 * 60 * 1000);
+  }
+  if (buyNowPrice) auctionItem.instantBuyPrice = buyNowPrice;
+
+  // 새로운 이미지 저장
+  if (imageFiles && imageFiles.length > 0) {
+    const newImageUrls = imageFiles.map(file => file.location);
+    auctionItem.images = newImageUrls;
+  } else {
+    auctionItem.images = [];
+  }
+
+  await auctionItem.save();
+  res.status(200).send({ result: true, auctionId: auctionItem._id });
 });
