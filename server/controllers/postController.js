@@ -9,7 +9,6 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
 const mongoose = require('mongoose');
-const handleError = require('../utils/errorHandler');
 
 
 function verifyTokenAndGetUserId(req) {
@@ -279,12 +278,10 @@ exports.deletePost = async (req, res) => {
 
     res.status(200).json({ success: true, message: '게시물이 성공적으로 삭제되었습니다.' });
   } catch (err) {
-  //   if (err.name === 'JsonWebTokenError') {
-  //     return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
-  //   }
-  //   res.status(500).json({ success: false, message: err.message });
-  // }
-    handleError(res, err);
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+    }
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
