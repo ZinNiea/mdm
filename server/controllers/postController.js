@@ -9,6 +9,8 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
 const mongoose = require('mongoose');
+const handleError = require('../utils/errerHandler');
+
 
 function verifyTokenAndGetUserId(req) {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
@@ -272,16 +274,29 @@ exports.deletePost = async (req, res) => {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
     }
 
-    await post.remove();
+    await Post.findByIdAndDelete(postId);
 
     res.status(200).json({ success: true, message: '게시물이 성공적으로 삭제되었습니다.' });
   } catch (err) {
-    if (err.name === 'JsonWebTokenError') {
-      return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
-    }
-    res.status(500).json({ success: false, message: err.message });
+    handleError(res, err);
   }
 };
+
+exports.deletePost2 = async (req, res) => {
+  const { postId } = req.params;
+  
+  try {
+    const result = await Post.findByIdAndDelete(postId);
+    
+    if (!result) {
+      return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ result: true, message: '게시물이 삭제되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ result: false, message: err.message });
+  }
+}
 
 // 게시물 신고
 exports.reportPost = async (req, res) => {
