@@ -268,7 +268,8 @@ exports.deletePost = async (req, res) => {
   const { postId } = req.params;
 
   try {
-    const post = await findPostOrFail(postId);
+    // const post = await findPostOrFail(postId);
+    const post = await Post.findById(postId);
 
     if (!post) {
       return res.status(404).json({ success: false, message: '게시물을 찾을 수 없습니다.' });
@@ -278,25 +279,14 @@ exports.deletePost = async (req, res) => {
 
     res.status(200).json({ success: true, message: '게시물이 성공적으로 삭제되었습니다.' });
   } catch (err) {
+  //   if (err.name === 'JsonWebTokenError') {
+  //     return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+  //   }
+  //   res.status(500).json({ success: false, message: err.message });
+  // }
     handleError(res, err);
   }
 };
-
-exports.deletePost2 = async (req, res) => {
-  const { postId } = req.params;
-  
-  try {
-    const result = await Post.findByIdAndDelete(postId);
-    
-    if (!result) {
-      return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
-    }
-
-    res.status(200).json({ result: true, message: '게시물이 삭제되었습니다.' });
-  } catch (err) {
-    res.status(500).json({ result: false, message: err.message });
-  }
-}
 
 // 게시물 신고
 exports.reportPost = async (req, res) => {
