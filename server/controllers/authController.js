@@ -2,13 +2,14 @@
 const { sendSMS } = require('../services/smsService');
 const crypto = require('crypto');
 const redisService = require('../services/redisService');
+const asyncHandler = require('express-async-handler');
 
 /**
  * 인증번호 요청
  * @param {Request} req
  * @param {Response} res
  */
-exports.requestVerificationCode = async (req, res) => {
+exports.requestVerificationCode = asyncHandler(async (req, res) => {
   const { phoneNumber } = req.body;
   const verificationCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6자리 인증번호 생성
 
@@ -23,14 +24,14 @@ exports.requestVerificationCode = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: '인증번호 전송에 실패했습니다.', error: err.message });
   }
-};
+});
 
 /**
  * 인증번호 검증
  * @param {Request} req
  * @param {Response} res
  */
-exports.verifyCode = async (req, res) => {
+exports.verifyCode = asyncHandler(async (req, res) => {
   const { phoneNumber, verificationCode } = req.body;
 
   // 입력값 검증
@@ -50,4 +51,4 @@ exports.verifyCode = async (req, res) => {
   } else {
     res.status(400).json({ result: false, message: '인증번호가 일치하지 않습니다.' });
   }
-};
+});

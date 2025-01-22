@@ -2,9 +2,10 @@
 const { Comment } = require('../models/commentModel');
 const { CommentReport } = require('../models/reportModel');
 const { MODELS } = require('../models/constants');
+const asyncHandler = require('express-async-handler');
 
 // 댓글 추가 (대댓글 포함)
-exports.addComment = async (req, res) => {
+exports.addComment = asyncHandler(async (req, res) => {
   try {
     const { postId } = req.params;
     const { content, profileId, parentId } = req.body;
@@ -29,10 +30,10 @@ exports.addComment = async (req, res) => {
   } catch (error) {
     res.status(500).json({ result: false, message: '댓글 추가 실패', error });
   }
-};
+});
 
 // 댓글 목록 조회 (대댓글 포함)
-exports.getComments = async (req, res) => {
+exports.getComments = asyncHandler(async (req, res) => {
   try {
     const { postId } = req.params;
     const { profileId } = req.body;
@@ -101,10 +102,10 @@ exports.getComments = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: '댓글 조회 실패', error });
   }
-};
+});
 
 // 댓글 삭제
-exports.deleteComment = async (req, res) => {
+exports.deleteComment = asyncHandler(async (req, res) => {
   try {
     const { commentId } = req.params;
 
@@ -121,10 +122,10 @@ exports.deleteComment = async (req, res) => {
   } catch (error) {
     res.status(500).json({ result: true, message: '댓글 삭제 실패', error });
   }
-};
+});
 
 // 댓글 좋아요/좋아요 취소
-exports.toggleCommentLike = async (req, res) => {
+exports.toggleCommentLike = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
   const { profileId } = req.body;
 
@@ -151,10 +152,10 @@ exports.toggleCommentLike = async (req, res) => {
     console.error(error);
     res.status(500).json({ result: false, message: '좋아요 처리에 실패했습니다.', error });
   }
-};
+});
 
 // 댓글 신고
-exports.reportComment = async (req, res) => {
+exports.reportComment = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
   const { category, content, profileId } = req.body;
 
@@ -192,4 +193,4 @@ exports.reportComment = async (req, res) => {
     console.error(error);
     res.status(500).json({ result: false, message: '댓글 신고에 실패했습니다.', error });
   }
-};
+});

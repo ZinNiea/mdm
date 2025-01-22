@@ -7,6 +7,7 @@ const { Report } = require('../models/reportModel');
 const { deleteImage } = require('../middlewares/uploadMiddleware'); // deleteImage 함수 추가
 const schedule = require('node-schedule'); // node-schedule 라이브러리 추가
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
+const asyncHandler = require('express-async-handler'); // express-async-handler 추가
 
 // 경매 종료 함수 정의
 const endAuctionJob = async (auctionId, io) => {
@@ -30,7 +31,7 @@ const endAuctionJob = async (auctionId, io) => {
  * @param {Request} req
  * @param {Response} res
  */
-exports.createAuctionItem = async (req, res) => {
+exports.createAuctionItem = asyncHandler(async (req, res) => {
   const { profileId, title, content, category, startingbid, buyNowPrice, duration, related } = req.body;
 
   // 요청 파라미터 검증 추가
@@ -104,7 +105,7 @@ exports.createAuctionItem = async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
-};
+});
 
 
 /**
@@ -112,7 +113,7 @@ exports.createAuctionItem = async (req, res) => {
  * @param {Request} req 
  * @param {Response} res 
  */
-exports.getAuctionItems = async (req, res) => {
+exports.getAuctionItems = asyncHandler(async (req, res) => {
   const { q, /* oq, */ profileId } = req.query; // 'oq' 파라미터 주석 처리
   try {
     let filter = {};
@@ -146,7 +147,7 @@ exports.getAuctionItems = async (req, res) => {
   } catch (err) {
     res.status(400).send(err.message);
   }
-};
+});
 
 /**
  * 특정 경매 아이템 조회
@@ -154,7 +155,7 @@ exports.getAuctionItems = async (req, res) => {
  * @param {Response} res 
  * @returns 
  */
-exports.getAuctionItemById = async (req, res) => {
+exports.getAuctionItemById = asyncHandler(async (req, res) => {
   try {
     const item = await AuctionItem.findById(req.params.auctionId)
       .populate('highestBidder', 'nickname')
@@ -186,7 +187,7 @@ exports.getAuctionItemById = async (req, res) => {
   } catch (err) {
     res.status(400).send(err.message);
   }
-};
+});
 
 /**
  * 입찰
@@ -194,7 +195,7 @@ exports.getAuctionItemById = async (req, res) => {
  * @param {Response} res 
  * @returns 
  */
-exports.placeBid = async (req, res) => {
+exports.placeBid = asyncHandler(async (req, res) => {
   const { auctionId } = req.params;
   const { price, profileId } = req.body;
   const amount = price;
@@ -228,7 +229,7 @@ exports.placeBid = async (req, res) => {
   } catch (err) {
     res.status(400).send(err.message);
   }
-};
+});
 
 
 const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) => {
@@ -254,7 +255,7 @@ const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) =>
  * @param {Response} res 
  * @returns 
  */
-exports.instantBuy = async (req, res) => {
+exports.instantBuy = asyncHandler(async (req, res) => {
   try {
     const item = await AuctionItem.findById(req.params.auctionId);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
@@ -283,7 +284,7 @@ exports.instantBuy = async (req, res) => {
   } catch (err) {
     res.status(400).send(err.message);
   }
-};
+});
 
 /**
  * 경매 즉시 종료
@@ -291,7 +292,7 @@ exports.instantBuy = async (req, res) => {
  * @param {Response} res 
  * @returns 
  */
-exports.endAuction = async (req, res) => {
+exports.endAuction = asyncHandler(async (req, res) => {
   try {
     const { auctionId } = req.params;
 
@@ -336,14 +337,14 @@ exports.endAuction = async (req, res) => {
     console.error(`경매 즉시 종료 오류: ${err.message}`);
     return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
-};
+});
 
 /**
  * 특정 유저가 생성한 경매 목록 조회 (GET /auctions/profile/:profileId)
  * @param {Request} req
  * @param {Response} res
  */
-exports.getAuctionsByProfile = async (req, res) => {
+exports.getAuctionsByProfile = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   try {
     const auctions = await AuctionItem.find({ createdBy: profileId })
@@ -367,7 +368,7 @@ exports.getAuctionsByProfile = async (req, res) => {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
-};
+});
 
 /**
  * 거래 신고
@@ -375,7 +376,7 @@ exports.getAuctionsByProfile = async (req, res) => {
  * @param {Response} res 
  * @returns 
  */
-exports.reportAuctionItem = async (req, res) => {
+exports.reportAuctionItem = asyncHandler(async (req, res) => {
   try {
     const { auctionId } = req.params; // 신고할 게시글 ID
     const { category, content, profileId } = req.body; // 신고 카테고리와 내용
@@ -397,14 +398,14 @@ exports.reportAuctionItem = async (req, res) => {
   } catch (error) {
     res.status(500).json({ result: false, message: error.message });
   }
-};
+});
 
 /**
  * 경매 아이템 삭제
  * @param {Request} req
  * @param {Response} res
  */
-exports.deleteAuctionItem = async (req, res) => {
+exports.deleteAuctionItem = asyncHandler(async (req, res) => {
   try {
     const { auctionId } = req.params;
     const { profileId } = req.body;
@@ -423,14 +424,14 @@ exports.deleteAuctionItem = async (req, res) => {
   } catch (err) {
     res.status(400).send(err.message);
   }
-};
+});
 
 /**
  * 경매 아이템 수정
  * @param {Request} req
  * @param {Response} res
  */
-exports.updateAuctionItem = async (req, res) => {
+exports.updateAuctionItem = asyncHandler(async (req, res) => {
   const { auctionId, profileId, title, content, duration, buyNowPrice } = req.body;
   const imageFiles = req.files;
 
@@ -506,4 +507,4 @@ exports.updateAuctionItem = async (req, res) => {
   } catch (err) {
     res.status(400).send(err.message);
   }
-};
+});

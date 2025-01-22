@@ -9,7 +9,7 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
 const mongoose = require('mongoose');
-
+const asyncHandler = require('express-async-handler');
 
 function verifyTokenAndGetUserId(req) {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
@@ -55,7 +55,7 @@ async function getPostsExcludingBlocked(profileId) {
 }
 
 // 게시물 전체 조회 또는 카테고리별, 검색어별 조회
-exports.getPosts = async (req, res) => {
+exports.getPosts = asyncHandler(async (req, res) => {
   const { category, q, oq, profileId } = req.query; // 'oq' 추가
   let filter = {};
 
@@ -108,10 +108,10 @@ exports.getPosts = async (req, res) => {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
-};
+});
 
 // 설명: getPostById 함수는 특정 게시물을 조회하는 API 엔드포인트를 처리합니다.
-exports.getPostById = async (req, res) => {
+exports.getPostById = asyncHandler(async (req, res) => {
   try {
     // const userId = verifyTokenAndGetUserId(req);
     const profileId = req.user.profileId; // userId 대신 profileId 사용
@@ -157,10 +157,10 @@ exports.getPostById = async (req, res) => {
     // 기타 서버 오류인 경우 500 상태 코드와 함께 오류 메시지를 반환합니다.
     res.status(500).json({ success: false, message: error.message });
   }
-};
+});
 
 // 게시물 작성
-exports.createPost = async (req, res) => {
+exports.createPost = asyncHandler(async (req, res) => {
   try {
     const userId = verifyTokenAndGetUserId(req);
     let { content, category, profileId } = req.body;
@@ -218,10 +218,10 @@ exports.createPost = async (req, res) => {
     }
     res.status(500).json({ success: false, message: err.message });
   }
-};
+});
 
 // 게시물 수정
-exports.updatePost = async (req, res) => {
+exports.updatePost = asyncHandler(async (req, res) => {
   const { postId } = req.params;
   const { content } = req.body;
   const images = req.files ? req.files.map(file => file.location) : [];
@@ -260,10 +260,10 @@ exports.updatePost = async (req, res) => {
     }
     res.status(500).json({ success: false, message: err.message });
   }
-};
+});
 
 // 게시물 삭제
-exports.deletePost = async (req, res) => {
+exports.deletePost = asyncHandler(async (req, res) => {
   const { postId } = req.params;
 
   try {
@@ -283,10 +283,10 @@ exports.deletePost = async (req, res) => {
     }
     res.status(500).json({ success: false, message: err.message });
   }
-};
+});
 
 // 게시물 신고
-exports.reportPost = async (req, res) => {
+exports.reportPost = asyncHandler(async (req, res) => {
   try {
     const { postId } = req.params; // 신고할 게시글 ID
     const { category, content, profileId } = req.body; // 신고 카테고리와 내용
@@ -315,10 +315,10 @@ exports.reportPost = async (req, res) => {
     }
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 좋아요/좋아요 취소
-exports.toggleLike = async (req, res) => {
+exports.toggleLike = asyncHandler(async (req, res) => {
   const { postId } = req.params;
   const { profileId } = req.body;
 
@@ -341,10 +341,10 @@ exports.toggleLike = async (req, res) => {
     }
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 게시물 북마크 추가/취소
-exports.toggleBookmark = async (req, res) => {
+exports.toggleBookmark = asyncHandler(async (req, res) => {
   const { postId } = req.params;
   const { profileId } = req.body;
 
@@ -379,10 +379,10 @@ exports.toggleBookmark = async (req, res) => {
     console.error(error);
     res.status(500).json({ result: false, message: '북마크 처리에 실패했습니다.', error });
   }
-};
+});
 
 // 관심사 추가
-exports.addInterest = async (req, res) => {
+exports.addInterest = asyncHandler(async (req, res) => {
   const { userId, profileId } = req.params;
   const { mainCategory, subCategory, bias } = req.body;
 
@@ -404,10 +404,10 @@ exports.addInterest = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-};
+});
 
 // 관심사 수정
-exports.updateInterest = async (req, res) => {
+exports.updateInterest = asyncHandler(async (req, res) => {
   const { userId, profileId, interestId } = req.params;
   const { mainCategory, subCategory, bias } = req.body;
 
@@ -430,10 +430,10 @@ exports.updateInterest = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-};
+});
 
 // 관심사 목록 조회
-exports.getInterests = async (req, res) => {
+exports.getInterests = asyncHandler(async (req, res) => {
   const { userId, profileId } = req.params;
 
   try {
@@ -447,10 +447,10 @@ exports.getInterests = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-};
+});
 
 // 북마크 게시물 조회
-exports.getBookmarkedPosts = async (req, res) => {
+exports.getBookmarkedPosts = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
 
   try {
@@ -468,14 +468,14 @@ exports.getBookmarkedPosts = async (req, res) => {
   } catch (error) {
     res.status(500).json({ result: false, message: error.message });
   }
-};
+});
 
 /**
  * 특정 프로필로 작성된 게시글 목록 조회 (GET /api/posts/profile/:profileId)
  * @param {Request} req
  * @param {Response} res
  */
-exports.getPostsByProfile = async (req, res) => {
+exports.getPostsByProfile = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
 
   //postList => { postId, content, createdAt, likeCount, commentCount, bookmarkCount }
@@ -500,10 +500,10 @@ exports.getPostsByProfile = async (req, res) => {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
-};
+});
 
 // 실시간 인기 키워드 랭킹 조회
-exports.getPopularKeywords = async (req, res) => {
+exports.getPopularKeywords = asyncHandler(async (req, res) => {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   try {
     // 최근 1시간 내의 조회 로그를 집계하여 게시물별 조회수 증가량을 계산합니다.
@@ -541,4 +541,4 @@ exports.getPopularKeywords = async (req, res) => {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
-};
+});

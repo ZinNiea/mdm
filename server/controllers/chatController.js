@@ -3,13 +3,14 @@ const mongoose = require('mongoose');
 const { Request, Response } = require('express');
 const { Chat } = require('../models/chatModel');
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
+const asyncHandler = require('express-async-handler');
 
 /**
  * 채팅 기록 조회(GET /api/chats/:roomId/history)
  * @param {Request} req
  * @param {Response} res
  */
-exports.getChatHistory = async (req, res) => {
+exports.getChatHistory = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
   try {
     const chatRoom = await Chat.findById(roomId).populate('messages.sender');
@@ -18,7 +19,7 @@ exports.getChatHistory = async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
-};
+});
 
 /**
  * 메시지 저장 함수 수정
@@ -56,7 +57,7 @@ exports.saveMessage = async (data) => {
  * @param {Request} req
  * @param {Response} res
  */
-exports.getUserChatRooms = async (req, res) => {
+exports.getUserChatRooms = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { category } = req.query; // category 추가
   try {
@@ -73,14 +74,14 @@ exports.getUserChatRooms = async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
-};
+});
 
 /**
  * 특정 거래 아이템의 채팅방 목록 조회(GET /api/chats/auction/:itemId/rooms)
  * @param {Request} req
  * @param {Response} res
  */
-exports.getAuctionChatRooms = async (req, res) => {
+exports.getAuctionChatRooms = asyncHandler(async (req, res) => {
   const { auctionId } = req.params;
   try {
     const chatRooms = await Chat.find({ auctionItem: auctionId })
@@ -91,14 +92,14 @@ exports.getAuctionChatRooms = async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
-};
+});
 
 /**
  * 프로필 ID 배열을 사용하여 채팅을 시작하거나 기존 채팅방 ID 반환 (POST /api/chats/start-chat)
  * @param {Request} req
  * @param {Response} res
  */
-exports.startChat = async (req, res) => {
+exports.startChat = asyncHandler(async (req, res) => {
   const { profileIds, category, auctionItemId } = req.body;
 
   // category 유효성 검사
@@ -155,14 +156,14 @@ exports.startChat = async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
-};
+});
 
 /**
  * 채팅방 나가기(POST /api/chats/:roomId/leave)
  * @param {Request} req
  * @param {Response} res
  */
-exports.leaveChatRoom = async (req, res) => {
+exports.leaveChatRoom = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
   const { profileId } = req.body;
 
@@ -181,14 +182,14 @@ exports.leaveChatRoom = async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
-};
+});
 
 /**
  * 특정 프로필을 채팅방으로 초대(POST /api/chats/:roomId/invite)
  * @param {Request} req
  * @param {Response} res
  */
-exports.inviteToChatRoom = async (req, res) => {
+exports.inviteToChatRoom = asyncHandler(async (req, res) => {
   const { roomId } = req.params;
   const { profileId } = req.body;
 
@@ -211,14 +212,14 @@ exports.inviteToChatRoom = async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
-};
+});
 
 /**
  * 특정 유저가 참여 중인 채팅방 목록 조회(GET /api/chats/user/:userId/rooms)
  * @param {Request} req
  * @param {Response} res
  */
-exports.getUserParticipatingRooms = async (req, res) => {
+exports.getUserParticipatingRooms = asyncHandler(async (req, res) => {
   const { profileId } = req.query;
   try {
     const chatRooms = await Chat.find({ 'participants.profile': profileId })
@@ -261,4 +262,4 @@ exports.getUserParticipatingRooms = async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
-};
+});

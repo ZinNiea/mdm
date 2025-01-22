@@ -30,6 +30,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const { Notification } = require('../models/notificationModel');
+const asyncHandler = require('express-async-handler');
 
 /**
  * 회원가입
@@ -38,7 +39,7 @@ const { Notification } = require('../models/notificationModel');
  * @param {*} res 
  * @returns 
  */
-exports.registerUser = async (req, res) => {
+exports.registerUser = asyncHandler(async (req, res) => {
   const { username, password, email, nickname, phoneNumber } = req.body;
   // 업로드된 이미지의 URL 가져오기
   const profileImage = req.file ? req.file.location : null;
@@ -144,10 +145,10 @@ exports.registerUser = async (req, res) => {
       });
     }
   }
-};
+});
 
 // 사용자 이름 중복 검사 API
-exports.checkUsername = async (req, res) => {
+exports.checkUsername = asyncHandler(async (req, res) => {
   const { username } = req.body;
   if (!username) {
     return res.status(400).json({
@@ -174,10 +175,10 @@ exports.checkUsername = async (req, res) => {
       message: err.message
     });
   }
-};
+});
 
 // 이메일 중복 검사 API 수정: email과 domain을 별도로 받음
-exports.checkEmail = async (req, res) => {
+exports.checkEmail = asyncHandler(async (req, res) => {
   const { email, domain } = req.body;
   if (!email || !domain) {
     return res.status(400).json({
@@ -204,10 +205,10 @@ exports.checkEmail = async (req, res) => {
       message: err.message
     });
   }
-};
+});
 
 // 닉네임 중복 검사 API
-exports.checkNickname = async (req, res) => {
+exports.checkNickname = asyncHandler(async (req, res) => {
   const { nickname } = req.body;
   if (!nickname) {
     return res.status(400).json({
@@ -234,10 +235,10 @@ exports.checkNickname = async (req, res) => {
       message: err.message
     });
   }
-};
+});
 
 // 로그인 기능
-exports.login = async (req, res) => {
+exports.login = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
   try {
@@ -280,10 +281,10 @@ exports.login = async (req, res) => {
       message: err.message 
     });
   }
-};
+});
 
 // 회원 탈퇴 (소프트 삭제)
-exports.deleteUser = async (req, res) => {
+exports.deleteUser = asyncHandler(async (req, res) => {
   const userId = req.params.userId;
   try {
     if (!userId) {
@@ -308,10 +309,10 @@ exports.deleteUser = async (req, res) => {
       message: err.message 
     });
   }
-};
+});
 
 // 유저의 프로필을 추가하는 함수
-exports.addProfile = async (req, res) => {
+exports.addProfile = asyncHandler(async (req, res) => {
   const userId = req.params.userId; // URL 파라미터에서 유저 ID 추출
   const { nickname, birthdate, mbti, intro, likeWork, likeSong } = req.body;
   const profileImage = req.file ? req.file.location : null;
@@ -355,10 +356,10 @@ exports.addProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // mainCategory에 따른 모든 subCategory 조회
-exports.getSubCategories = async (req, res) => {
+exports.getSubCategories = asyncHandler(async (req, res) => {
   const { mainCategory } = req.params;
   try {
     const profiles = await Profile.find({ 'interests.mainCategory': mainCategory });
@@ -374,10 +375,10 @@ exports.getSubCategories = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
+});
 
 // 특정 프로필의 관심사를 조회하는 함수 추가
-exports.getInterests = async (req, res) => {
+exports.getInterests = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   try {
     const profile = await Profile.findById(profileId);
@@ -395,10 +396,10 @@ exports.getInterests = async (req, res) => {
       message: err.message 
     });
   }
-};
+});
 
 // 특정 프로필에 관심사를 추가하는 함수 추가
-exports.addInterest = async (req, res) => {
+exports.addInterest = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { mainCategory, subCategory, bias } = req.body;
 
@@ -430,10 +431,10 @@ exports.addInterest = async (req, res) => {
       message: err.message 
     });
   }
-};
+});
 
 // 특정 프로필의 관심사를 subCategory 기준으로 삭제하는 함수 수정
-exports.deleteInterest = async (req, res) => {
+exports.deleteInterest = asyncHandler(async (req, res) => {
   const { profileId, subCategory } = req.params;
 
   try {
@@ -460,10 +461,10 @@ exports.deleteInterest = async (req, res) => {
       message: err.message 
     });
   }
-};
+});
 
 // 특정 유저의 프로필 목록을 조회하는 함수 추가
-exports.getUserProfiles = async (req, res) => {
+exports.getUserProfiles = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   try {
     const user = await User.findById(userId).populate('profiles', 'nickname');
@@ -481,10 +482,10 @@ exports.getUserProfiles = async (req, res) => {
       message: err.message 
     });
   }
-};
+});
 
 // 특정 프로필을 수정하는 함수 추가
-exports.updateProfile = async (req, res) => {
+exports.updateProfile = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { nickname, birthdate, gender, mbti, intro, likeWork, likeSong } = req.body;
   const profileImage = req.file ? req.file.location : null;
@@ -520,10 +521,10 @@ exports.updateProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필을 조회하는 함수 추가
-exports.getProfile = async (req, res) => {
+exports.getProfile = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { targetProfileId } = req.query;
   try {
@@ -556,10 +557,10 @@ exports.getProfile = async (req, res) => {
       message: err.message 
     });
   }
-};
+});
 
 // 사용자 팔로우 기능
-exports.followUser = async (req, res) => {
+exports.followUser = asyncHandler(async (req, res) => {
   const userId = req.user.id; // 토큰에서 추출한 사용자 ID
   const targetUserId = req.params.userId; // 팔로우할 사용자 ID
 
@@ -585,10 +586,10 @@ exports.followUser = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 사용자 언팔로우 기능
-exports.unfollowUser = async (req, res) => {
+exports.unfollowUser = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const targetUserId = req.params.userId;
 
@@ -614,10 +615,10 @@ exports.unfollowUser = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 수정된 프로필 검색 기능
-exports.searchProfiles = async (req, res) => {
+exports.searchProfiles = asyncHandler(async (req, res) => {
   const { profileId, q, interests, curProfileId } = req.query;
   const nickname = q;
   try {
@@ -657,10 +658,10 @@ exports.searchProfiles = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 프로필의 topFriends 조회 기능 추가
-exports.getTopFriends = async (req, res) => {
+exports.getTopFriends = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   try {
     const profile = await Profile.findById(profileId).populate('topFriends', 'nickname profileImage');
@@ -672,10 +673,10 @@ exports.getTopFriends = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 프로필에 topFriends 추가 기능
-exports.addTopFriend = async (req, res) => {
+exports.addTopFriend = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { friendId } = req.body;
 
@@ -705,10 +706,10 @@ exports.addTopFriend = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 프로필에서 topFriends 삭제 기능
-exports.deleteTopFriend = async (req, res) => {
+exports.deleteTopFriend = asyncHandler(async (req, res) => {
   const { profileId, friendId } = req.params;
 
   try {
@@ -729,9 +730,9 @@ exports.deleteTopFriend = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
-exports.reportProfile = async (req, res) => {
+exports.reportProfile = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { category, content } = req.body;
   const reporterId = req.user.id;
@@ -762,10 +763,10 @@ exports.reportProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필 차단
-exports.blockProfile = async (req, res) => {
+exports.blockProfile = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { blockedProfileId } = req.body;
 
@@ -795,10 +796,10 @@ exports.blockProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필 차단 해제
-exports.unblockProfile = async (req, res) => {
+exports.unblockProfile = asyncHandler(async (req, res) => {
   const { profileId, blockedProfileId } = req.params;
 
   try {
@@ -819,10 +820,10 @@ exports.unblockProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필 숨기기
-exports.hideProfile = async (req, res) => {
+exports.hideProfile = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { hiddenProfileId } = req.body;
 
@@ -852,10 +853,10 @@ exports.hideProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필 숨기기 해제
-exports.unhideProfile = async (req, res) => {
+exports.unhideProfile = asyncHandler(async (req, res) => {
   const { profileId, hiddenProfileId } = req.params;
 
   try {
@@ -876,10 +877,10 @@ exports.unhideProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필을 팔로우하는 함수
-exports.followProfile = async (req, res) => {
+exports.followProfile = asyncHandler(async (req, res) => {
   // const { profileId, targetProfileId } = req.params;
   const { profileId, followingId } = req.params;
 
@@ -909,10 +910,10 @@ exports.followProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필의 팔로우를 해제하는 함수
-exports.unfollowProfile = async (req, res) => {
+exports.unfollowProfile = asyncHandler(async (req, res) => {
   // const { profileId, targetProfileId } = req.params;
   const { profileId, followingId } = req.params;
 
@@ -938,10 +939,10 @@ exports.unfollowProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필의 팔로잉 목록을 조회하는 함수
-exports.getFollowingList = async (req, res) => {
+exports.getFollowingList = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
 
   try {
@@ -955,10 +956,10 @@ exports.getFollowingList = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필의 팔로워 목록을 조회하는 함수
-exports.getFollowersList = async (req, res) => {
+exports.getFollowersList = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
 
   try {
@@ -972,10 +973,10 @@ exports.getFollowersList = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필의 차단된 프로필 목록을 조회하는 함수 추가
-exports.getBlockedProfiles = async (req, res) => {
+exports.getBlockedProfiles = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   try {
     const profile = await Profile.findById(profileId).populate('blockedProfiles', 'nickname profileImage');
@@ -990,10 +991,10 @@ exports.getBlockedProfiles = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 특정 프로필의 숨긴 프로필 목록을 조회하는 함수 추가
-exports.getHiddenProfiles = async (req, res) => {
+exports.getHiddenProfiles = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   try {
     const profile = await Profile.findById(profileId).populate('hiddenProfiles', 'nickname profileImage');
@@ -1008,19 +1009,19 @@ exports.getHiddenProfiles = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 로그아웃 기능 수정
-exports.logout = async (req, res) => {
+exports.logout = asyncHandler(async (req, res) => {
   const token = req.header('Authorization')?.split(' ')[1];
   if (token) {
     addTokenToBlacklist(token);
   }
   res.status(200).json({ result: true, message: '로그아웃 되었습니다.' });
-};
+});
 
 // 비밀번호 재설정 요청 함수 수정
-exports.forgotPassword = async (req, res) => {
+exports.forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
   try {
     const user = await User.findOne({ email });
@@ -1052,10 +1053,10 @@ exports.forgotPassword = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 비밀번호 재설정 함수 수정
-exports.resetPassword = async (req, res) => {
+exports.resetPassword = asyncHandler(async (req, res) => {
   const { email, authCode, password } = req.body;
   try {
     const user = await User.findOne({
@@ -1076,10 +1077,10 @@ exports.resetPassword = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 유저의 알림을 조회하는 함수
-exports.getNotifications = async (req, res) => {
+exports.getNotifications = asyncHandler(async (req, res) => {
   const { profileId } = req.params;
   const { category } = req.query; // 카테고리 추가
 
@@ -1093,9 +1094,9 @@ exports.getNotifications = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
-exports.deleteProfile = async (req, res) => {
+exports.deleteProfile = asyncHandler(async (req, res) => {
   const { userId, profileId } = req.params;
 
   try {
@@ -1125,9 +1126,9 @@ exports.deleteProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
-exports.getUserIdByUsername = async (req, res) => {
+exports.getUserIdByUsername = asyncHandler(async (req, res) => {
   const { username } = req.body;
 
   try {
@@ -1139,9 +1140,9 @@ exports.getUserIdByUsername = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
-exports.resetPasswordWithPhoneNumber = async (req, res) => {
+exports.resetPasswordWithPhoneNumber = asyncHandler(async (req, res) => {
   const { username, phoneNumber, newPassword } = req.body;
 
   try {
@@ -1159,10 +1160,10 @@ exports.resetPasswordWithPhoneNumber = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});
 
 // 이메일과 휴대폰 번호로 사용자 ID 찾기
-exports.findUserId = async (req, res) => {
+exports.findUserId = asyncHandler(async (req, res) => {
   const { email, phoneNumber } = req.body;
 
   // 이메일 형식 검증
@@ -1210,9 +1211,9 @@ exports.findUserId = async (req, res) => {
       message: err.message
     });
   }
-};
+});
 
-exports.checkUserExistence = async (req, res) => {
+exports.checkUserExistence = asyncHandler(async (req, res) => {
   const { username, phoneNumber } = req.body;
 
   // 데이터 유효성 검사
@@ -1242,13 +1243,13 @@ exports.checkUserExistence = async (req, res) => {
       message: error.message,
     });
   }
-};
+});
 
-exports.requestPasswordReset = async (req, res) => {
+exports.requestPasswordReset = asyncHandler(async (req, res) => {
   
-};
+});
 
-exports.updatePassword = async (req, res) => {
+exports.updatePassword = asyncHandler(async (req, res) => {
   const { username, newPassword } = req.body;
 
   // 데이터 유효성 검사
@@ -1283,4 +1284,4 @@ exports.updatePassword = async (req, res) => {
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
-};
+});

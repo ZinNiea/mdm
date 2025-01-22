@@ -10,6 +10,7 @@ const auctionRouter = require('./routes/auctionRoutes');
 const chatRouter = require('./routes/chatRoutes');
 const authRouter = require('./routes/authRoutes');
 const connectDB = require('./config/mongoose');
+const asyncHandler = require('express-async-handler');
 
 const app = express();
 
@@ -89,6 +90,12 @@ app.get('/', (req, res) => {
 
 app.get('/hello', (req, res) => {
   res.send('Hello, World! \n swagger-ui-express is working');
+});
+
+// 모든 라우터 후에 에러 핸들링 미들웨어 추가
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('서버 오류가 발생했습니다.');
 });
 
 module.exports = app;
