@@ -1,5 +1,5 @@
 // server/utils/errorHandler.js
-const logger = require('../utils/logger');
+const logger = require('./logger');
 
 const handleError = (res, err) => {
   logger.error(err); // 에러 로그 기록

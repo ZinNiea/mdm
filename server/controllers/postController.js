@@ -9,7 +9,7 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
 const mongoose = require('mongoose');
-const handleError = require('../utils/errerHandler');
+const handleError = require('../utils/errorHandler');
 
 
 function verifyTokenAndGetUserId(req) {
