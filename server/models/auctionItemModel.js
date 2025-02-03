@@ -7,7 +7,7 @@ const AuctionItemSchema = new mongoose.Schema({
   description: String,
   category: {
     type: String,
-    enum: ['거래', '나눔', '이벤트'],
+    enum: ['거래', '나눔', '과테말라'],
     required: true,
   },
   startingPrice: { type: Number, required: true },
