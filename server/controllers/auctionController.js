@@ -43,7 +43,7 @@ exports.createAuctionItem = async (req, res) => {
   if (!content || typeof content !== 'string') {
     return res.status(400).send('유효하지 않은 content입니다.');
   }
-  const validCategories = ['거래', '나눔', '이벤트'];
+  const validCategories = ['거래', '나눔', '과테말라'];
   if (!category || !validCategories.includes(category)) {
     return res.status(400).send('유효하지 않은 category입니다.');
   }
