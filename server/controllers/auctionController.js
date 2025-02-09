@@ -15,7 +15,7 @@ const endAuctionJob = async (auctionId, io) => {
     if (item && item.endTime > new Date()) {
       item.endTime = new Date();
       await item.save();
-      
+
       if (item.highestBidder) {
         await createChatRoomAndNotify(item.createdBy, item.highestBidder, item._id, io);
       }
@@ -139,6 +139,7 @@ exports.getAuctionItems = async (req, res) => {
         views: item.views,
         likes_count: item.likes.length,
         image_urls: item.images ? [item.images[0]] : [],
+        category: item.category // 카테고리 정보 추가
       };
 
     });
@@ -163,7 +164,7 @@ exports.getAuctionItemById = async (req, res) => {
 
     item.views += 1;
     await item.save();
-    
+
     const data = {
       authorId: item.createdBy._id,
       authorNickname: item.createdBy.nickname,
@@ -181,6 +182,7 @@ exports.getAuctionItemById = async (req, res) => {
       highestBidPrice: item.currentBid,
       highestBiddersNickname: item.highestBidder ? item.highestBidder.nickname : null,
       likeCount: item.likes.length,
+      category: item.category // 카테고리 정보 추가
     };
     res.status(200).send(data);
   } catch (err) {
@@ -322,14 +324,14 @@ exports.endAuction = async (req, res) => {
 
     if (item.highestBidder) {
       await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
-      return res.status(200).json({ 
-        success: true, 
-        message: '경매가 종료되었으며, 실시간 채팅방이 생성되었습니다.' 
+      return res.status(200).json({
+        success: true,
+        message: '경매가 종료되었으며, 실시간 채팅방이 생성되었습니다.'
       });
     } else {
-      return res.status(200).json({ 
-        success: true, 
-        message: '경매가 종료되었으나, 입찰자가 없습니다.' 
+      return res.status(200).json({
+        success: true,
+        message: '경매가 종료되었으나, 입찰자가 없습니다.'
       });
     }
   } catch (err) {
@@ -379,7 +381,7 @@ exports.reportAuctionItem = async (req, res) => {
   try {
     const { auctionId } = req.params; // 신고할 게시글 ID
     const { category, content, profileId } = req.body; // 신고 카테고리와 내용
-    
+
     const auctionItem = await AuctionItem.findById(auctionId);
     if (!auctionItem) {
       return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
@@ -419,7 +421,7 @@ exports.deleteAuctionItem = async (req, res) => {
     }
 
     await AuctionItem.findByIdAndDelete(auctionId);
-    res.status(200).json({ message: '경매 아이템이 삭제되었습니다.'});
+    res.status(200).json({ message: '경매 아이템이 삭제되었습니다.' });
   } catch (err) {
     res.status(400).send(err.message);
   }
