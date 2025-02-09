@@ -94,24 +94,24 @@ exports.registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     // 프로필 생성
-  
+
     // 삼항 연산자 사용해서, profileImage 있으면 profileImage 넣고, 없으면 profileImage 넣지 않는다.
     const newProfile = profileImage
       ? new Profile({
-          nickname: nickname,
-          profileImage: profileImage,
-        })
+        nickname: nickname,
+        profileImage: profileImage,
+      })
       : new Profile({
-          nickname: nickname,
-        });
+        nickname: nickname,
+      });
 
     await newProfile.save();
 
     // 사용자 생성
     const newUser = new User({
-      username: username, 
-      email: email, 
-      password: hashedPassword, 
+      username: username,
+      email: email,
+      password: hashedPassword,
       phoneNumber: phoneNumber,
       createdAt: createdAt,
       profiles: [newProfile._id],
@@ -120,27 +120,27 @@ exports.registerUser = async (req, res) => {
 
     await newUser.save();
 
-    res.status(201).json({ 
-      result: true, 
-      message: '회원가입에 성공했습니다.' 
+    res.status(201).json({
+      result: true,
+      message: '회원가입에 성공했습니다.'
     });
   } catch (err) {
     if (err.code === 11000) {
       const duplicatedField = Object.keys(err.keyValue)[0];
-      res.status(400).json({ 
-        result: false, 
-        message: `${duplicatedField}이 이미 사용 중입니다.` 
+      res.status(400).json({
+        result: false,
+        message: `${duplicatedField}이 이미 사용 중입니다.`
       });
     } else if (err.name === 'ValidationError') {
       const messages = Object.values(err.errors).map(val => val.message);
-      res.status(400).json({ 
-        result: false, 
-        message: messages.join(', ') 
+      res.status(400).json({
+        result: false,
+        message: messages.join(', ')
       });
     } else {
-      res.status(500).json({ 
-        result: false, 
-        message: '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.' 
+      res.status(500).json({
+        result: false,
+        message: '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
       });
     }
   }
@@ -264,8 +264,8 @@ exports.login = async (req, res) => {
     }));
 
     //message, token user { userId, username, email, createdAt, profileId, nickname, profileImage, interests[]{subCategory} }
-    res.status(200).json({ 
-      message: '로그인 성공', 
+    res.status(200).json({
+      message: '로그인 성공',
       token,
       user: {
         id: user._id,
@@ -276,8 +276,8 @@ exports.login = async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ 
-      message: err.message 
+    res.status(500).json({
+      message: err.message
     });
   }
 };
@@ -298,14 +298,14 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
     }
 
-    res.status(200).json({ 
+    res.status(200).json({
       result: true,
-      message: '사용자 계정이 성공적으로 삭제되었습니다.' 
+      message: '사용자 계정이 성공적으로 삭제되었습니다.'
     });
   } catch (err) {
-    res.status(500).json({ 
+    res.status(500).json({
       result: false,
-      message: err.message 
+      message: err.message
     });
   }
 };
@@ -385,14 +385,14 @@ exports.getInterests = async (req, res) => {
       return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
     }
 
-    res.status(200).json({ 
-      result: true, 
-      interests: profile.interests 
+    res.status(200).json({
+      result: true,
+      interests: profile.interests
     });
   } catch (err) {
-    res.status(500).json({ 
-      result: false, 
-      message: err.message 
+    res.status(500).json({
+      result: false,
+      message: err.message
     });
   }
 };
@@ -425,9 +425,9 @@ exports.addInterest = async (req, res) => {
 
     res.status(201).json({ result: true, message: '관심사가 성공적으로 추가되었습니다.', data: newInterest });
   } catch (err) {
-    res.status(500).json({ 
-      result: false, 
-      message: err.message 
+    res.status(500).json({
+      result: false,
+      message: err.message
     });
   }
 };
@@ -450,14 +450,14 @@ exports.deleteInterest = async (req, res) => {
     profile.interests = profile.interests.filter(i => i.subCategory !== subCategory);
     await profile.save();
 
-    res.status(200).json({ 
-      result: true, 
-      message: '관심사가 성공적으로 삭제되었습니다.' 
+    res.status(200).json({
+      result: true,
+      message: '관심사가 성공적으로 삭제되었습니다.'
     });
   } catch (err) {
-    res.status(500).json({ 
-      result: false, 
-      message: err.message 
+    res.status(500).json({
+      result: false,
+      message: err.message
     });
   }
 };
@@ -471,14 +471,14 @@ exports.getUserProfiles = async (req, res) => {
       return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
     }
 
-    res.status(200).json({ 
-      result: true, 
-      profiles: user.profiles 
+    res.status(200).json({
+      result: true,
+      profiles: user.profiles
     });
   } catch (err) {
-    res.status(500).json({ 
-      result: false, 
-      message: err.message 
+    res.status(500).json({
+      result: false,
+      message: err.message
     });
   }
 };
@@ -524,37 +524,39 @@ exports.updateProfile = async (req, res) => {
 
 // 특정 프로필을 조회하는 함수 추가
 exports.getProfile = async (req, res) => {
+  // 현재 프로필: 요청한 사용자의 프로필 ID, 조회 대상 프로필: query로 전달된 ID
   const { profileId } = req.params;
   const { targetProfileId } = req.query;
   try {
-    const profile = await Profile.findById(targetProfileId).populate('topFriends', 'nickname profileImage');
-    if (!profile) {
+    const targetProfile = await Profile.findById(targetProfileId).populate('topFriends', 'nickname profileImage');
+    if (!targetProfile) {
       return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
     }
+    const currentProfile = await Profile.findById(profileId);
+    if (!currentProfile) {
+      return res.status(404).json({ result: false, message: '현재 프로필을 찾을 수 없습니다.' });
+    }
 
-    res.status(200).json({ 
-      result: true, 
+    res.status(200).json({
+      result: true,
       info: {
-        nickname: profile.nickname,
-        profileImage: profile.profileImage,
-        birthdate: profile.birthdate,
-        gender: profile.gender,
-        mbti: profile.mbti,
-        likeWork: profile.likeWork,
-        likeSong: profile.likeSong,
-        intro: profile.introduction,
+        nickname: targetProfile.nickname,
+        profileImage: targetProfile.profileImage,
+        birthdate: targetProfile.birthdate,
+        gender: targetProfile.gender,
+        mbti: targetProfile.mbti,
+        likeWork: targetProfile.likeWork,
+        likeSong: targetProfile.likeSong,
+        intro: targetProfile.introduction,
       },
-      interests: profile.interests,
-      followingState: profile.following.includes(profileId),
-      followingCount: profile.following.length,
-      followersCount: profile.followers.length,
-      topFriends: profile.topFriends
+      interests: targetProfile.interests,
+      followingState: currentProfile.following.includes(targetProfileId),
+      followingCount: targetProfile.following.length,
+      followersCount: targetProfile.followers.length,
+      topFriends: targetProfile.topFriends
     });
   } catch (err) {
-    res.status(500).json({ 
-      result: false, 
-      message: err.message 
-    });
+    res.status(500).json({ result: false, message: err.message });
   }
 };
 
@@ -983,9 +985,9 @@ exports.getBlockedProfiles = async (req, res) => {
       return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
     }
 
-    res.status(200).json({ 
-      result: true, 
-      blockedProfiles: profile.blockedProfiles 
+    res.status(200).json({
+      result: true,
+      blockedProfiles: profile.blockedProfiles
     });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
@@ -1001,9 +1003,9 @@ exports.getHiddenProfiles = async (req, res) => {
       return res.status(404).json({ result: false, message: '프로필을 찾을 수 없습니다.' });
     }
 
-    res.status(200).json({ 
-      result: true, 
-      hiddenProfiles: profile.hiddenProfiles 
+    res.status(200).json({
+      result: true,
+      hiddenProfiles: profile.hiddenProfiles
     });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
@@ -1040,8 +1042,8 @@ exports.forgotPassword = async (req, res) => {
       from: process.env.EMAIL_USER,
       subject: '비밀번호 재설정 인증번호',
       text: `비밀번호를 재설정하려면 다음 인증번호를 입력하세요:\n\n` +
-            `${authCode}\n\n` +
-            `인증번호는 1시간 동안 유효합니다.`,
+        `${authCode}\n\n` +
+        `인증번호는 1시간 동안 유효합니다.`,
     };
     transporter.sendMail(mailOptions, (err) => {
       if (err) {
@@ -1135,7 +1137,7 @@ exports.getUserIdByUsername = async (req, res) => {
     if (!user) {
       return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
     }
-    res.status(200).json({ result: true, userId: user._id });f
+    res.status(200).json({ result: true, userId: user._id }); f
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
   }
@@ -1245,7 +1247,7 @@ exports.checkUserExistence = async (req, res) => {
 };
 
 exports.requestPasswordReset = async (req, res) => {
-  
+
 };
 
 exports.updatePassword = async (req, res) => {
