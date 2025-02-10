@@ -38,7 +38,7 @@ const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
  *               category:
  *                 type: string
  *                 description: 경매 아이템의 카테고리
- *                 enum: [거래, 나눔, 이벤트]
+ *                 enum: [거래, 나눔, 과테말라]
  *               startingbid:
  *                 type: number
  *                 description: 시작 입찰 가격
@@ -95,11 +95,11 @@ router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionControll
  *         schema:
  *           type: string
  *         description: 프로필 ID
- *       # - in: query
- *       #   name: oq
- *       #   schema:
- *       #     type: string
- *       #   description: 유저가 입력한 원본 문자열
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: 경매 아이템 카테고리 필터 (예: 거래, 나눔, 과테말라)
  *     responses:
  *       200:
  *         description: 경매 아이템 목록을 성공적으로 조회하였습니다.
