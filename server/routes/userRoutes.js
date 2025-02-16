@@ -887,41 +887,6 @@ router.get('/profile/:profileId/followers', authenticateToken, userController.ge
 
 /**
  * @swagger
- * /users/profiles/{profileId}/notifications:
- *   get:
- *     summary: 특정 프로필의 알림 목록 조회
- *     tags: [Notifications]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: profileId
- *         required: true
- *         schema:
- *           type: string
- *         description: 알림을 조회할 프로필의 고유 ID
- *     responses:
- *       200:
- *         description: 알림 목록을 성공적으로 조회하였습니다.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Notification'
- *       400:
- *         description: 잘못된 profileId 형식입니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       404:
- *         description: 프로필을 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
-router.get('/profiles/:profileId/notifications', authenticateToken, userController.getNotifications);
-
-/**
- * @swagger
  * /users/profile/{profileId}/blocked-profiles:
  *   get:
  *     summary: 특정 프로필의 차단 목록 조회
