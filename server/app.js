@@ -9,6 +9,7 @@ const postRouter = require('./routes/postRoutes');
 const auctionRouter = require('./routes/auctionRoutes');
 const chatRouter = require('./routes/chatRoutes');
 const authRouter = require('./routes/authRoutes');
+const notificationRouter = require('./routes/notificationRoutes');
 const connectDB = require('./config/mongoose');
 
 const app = express();
@@ -21,7 +22,7 @@ const swaggerAllowedIPs = [];
 // Basic 인증 미들웨어
 const basicAuth = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  
+
   if (!authHeader) {
     res.setHeader('WWW-Authenticate', 'Basic realm="401"');
     return res.status(401).send('인증이 필요합니다.');
@@ -82,6 +83,7 @@ app.use('/post', postRouter);
 app.use('/auctions', auctionRouter);
 app.use('/chat', chatRouter);
 app.use('/auth', authRouter);
+app.use('/notifications', notificationRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
