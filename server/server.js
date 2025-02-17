@@ -68,7 +68,7 @@ io.on('connection', (socket) => {
       const chatRoom = await Chat.findById(roomId);
       if (chatRoom) {
         // 권한 검증: 사용자가 채팅방의 참가자인지 확인
-        if (!chatRoom.participants.includes(profileId)) {
+        if (!chatRoom.participants.some(participantId => participantId.equals(profileId))) {
           return socket.emit('error', { message: '채팅방에 참여할 권한이 없습니다.' });
         }
 
@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('chatMessage', async (data) => { 
+  socket.on('chatMessage', async (data) => {
     const { roomId, senderId, message } = data;
 
     // 데이터 검증
