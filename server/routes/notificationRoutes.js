@@ -1,7 +1,7 @@
 // 파일 경로: server/routes/notificationRoutes.js
 const express = require('express');
 const router = express.Router();
-const { createNotification, getNotificationsByProfile } = require('../controllers/notificationController');
+const { createNotification, getNotificationsByProfile, getTransactionNotifications, getCommunityNotifications } = require('../controllers/notificationController');
 
 /**
  * @swagger
@@ -67,6 +67,60 @@ router.get('/:profileId', async (req, res) => {
     try {
         const notifications = await getNotificationsByProfile(profileId);
         res.status(200).json(notifications);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /notifications/transaction/{profileId}:
+ *   get:
+ *     summary: 거래 관련 알림 조회
+ *     description: 주어진 profileId에 해당하는 거래 관련 알림(NEW_BID_ON_AUCTION, OUTBID, AUCTION_ENDING_SOON, AUCTION_ENDED, AUCTION_WON)을 조회합니다.
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 조회할 프로필 ID
+ *     responses:
+ *       200:
+ *         description: 거래 관련 알림 조회 성공
+ *       500:
+ *         description: 서버 오류
+ */
+router.get('/transaction/:profileId', async (req, res) => {
+    try {
+        await getTransactionNotifications(req, res);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /notifications/community/{profileId}:
+ *   get:
+ *     summary: 커뮤니티 관련 알림 조회
+ *     description: 주어진 profileId에 해당하는 커뮤니티 관련 알림(NEW_FOLLOWER, NEW_LIKE_ON_POST, NEW_COMMENT_ON_POST, NEW_REPLY_ON_COMMENT)을 조회합니다.
+ *     parameters:
+ *       - in: path
+ *         name: profileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 조회할 프로필 ID
+ *     responses:
+ *       200:
+ *         description: 커뮤니티 관련 알림 조회 성공
+ *       500:
+ *         description: 서버 오류
+ */
+router.get('/community/:profileId', async (req, res) => {
+    try {
+        await getCommunityNotifications(req, res);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
