@@ -2,6 +2,8 @@
 const { Comment } = require('../models/commentModel');
 const { CommentReport } = require('../models/reportModel');
 const { MODELS } = require('../models/constants');
+const { createNewCommentOnPostNotification, createNewReplyOnCommentNotification } = require('../controllers/notificationController');
+const { Post } = require('../models/postModel'); // 새로운 댓글 알림을 위해 Post 모델 추가
 
 // 댓글 추가 (대댓글 포함)
 exports.addComment = async (req, res) => {
@@ -24,6 +26,33 @@ exports.addComment = async (req, res) => {
       parentId: parentId || null,
     });
     await comment.save();
+
+    // NEW_COMMENT_ON_POST / NEW_REPLY_ON_COMMENT 알림 호출
+    if (parentId) {
+      // 대댓글인 경우: 원본 댓글 작성자에게 알림 전송
+      const parentComment = await Comment.findById(parentId).populate('author', 'nickname');
+      if (parentComment) {
+        await createNewReplyOnCommentNotification(
+          parentComment.author._id,      // 원본 댓글 작성자의 프로필 ID
+          parentComment.author.nickname, // 원본 댓글 작성자의 닉네임
+          postId,                        // 댓글이 속한 게시글 ID
+          comment._id,                   // 새 댓글(대댓글) ID
+          comment.content                // 새 댓글 내용
+        );
+      }
+    } else {
+      // 최상위 댓글인 경우: 게시글 작성자에게 알림 전송
+      const post = await Post.findById(postId).populate('author', 'nickname');
+      if (post && post.author) {
+        await createNewCommentOnPostNotification(
+          post.author._id,           // 게시글 작성자의 프로필 ID
+          post.author.nickname,      // 게시글 작성자의 닉네임
+          postId,                    // 게시글 ID
+          comment._id,               // 새 댓글 ID
+          comment.content            // 새 댓글 내용
+        );
+      }
+    }
 
     res.status(201).json({ result: true, comment });
   } catch (error) {

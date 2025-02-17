@@ -78,7 +78,7 @@ io.on('connection', (socket) => {
         // 방의 이전 메시지들을 클라이언트에게 전송
         socket.emit('chatHistory', chatRoom.messages);
 
-        socket.emit('updateReadCount', readCounts[roomId] || 0);
+        // socket.emit('updateReadCount', readCounts[roomId] || 0);
       } else {
         console.log(`존재하지 않는 방입니다: ${roomId}`);
         socket.emit('error', { message: '존재하지 않는 방입니다.' });

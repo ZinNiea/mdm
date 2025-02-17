@@ -30,6 +30,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const { Notification } = require('../models/notificationModel');
+const { createNewFollowerNotification } = require('../controllers/notificationController'); // 추가
 
 /**
  * 회원가입
@@ -582,6 +583,17 @@ exports.followUser = async (req, res) => {
 
     await user.save();
     await targetUser.save();
+
+    // NEW_FOLLOWER 알림 생성: targetUserId에게 팔로워 정보 전달
+    // user의 프로필 정보 조회 (예: 첫번째 프로필 사용)
+    const followerProfile = await Profile.findById(user.mainProfile);
+    if (followerProfile) {
+      await createNewFollowerNotification(
+        targetUser.mainProfile,  // 알림을 받을 대상 프로필 (예: targetUser의 mainProfile)
+        user.mainProfile,        // 팔로워 프로필 ID
+        followerProfile.nickname // 팔로워의 닉네임
+      );
+    }
 
     res.status(200).json({ result: true, message: '팔로우 성공' });
   } catch (err) {

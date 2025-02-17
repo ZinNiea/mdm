@@ -7,6 +7,8 @@ const { Report } = require('../models/reportModel');
 const { deleteImage } = require('../middlewares/uploadMiddleware'); // deleteImage 함수 추가
 const schedule = require('node-schedule'); // node-schedule 라이브러리 추가
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
+const { createNewBidOnAuctionNotification, createAuctionEndedNotification, createAuctionWonNotification, createAuctionEndingSoonNotification, } = require('../controllers/notificationController'); // 알림 함수 추가
+const { Profile } = require('../models/profileModel'); // 추가
 
 // 경매 종료 함수 정의
 const endAuctionJob = async (auctionId, io) => {
@@ -99,6 +101,26 @@ exports.createAuctionItem = async (req, res) => {
       const io = req.app.get('io'); // io 인스턴스 가져오기
       endAuctionJob(auctionItem._id, io);
     });
+
+    // AUCTION_ENDING_SOON 알림 스케줄링: 경매 종료 3시간 전에 알림 전송 (경매 지속시간이 3시간 이상인 경우)
+    const threeHours = 3 * 60 * 60 * 1000;
+    if (endTime - createdAt > threeHours) {
+      const endingSoonTime = new Date(endTime.getTime() - threeHours);
+      schedule.scheduleJob(endingSoonTime, async () => {
+        // 해당 경매의 모든 입찰자를 고유하게 조회
+        const bids = await Bid.find({ auctionItem: auctionItem._id });
+        const uniqueBidders = [...new Set(bids.map(b => b.bidder.toString()))];
+        for (const bidderId of uniqueBidders) {
+          // 현재 입찰 금액을 기준으로 알림 전송 (auctionTitle, currentBid)
+          await createAuctionEndingSoonNotification(
+            bidderId,
+            auctionItem._id,
+            auctionItem.title,
+            auctionItem.currentBid
+          );
+        }
+      });
+    }
 
     res.status(201).send({ result: true, auctionId: auctionItem._id });
   } catch (err) {
@@ -201,20 +223,27 @@ exports.getAuctionItemById = async (req, res) => {
  */
 exports.placeBid = async (req, res) => {
   const { auctionId } = req.params;
+  // bidderNickname 제거: 프로필 조회로 대체
   const { price, profileId } = req.body;
-  const amount = price;
   try {
     const item = await AuctionItem.findById(auctionId);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
     if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
 
-    const bidAmount = amount;
+    const bidAmount = price;
     if (bidAmount < item.startingPrice || bidAmount <= item.currentBid) {
       return res.status(400).send('입찰 금액이 너무 낮습니다.');
     }
 
+    // 입찰 전 이전 최고 입찰자 저장
+    const previousHighestBidder = item.highestBidder;
+
+    // 입찰자의 닉네임을 profileId로 조회
+    const bidderProfile = await Profile.findById(profileId);
+    if (!bidderProfile) return res.status(404).send('입찰자 프로필을 찾을 수 없습니다.');
+    const bidderNickname = bidderProfile.nickname;
+
     item.currentBid = bidAmount;
-    // item.highestBidder = req.user._id;
     item.highestBidder = profileId;
     await item.save();
 
@@ -226,16 +255,42 @@ exports.placeBid = async (req, res) => {
     });
     await bid.save();
 
-    // 생성된 입찰의 URI를 응답 헤더에 포함
+    // 이전 최고 입찰자가 존재하고 새로운 입찰자와 다른 경우 OUTBID 알림 생성
+    if (previousHighestBidder && previousHighestBidder.toString() !== profileId.toString()) {
+      const previousBidderProfile = await Profile.findById(previousHighestBidder);
+      if (previousBidderProfile) {
+        await createOutbidNotification(
+          previousHighestBidder,   // 알림 받을 프로필: 이전 최고 입찰자
+          item._id,                // 경매 아이템 ID
+          item.title,              // 경매 글 제목
+          previousBidderProfile.nickname, // 이전 최고 입찰자의 닉네임
+          bidAmount                // 새로운 입찰 금액
+        );
+      }
+    }
+
+    // NEW_BID_ON_AUCTION 알림 생성: 경매글 작성자(item.createdBy)에게 알림 전송
+    await createNewBidOnAuctionNotification(
+      item.createdBy,     // 알림을 받을 프로필
+      item._id,           // 경매 아이템 ID
+      item.title,         // 경매 글 제목
+      bidderNickname,     // 프로필 조회로 가져온 입찰자 닉네임
+      bidAmount           // 입찰 금액
+    );
+
     res.status(201)
       .location(`/auctions/${item._id}/bids/${bid._id}`)
       .send({ result: true });
   } catch (err) {
-    res.status(400).send(err.message);
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ result: false, message: '유효하지 않은 토큰입니다.' });
+    }
+    res.status(500).json({ result: false, message: err.message });
   }
 };
 
 
+// 수정: createChatRoomAndNotify 함수를 수정하여 roomId 반환
 const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) => {
   const chatRoom = await Chat.create({
     participants: [sellerId, bidderId],
@@ -244,13 +299,10 @@ const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) =>
     messages: [],
     createdAt: new Date()
   });
-
-  // roomId 대신 chatRoom._id 사용
   const roomId = chatRoom._id.toString();
-
-  // 판매자와 낙찰자에게 채팅방 정보 전송
   io.to(sellerId.toString()).emit('chatRoom', { roomId });
   io.to(bidderId.toString()).emit('chatRoom', { roomId });
+  return roomId;
 };
 
 /**
@@ -326,10 +378,31 @@ exports.endAuction = async (req, res) => {
     const io = req.app.get('io');
 
     if (item.highestBidder) {
-      await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
+      // 수정: 채팅방 생성 및 roomId 반환
+      const roomId = await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
+      // 최고 입찰자의 닉네임 조회
+      const highestBidderProfile = await Profile.findById(item.highestBidder._id);
+      // AUCTION_ENDED 알림 호출: 판매자에게 최종 가격, 입찰자 닉네임, 채팅방 ID 포함
+      await createAuctionEndedNotification(
+        item.createdBy,
+        item._id,
+        item.title,
+        item.currentBid,
+        highestBidderProfile.nickname,
+        roomId
+      );
+      // 추가: AUCTION_WON 알림: 낙찰된 (최고 입찰자)에게 판매자의 닉네임 포함 알림 전송
+      const sellerProfile = await Profile.findById(item.createdBy);
+      await createAuctionWonNotification(
+        item.highestBidder._id,  // 낙찰된 사람(최고 입찰자)
+        item._id,
+        item.title,
+        item.currentBid,
+        sellerProfile.nickname
+      );
       return res.status(200).json({
         success: true,
-        message: '경매가 종료되었으며, 실시간 채팅방이 생성되었습니다.'
+        message: '경매가 종료되었으며, 실시간 채팅방과 거래 종료 및 낙찰 알림이 생성되었습니다.'
       });
     } else {
       return res.status(200).json({

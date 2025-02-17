@@ -9,6 +9,7 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
 const mongoose = require('mongoose');
+const { createNewLikeOnPostNotification } = require('../controllers/notificationController'); // 추가
 
 
 function verifyTokenAndGetUserId(req) {
@@ -326,13 +327,30 @@ exports.toggleLike = async (req, res) => {
     const userId = verifyTokenAndGetUserId(req);
     const post = await findPostOrFail(postId);
 
+    // 좋아요 취소인 경우
     if (post.likes.includes(profileId)) {
       post.likes.pull(profileId);
       await post.save();
       return res.status(200).json({ result: true, message: '좋아요를 취소했습니다.' });
     } else {
+      // 좋아요 추가
       post.likes.push(profileId);
       await post.save();
+      // NEW_LIKE_ON_POST 알림 생성: 게시글 작성자에게 좋아요 정보 전달
+      // post.author는 User ID이므로, 해당 사용자의 메인 프로필을 가정
+      const author = await User.findById(post.author);
+      if (author && author.mainProfile) {
+        // 프로필에서 닉네임 조회 (예: 팔로워 프로필의 닉네임)
+        const likingProfile = await Profile.findById(profileId);
+        if (likingProfile) {
+          await createNewLikeOnPostNotification(
+            author.mainProfile,        // 알림을 받을 프로필 (게시글 작성자 메인 프로필)
+            likingProfile.nickname,    // 좋아요 누른 사람의 닉네임
+            postId,                    // 게시글 ID
+            post.content               // 게시글 내용 (또는 요약)
+          );
+        }
+      }
       return res.status(200).json({ result: true, message: '게시물에 좋아요를 표시했습니다.' });
     }
   } catch (err) {
