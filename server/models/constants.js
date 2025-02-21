@@ -11,6 +11,7 @@ const MODELS = {
   AUCTIONITEM: 'AuctionItem',
   BID: 'Bid',
   CHAT: 'Chat',
+  MESSAGE: 'Message',
   VIEWLOG: 'ViewLog',
   NOTIFICATION: 'Notification',
 };

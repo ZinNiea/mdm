@@ -2,19 +2,15 @@
 const mongoose = require('mongoose');
 const { MODELS, CHAT_CATEGORY } = require('./constants'); // 상수 불러오기
 
-/*
-const participantSchema = new mongoose.Schema({
-  profile: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE, required: true },
-  lastReadTimestamp: { type: Date, default: Date.now }
-});
-*/
-
+//!< 메세지 스키마
 const messageSchema = new mongoose.Schema({
+  chat: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.CHAT, required: true },
   sender: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE, required: true },
   message: { type: String, required: true },
   timestamp: { type: Date, default: Date.now }
-}, { _id: true });
+});
 
+//!< 채팅 스키마
 const chatSchema = new mongoose.Schema({
   /*participants: [participantSchema],*/
   // participants: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
@@ -27,8 +23,13 @@ const chatSchema = new mongoose.Schema({
   },
   auctionItem: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.AUCTIONITEM },
   category: { type: String, enum: Object.values(CHAT_CATEGORY), required: true }, // 상수 사용
-  messages: [messageSchema],
   createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+  lastMessage: {
+    content: { type: String },
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE },
+    timestamp: { type: Date },
+  },
 });
 
 // category에 따른 auctionItem 필수 여부 검증 추가
@@ -40,4 +41,6 @@ chatSchema.pre('save', function (next) {
 });
 
 const Chat = mongoose.model(MODELS.CHAT, chatSchema);
-module.exports = { Chat };
+const Message = mongoose.model(MODELS.MESSAGE, messageSchema);
+
+module.exports = { Chat, Message };
