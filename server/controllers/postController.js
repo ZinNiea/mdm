@@ -10,6 +10,7 @@ const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
 const mongoose = require('mongoose');
 const { createNewLikeOnPostNotification } = require('../controllers/notificationController'); // 추가
+const { Comment } = require('../models/commentModel'); // 신규 추가: 댓글 모델 import
 
 
 function verifyTokenAndGetUserId(req) {
@@ -55,12 +56,11 @@ async function getPostsExcludingBlocked(profileId) {
   return posts;
 }
 
-// 게시물 전체 조회 또는 카테고리별, 검색어별 조회
 exports.getPosts = async (req, res) => {
-  const { category, q, oq, profileId } = req.query; // 'oq' 추가
+  const { category, q, profileId } = req.query;
   let filter = {};
 
-  // category가 문자열일 경우 숫자로 변환
+  // 카테고리 필터링 (문자열을 숫자로 변환)
   switch (category) {
     case '친구':
     case 'friends':
@@ -74,48 +74,56 @@ exports.getPosts = async (req, res) => {
       break;
   }
 
-  if (q) { // 'search'를 'q'로 변경
-    // 대소문자 구분 없이 content 필드에서 검색어 포함 여부 확인
+  // 검색어 필터 (대소문자 구분 없이 content 필드 검색)
+  if (q) {
     filter.content = { $regex: q, $options: 'i' };
   }
 
   try {
-    const posts = await Post.find(filter)
-      .select('_id content author createdAt likes comments images bookmarks') // bookmarks 필드 포함
-      .populate('author', 'nickname profileImage') // 프로필 정보 포함
-      .sort({ createdAt: -1 }); // 최신순으로 정렬
+    const posts = await Post.aggregate([
+      { $match: filter },
+      {
+        // comments 컬렉션과 조인하여 각 게시물에 해당하는 댓글들을 배열로 가져옵니다.
+        $lookup: {
+          from: 'comments',        // comments 컬렉션 (컬렉션 이름은 소문자 복수형)
+          localField: '_id',
+          foreignField: 'postId',
+          as: 'comments'
+        }
+      },
+      {
+        // 댓글 배열의 길이를 commentCount 필드로 추가합니다.
+        $addFields: { commentCount: { $size: '$comments' } }
+      },
+      {
+        // 필요한 필드만 선택합니다.
+        $project: {
+          _id: 1,
+          content: 1,
+          author: 1,      // 만약 author 정보를 더 확장하고 싶다면, 추가 $lookup을 고려할 수 있습니다.
+          createdAt: 1,
+          likesCount: { $size: '$likes' }, // likes 배열의 길이 계산
+          images: 1,
+          bookmarks: 1,   // bookmark 정보도 포함 (bookmarkStatus 등은 클라이언트에서 profileId와 비교 가능)
+          commentCount: 1
+        }
+      },
+      { $sort: { createdAt: -1 } } // 최신순 정렬
+    ]);
 
-    // 현재 사용자의 북마크 프로필 ID
-    const userProfileId = profileId;
-
-    // 각 게시물에 필요한 정보만 추출하여 새로운 객체 생성
-    const postList = posts.map(post => ({
-      id: post._id,
-      content: post.content,
-      authorId: post.author._id,
-      authorNickname: post.author.nickname,
-      authorImage: post.author.profileImage,
-      createdAt: post.createdAt,
-      likesCount: post.likes.length,
-      commentCount: post.comments.length,
-      likeStatus: post.likes.includes(profileId),
-      bookmarkCount: post.bookmarks.length, // bookmarkCount 직접 계산
-      bookmarkStatus: post.bookmarks.includes(userProfileId), // bookmarkStatus 직접 계산
-      images: post.images, // 이미지 목록 추가
-    }));
-
-    res.status(200).json({ success: true, data: postList });
+    res.status(200).json({ success: true, data: posts });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
+
 // 설명: getPostById 함수는 특정 게시물을 조회하는 API 엔드포인트를 처리합니다.
 exports.getPostById = async (req, res) => {
   try {
     // const userId = verifyTokenAndGetUserId(req);
-    const profileId = req.user.profileId; // userId 대신 profileId 사용
+    const profileId = req.query.profileId; // profileId 정의 추가
     const postId = req.params.postId; // postId 정의 추가
     const post = await Post.findById(postId)
       .populate('author', 'nickname profileImage'); // author 필드 populate 추가
@@ -131,6 +139,13 @@ exports.getPostById = async (req, res) => {
     // 조회 로그 기록
     await ViewLog.create({ post: post._id });
 
+    // 댓글 수 집계를 aggregate 파이프라인으로 변경
+    const commentsAgg = await Comment.aggregate([
+      { $match: { postId: post._id } },
+      { $group: { _id: null, count: { $sum: 1 } } }
+    ]);
+    const commentCount = commentsAgg.length ? commentsAgg[0].count : 0;
+
     // 게시물 정보를 응답으로 반환합니다.
     res.status(200).json({
       success: true,
@@ -143,7 +158,7 @@ exports.getPostById = async (req, res) => {
         createdAt: post.createdAt,
         likesCount: post.likes.length,
         likeStatus: post.likes.includes(profileId),
-        commentCount: post.comments.length,
+        commentCount, // aggregate로 계산한 댓글 수
         bookmarkCount: post.bookmarks.length, // 수정된 코드
         bookmarkStatus: post.bookmarks.includes(profileId), // 수정된 코드
         images: post.images, // 이미지 목록 추가
@@ -496,12 +511,20 @@ exports.getBookmarkedPosts = async (req, res) => {
 exports.getPostsByProfile = async (req, res) => {
   const { profileId } = req.params;
 
-  //postList => { postId, content, createdAt, likeCount, commentCount, bookmarkCount }
   try {
     // 프로필 ID로 게시글 필터링
     const posts = await Post.find({ author: profileId })
       .select('_id content author createdAt likes comments bookmarks') // 필요한 필드 선택
       .sort({ createdAt: -1 }); // 최신순 정렬
+
+    // posts 내 모든 게시글에 대한 댓글 수를 집계 (한 번의 aggregate로 조회)
+    const postIds = posts.map(post => post._id);
+    const counts = await Comment.aggregate([
+      { $match: { postId: { $in: postIds } } },
+      { $group: { _id: '$postId', count: { $sum: 1 } } }
+    ]);
+    const countMap = {};
+    counts.forEach(c => { countMap[c._id.toString()] = c.count; });
 
     // 응답 형식에 맞게 게시글 목록 변환
     const postList = posts.map(post => ({
@@ -509,7 +532,7 @@ exports.getPostsByProfile = async (req, res) => {
       content: post.content,
       createdAt: post.createdAt,
       likesCount: post.likes.length,
-      commentCount: post.comments.length,
+      commentCount: countMap[post._id.toString()] || 0, // aggregate 결과 활용
       bookmarkCount: post.bookmarks.length,
     }));
 
