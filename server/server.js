@@ -67,8 +67,12 @@ io.on('connection', (socket) => {
       }
 
       socket.join(roomId);
-      // 입장 시, 최초 입장 메세지 전송
-      socket.emit('joinRoomSuccess', { roomId, message: '방에 성공적으로 참여했습니다.' });
+
+      // 조회: 채팅방 메세지 기록을 모두 가져옴 (오름차순으로 정렬)
+      const messageHistory = await Message.find({ chat: roomId }).sort({ timestamp: 1 });
+
+      // joinRoomSuccess 발생 시 messageHistory 포함하여 전송
+      socket.emit('joinRoomSuccess', { roomId, message: '방에 성공적으로 참여했습니다.', messageHistory });
     } catch (error) {
       console.error(error);
       socket.emit('error', { message: 'joinRoom 도중 오류가 발생했습니다.' });
@@ -158,6 +162,7 @@ io.on('connection', (socket) => {
       if (!lastReadTime || isNaN(Date.parse(lastReadTime))) {
         return socket.emit('error', { message: '유효하지 않은 시간 정보입니다.' });
       }
+      //!< 
 
       socket.join(roomId);
       const offlineMessages = await Message.find({
@@ -170,7 +175,7 @@ io.on('connection', (socket) => {
       //   .map(msg => ({ sender: msg.sender, message: msg.message, timestamp: msg.timestamp })));
 
       //!< 변경 방식
-      socket.emit('chatHistory', offlineMessages);
+      socket.emit('rejoinRoomSuccess', { messageHistory: offlineMessages });  //!< 오프라인 메세지로 이름 변경할 것
     } catch (error) {
       console.error(error);
       return socket.emit('error', { message: '방 재입장 중 오류가 발생했습니다.' });
