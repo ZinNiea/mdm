@@ -67,6 +67,11 @@ exports.getPosts = async (req, res) => {
     case '1':
       filter.category = 1;
       break;
+    case '과테말라':
+    case 'guatemala':
+    case '2':
+      filter.category = 2;
+      break;
     case '전체':
     case 'public':
     case '3':
@@ -188,6 +193,11 @@ exports.createPost = async (req, res) => {
       case 'friends':
       case '1':
         category = 1;
+        break;
+      case '과테말라':
+      case 'guatemala':
+      case '2':
+        category = 2;
         break;
       case '전체':
       case 'public':
