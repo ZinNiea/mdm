@@ -312,6 +312,7 @@ const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) =>
  * @returns 
  */
 exports.instantBuy = async (req, res) => {
+  const { profileId } = req.body;
   try {
     const item = await AuctionItem.findById(req.params.auctionId);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
@@ -319,7 +320,7 @@ exports.instantBuy = async (req, res) => {
     if (!item.instantBuyPrice) return res.status(400).send('즉시구매가 불가능한 아이템입니다.');
 
     item.currentBid = item.instantBuyPrice;
-    item.highestBidder = req.body.bidder_id;
+    item.highestBidder = profileId;
     item.endTime = new Date(); // 경매 종료
     await item.save();
 
@@ -332,7 +333,7 @@ exports.instantBuy = async (req, res) => {
 
     // 헬퍼 함수 호출하여 채팅방 생성 및 알림
     const io = req.app.get('io');
-    await createChatRoomAndNotify(item.createdBy, req.body.bidder_id, item._id, io);
+    await createChatRoomAndNotify(item.createdBy, item.highestBidder, item._id, io);
 
     res.status(201)
       .location(`/auctions/${item._id}/bids/${bid._id}`)

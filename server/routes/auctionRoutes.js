@@ -317,6 +317,18 @@ router.post('/:auctionId/bids', auctionController.placeBid);
  *         schema:
  *           type: string
  *         description: 즉시 구매할 경매 아이템의 고유 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - bidder_id
+ *             properties:
+ *               bidder_id:
+ *                 type: string
+ *                 description: 즉시구매를 진행하는 사용자의 프로필 ID
  *     responses:
  *       201:
  *         description: 즉시 구매가 성공적으로 완료되었습니다.
