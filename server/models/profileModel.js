@@ -29,10 +29,10 @@ const profileSchema = new mongoose.Schema({
   introduction: {
     type: String,
   },
-  likeWork : {
+  likeWork: {
     type: String,
   },
-  likeSong : {
+  likeSong: {
     type: String,
   },
   createdAt: {

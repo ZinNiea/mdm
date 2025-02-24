@@ -60,14 +60,13 @@ exports.getUserChatRooms = async (req, res) => {
   const { profileId } = req.params;
   const { category } = req.query; // category 추가
   try {
-    const filter = { 'participants.profile': new mongoose.Types.ObjectId(profileId) };
+    const filter = { participants: new mongoose.Types.ObjectId(profileId) };
     if (category) {
       filter.category = category;
     }
-
     const chatRooms = await Chat.find(filter)
       .select('_id auctionItem createdAt') // 필요한 필드 선택
-      .populate('auctionItem', 'title'); // 경매 아이템의 제목 정보 포함 (필요 시 추가 필드 지정)
+      .populate('auctionItem', 'title'); // 경매 아이템의 제목 정보 포함
 
     res.status(200).json(chatRooms);
   } catch (err) {
