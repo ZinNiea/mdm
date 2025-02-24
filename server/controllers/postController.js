@@ -119,13 +119,13 @@ exports.getPosts = async (req, res) => {
           content: 1,
           createdAt: 1,
           images: 1,
-          likesCount: { $size: '$likes' },
+          likesCount: { $size: { $ifNull: ["$likes", []] } },
           commentCount: 1,
-          authorId: '$authorInfo._id',
-          authorNickname: '$authorInfo.nickname',
-          likeStatus: currentProfileId ? { $in: [currentProfileId, '$likes'] } : false,
-          bookmarkCount: { $size: '$bookmarks' },
-          bookmarkStatus: currentProfileId ? { $in: [currentProfileId, '$bookmarks'] } : false
+          authorId: "$authorInfo._id",
+          authorNickname: "$authorInfo.nickname",
+          likeStatus: currentProfileId ? { $in: [currentProfileId, { $ifNull: ["$likes", []] }] } : false,
+          bookmarkCount: { $size: { $ifNull: ["$bookmarks", []] } },
+          bookmarkStatus: currentProfileId ? { $in: [currentProfileId, { $ifNull: ["$bookmarks", []] }] } : false
         }
       },
       { $sort: { createdAt: -1 } }
