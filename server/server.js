@@ -137,7 +137,7 @@ io.on('connection', (socket) => {
       socket.leave(roomId);
 
       //!< 채팅방에서 참가자 제거
-      await Chat.findByIdAndUpdate(chatRoomId, {
+      await Chat.findByIdAndUpdate(roomId, {
         $pull: { participants: profileId }
       });
 
