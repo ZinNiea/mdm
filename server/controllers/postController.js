@@ -92,11 +92,10 @@ exports.getPosts = async (req, res) => {
   try {
     const posts = await Post.aggregate([
       { $match: filter },
-      // 프로필 정보 조회를 위한 lookup
       {
         $lookup: {
-          from: 'profiles',          // profiles 컬렉션
-          localField: 'author',      // Post.author (프로필 ID)
+          from: 'profiles',
+          localField: 'author',
           foreignField: '_id',
           as: 'authorInfo'
         }
@@ -110,8 +109,16 @@ exports.getPosts = async (req, res) => {
           as: 'comments'
         }
       },
+      { $addFields: { commentCount: { $size: '$comments' } } },
       {
-        $addFields: { commentCount: { $size: '$comments' } }
+        $addFields: {
+          likeStatus: currentProfileId
+            ? { $in: [currentProfileId, { $ifNull: ["$likes", []] }] }
+            : false,
+          bookmarkStatus: currentProfileId
+            ? { $in: [currentProfileId, { $ifNull: ["$bookmarks", []] }] }
+            : false
+        }
       },
       {
         $project: {
@@ -123,9 +130,9 @@ exports.getPosts = async (req, res) => {
           commentCount: 1,
           authorId: "$authorInfo._id",
           authorNickname: "$authorInfo.nickname",
-          likeStatus: currentProfileId ? { $in: [currentProfileId, { $ifNull: ["$likes", []] }] } : false,
+          likeStatus: 1,
           bookmarkCount: { $size: { $ifNull: ["$bookmarks", []] } },
-          bookmarkStatus: currentProfileId ? { $in: [currentProfileId, { $ifNull: ["$bookmarks", []] }] } : false
+          bookmarkStatus: 1
         }
       },
       { $sort: { createdAt: -1 } }
