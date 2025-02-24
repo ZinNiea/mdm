@@ -7,7 +7,7 @@ const { Report } = require('../models/reportModel');
 const { deleteImage } = require('../middlewares/uploadMiddleware'); // deleteImage 함수 추가
 const schedule = require('node-schedule'); // node-schedule 라이브러리 추가
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
-const { createNewBidOnAuctionNotification, createAuctionEndedNotification, createAuctionWonNotification, createAuctionEndingSoonNotification, } = require('../controllers/notificationController'); // 알림 함수 추가
+const { createNewBidOnAuctionNotification, createAuctionEndedNotification, createAuctionWonNotification, createAuctionEndingSoonNotification, createOutbidNotification } = require('../controllers/notificationController'); // 알림 함수 추가
 const { Profile } = require('../models/profileModel'); // 추가
 
 // 경매 종료 함수 정의

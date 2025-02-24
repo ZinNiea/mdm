@@ -73,18 +73,19 @@ async function createAuctionWonNotification(profileId, auctionId, auctionTitle, 
 }
 
 // 커뮤니티 알림 생성 관련 함수
-async function createCommunityNotification(profileId, type, data) {
+async function createTransactionNotification(profileId, type, data) {
     try {
         const notification = new Notification({
             profile: profileId,
-            type,
-            data,
-            category: '커뮤니티'
+            type,          // 거래 알림 종류 (예:"NEW_BID_ON_AUCTION", "OUTBID", ...)
+            data,          // 상황별로 필요한 데이터 (auctionId, auctionTitle, 등)
+            category: '거래',
+            message: `[${type}] 거래 알림`  // 기본 메시지 추가
         });
         await notification.save();
         return notification;
     } catch (error) {
-        throw new Error('커뮤니티 알림 생성 중 오류 발생: ' + error.message);
+        throw new Error('거래 알림 생성 중 오류 발생: ' + error.message);
     }
 }
 async function createNewFollowerNotification(profileId, followerProfileId, profileName) {
