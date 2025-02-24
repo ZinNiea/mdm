@@ -324,9 +324,9 @@ router.post('/:auctionId/bids', auctionController.placeBid);
  *           schema:
  *             type: object
  *             required:
- *               - bidder_id
+ *               - profileId
  *             properties:
- *               bidder_id:
+ *               profileId:
  *                 type: string
  *                 description: 즉시구매를 진행하는 사용자의 프로필 ID
  *     responses:
