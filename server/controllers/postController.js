@@ -86,7 +86,7 @@ exports.getPosts = async (req, res) => {
 
   // profileId를 ObjectId로 변환 (게시물 좋아요/북마크 계산에 사용)
   const currentProfileId = profileId && mongoose.Types.ObjectId.isValid(profileId)
-    ? mongoose.Types.ObjectId(profileId)
+    ? new mongoose.Types.ObjectId(profileId)
     : null;
 
   try {
