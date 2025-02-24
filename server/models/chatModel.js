@@ -20,6 +20,7 @@ const chatSchema = new mongoose.Schema({
       ref: MODELS.PROFILE,
       required: true
     }],
+    default: []
   },
   auctionItem: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.AUCTIONITEM },
   category: { type: String, enum: Object.values(CHAT_CATEGORY), required: true }, // 상수 사용
