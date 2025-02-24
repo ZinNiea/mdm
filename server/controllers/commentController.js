@@ -11,14 +11,6 @@ exports.addComment = async (req, res) => {
     const { postId } = req.params;
     const { content, profileId, parentId } = req.body;
 
-    // 대댓글인 경우 parentId 유효성 검사
-    if (parentId) {
-      const parentComment = await Comment.findById(parentId);
-      if (!parentComment) {
-        return res.status(400).json({ result: false, message: '원본 댓글을 찾을 수 없습니다.' });
-      }
-    }
-
     const comment = new Comment({
       postId: postId,
       author: profileId,
