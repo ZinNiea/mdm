@@ -84,36 +84,51 @@ exports.getPosts = async (req, res) => {
     filter.content = { $regex: q, $options: 'i' };
   }
 
+  // profileId를 ObjectId로 변환 (게시물 좋아요/북마크 계산에 사용)
+  const currentProfileId = profileId && mongoose.Types.ObjectId.isValid(profileId)
+    ? mongoose.Types.ObjectId(profileId)
+    : null;
+
   try {
     const posts = await Post.aggregate([
       { $match: filter },
+      // 프로필 정보 조회를 위한 lookup
       {
-        // comments 컬렉션과 조인하여 각 게시물에 해당하는 댓글들을 배열로 가져옵니다.
         $lookup: {
-          from: 'comments',        // comments 컬렉션 (컬렉션 이름은 소문자 복수형)
+          from: 'profiles',          // profiles 컬렉션
+          localField: 'author',      // Post.author (프로필 ID)
+          foreignField: '_id',
+          as: 'authorInfo'
+        }
+      },
+      { $unwind: '$authorInfo' },
+      {
+        $lookup: {
+          from: 'comments',
           localField: '_id',
           foreignField: 'postId',
           as: 'comments'
         }
       },
       {
-        // 댓글 배열의 길이를 commentCount 필드로 추가합니다.
         $addFields: { commentCount: { $size: '$comments' } }
       },
       {
-        // 필요한 필드만 선택합니다.
         $project: {
           _id: 1,
           content: 1,
-          author: 1,      // 만약 author 정보를 더 확장하고 싶다면, 추가 $lookup을 고려할 수 있습니다.
           createdAt: 1,
-          likesCount: { $size: '$likes' }, // likes 배열의 길이 계산
           images: 1,
-          bookmarks: 1,   // bookmark 정보도 포함 (bookmarkStatus 등은 클라이언트에서 profileId와 비교 가능)
-          commentCount: 1
+          likesCount: { $size: '$likes' },
+          commentCount: 1,
+          authorId: '$authorInfo._id',
+          authorNickname: '$authorInfo.nickname',
+          likeStatus: currentProfileId ? { $in: [currentProfileId, '$likes'] } : false,
+          bookmarkCount: { $size: '$bookmarks' },
+          bookmarkStatus: currentProfileId ? { $in: [currentProfileId, '$bookmarks'] } : false
         }
       },
-      { $sort: { createdAt: -1 } } // 최신순 정렬
+      { $sort: { createdAt: -1 } }
     ]);
 
     res.status(200).json({ success: true, data: posts });
@@ -123,6 +138,31 @@ exports.getPosts = async (req, res) => {
   }
 };
 
+/**
+ * {
+  "_id": "677882ade0e7da3e5f075c86",
+  "author": "6771dec510b5be38d0b6b72a",
+  "content": "hiii",
+  "images": [],
+  "createdAt": "2025-01-04T00:37:01.745Z",
+  "commentCount": 0,
+  "likesCount": 0
+}
+
+{
+  "id": "677882ade0e7da3e5f075c86",
+  "content": "hiii",
+  "authorId": "6771dec510b5be38d0b6b72a",
+  "authorNickname": "aewannabe",
+  "createdAt": "2025-01-04T00:37:01.745Z",
+  "likesCount": 0,
+  "commentCount": 0,
+  "likeStatus": false,
+  "bookmarkCount": 0,
+  "bookmarkStatus": false,
+  "images": []
+}
+ */
 
 // 설명: getPostById 함수는 특정 게시물을 조회하는 API 엔드포인트를 처리합니다.
 exports.getPostById = async (req, res) => {
