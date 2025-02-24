@@ -321,17 +321,17 @@ exports.instantBuy = async (req, res) => {
 
     item.currentBid = item.instantBuyPrice;
     item.highestBidder = profileId;
-    item.endTime = new Date(); // 경매 종료
+    item.endTime = new Date(); // 경매 종료 처리
     await item.save();
 
     const bid = new Bid({
       amount: item.instantBuyPrice,
-      bidder: req.body.bidder_id,
+      bidder: profileId,
       auctionItem: item._id
     });
     await bid.save();
 
-    // 헬퍼 함수 호출하여 채팅방 생성 및 알림
+    // 헬퍼 함수 호출하여 채팅방 생성 및 알림 전송
     const io = req.app.get('io');
     await createChatRoomAndNotify(item.createdBy, item.highestBidder, item._id, io);
 
