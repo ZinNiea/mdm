@@ -99,7 +99,7 @@ router.post('/', upload(IMAGE_TYPES.AUCTION).array('images', 4), auctionControll
  *         name: category
  *         schema:
  *           type: string
- *         description: 경매 아이템 카테고리 필터 (예: 거래, 나눔, 과테말라)
+ *         description: '경매 아이템 카테고리 필터 (예: 거래, 나눔, 과테말라)'
  *     responses:
  *       200:
  *         description: 경매 아이템 목록을 성공적으로 조회하였습니다.
