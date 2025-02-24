@@ -122,7 +122,7 @@ exports.getPosts = async (req, res) => {
       },
       {
         $project: {
-          _id: 1,
+          id: "$_id", // 기존 _id 값을 id로 반환합니다.
           content: 1,
           createdAt: 1,
           images: 1,
@@ -132,7 +132,8 @@ exports.getPosts = async (req, res) => {
           authorNickname: "$authorInfo.nickname",
           likeStatus: 1,
           bookmarkCount: { $size: { $ifNull: ["$bookmarks", []] } },
-          bookmarkStatus: 1
+          bookmarkStatus: 1,
+          _id: 0 // _id 필드를 제거합니다.
         }
       },
       { $sort: { createdAt: -1 } }
