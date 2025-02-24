@@ -77,15 +77,15 @@ exports.getUserChatRooms = async (req, res) => {
 
 /**
  * 특정 거래 아이템의 채팅방 목록 조회(GET /api/chats/auction/:itemId/rooms)
+ * 모든 필드를 반환하며, participants 배열을 populate하여 nickname과 profileImage 정보를 가져옵니다.
  * @param {Request} req
  * @param {Response} res
  */
 exports.getAuctionChatRooms = async (req, res) => {
   const { auctionId } = req.params;
   try {
-    const chatRooms = await Chat.find({ auctionItem: auctionId })
-      .select('_id participants createdAt') // 필요한 필드 선택
-      .populate('participants', 'nickname profileImage'); // 참가자 정보 포함
+    const chatRooms = await Chat.find({ auctionItem: auctionId }) // 모든 필드 반환
+      .populate('participants', 'nickname profileImage'); // 각 참가자 정보 포함
 
     res.status(200).json(chatRooms);
   } catch (err) {
@@ -204,7 +204,7 @@ exports.inviteToChatRoom = async (req, res) => {
     await chatRoom.save();
 
     res.status(200).send('유저가 채팅방에 성공적으로 초대되었습니다.');
-    
+
     // 선택 사항: Socket.IO를 통해 실시간 알림 전송
     const io = req.app.get('io');
     io.to(roomId).emit('userInvited', { profileId });
@@ -222,7 +222,7 @@ exports.getUserParticipatingRooms = async (req, res) => {
   const { profileId } = req.query;
   try {
     const chatRooms = await Chat.find({ 'participants.profile': profileId })
-      .select('_id participants createdAt messages') 
+      .select('_id participants createdAt messages')
       .populate({
         path: 'participants.profile',
         select: 'nickname profileImage'
