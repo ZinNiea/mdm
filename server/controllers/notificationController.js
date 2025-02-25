@@ -100,6 +100,21 @@ async function createNewCommentOnPostNotification(profileId, profileName, postId
 async function createNewReplyOnCommentNotification(profileId, profileName, postId, replyId, replyContent) {
     return createCommunityNotification(profileId, "NEW_REPLY_ON_COMMENT", { profileName, postId, replyId, replyContent });
 }
+async function createCommunityNotification(profileId, type, data) {
+    try {
+        const notification = new Notification({
+            profile: profileId,
+            type,          // 커뮤니티 알림 종류 (예:"NEW_FOLLOWER", "NEW_LIKE_ON_POST", ...)
+            data,          // 상황별로 필요한 데이터 (profileId, profileName, postId, 등)
+            category: '커뮤니티',
+            message: `[${type}] 커뮤니티 알림`  // 기본 메시지 추가
+        });
+        await notification.save();
+        return notification;
+    } catch (error) {
+        throw new Error('커뮤니티 알림 생성 중 오류 발생: ' + error.message);
+    }
+}
 
 // 거래 관련 알림 조회
 exports.getTransactionNotifications = async (req, res) => {
