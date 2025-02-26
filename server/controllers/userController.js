@@ -561,76 +561,6 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// 사용자 팔로우 기능
-exports.followUser = async (req, res) => {
-  const userId = req.user.id; // 토큰에서 추출한 사용자 ID
-  const targetUserId = req.params.userId; // 팔로우할 사용자 ID
-
-  try {
-    const user = await User.findById(userId);
-    const targetUser = await User.findById(targetUserId);
-
-    if (!targetUser) {
-      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
-    }
-
-    if (user.following.includes(targetUserId)) {
-      return res.status(400).json({ result: false, message: '이미 팔로우 중입니다.' });
-    }
-
-    user.following.push(targetUserId);
-    targetUser.followers.push(userId);
-
-    await user.save();
-    await targetUser.save();
-
-    // user의 프로필 정보 조회 (예: 첫번째 프로필 사용)
-    const followerProfile = await Profile.findById(user.mainProfile);
-    if (followerProfile) {
-      // 알림 생성
-      await createNotification(
-        targetUser.mainProfile,
-        '커뮤니티',
-        `${followerProfile.nickname}님이 팔로우했습니다.`,
-        `community/${user.mainProfile}`
-      );
-    }
-
-    res.status(200).json({ result: true, message: '팔로우 성공' });
-  } catch (err) {
-    res.status(500).json({ result: false, message: err.message });
-  }
-};
-
-// 사용자 언팔로우 기능
-exports.unfollowUser = async (req, res) => {
-  const userId = req.user.id;
-  const targetUserId = req.params.userId;
-
-  try {
-    const user = await User.findById(userId);
-    const targetUser = await User.findById(targetUserId);
-
-    if (!targetUser) {
-      return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
-    }
-
-    if (!user.following.includes(targetUserId)) {
-      return res.status(400).json({ result: false, message: '팔로우 중이 아닙니다.' });
-    }
-
-    user.following.pull(targetUserId);
-    targetUser.followers.pull(userId);
-
-    await user.save();
-    await targetUser.save();
-
-    res.status(200).json({ result: true, message: '언팔로우 성공' });
-  } catch (err) {
-    res.status(500).json({ result: false, message: err.message });
-  }
-};
-
 // 수정된 프로필 검색 기능
 exports.searchProfiles = async (req, res) => {
   const { profileId, q, interests, curProfileId } = req.query;
@@ -895,7 +825,6 @@ exports.unhideProfile = async (req, res) => {
 
 // 특정 프로필을 팔로우하는 함수
 exports.followProfile = async (req, res) => {
-  // const { profileId, targetProfileId } = req.params;
   const { profileId, followingId } = req.params;
 
   if (profileId === followingId) {
@@ -920,6 +849,14 @@ exports.followProfile = async (req, res) => {
     await profile.save();
     await targetProfile.save();
 
+    // 알림 생성: 팔로우한 프로필에게 알림 전달
+    await createNotification(
+      targetProfile._id,
+      '프로필 팔로우',
+      `${profile.nickname}님이 당신의 프로필을 팔로우했습니다.`,
+      `profile/${profile._id}`
+    );
+
     res.status(200).json({ result: true, message: '프로필을 성공적으로 팔로우했습니다.' });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
@@ -928,7 +865,6 @@ exports.followProfile = async (req, res) => {
 
 // 특정 프로필의 팔로우를 해제하는 함수
 exports.unfollowProfile = async (req, res) => {
-  // const { profileId, targetProfileId } = req.params;
   const { profileId, followingId } = req.params;
 
   try {
@@ -1003,7 +939,10 @@ exports.getBlockedProfiles = async (req, res) => {
       blockedProfiles: profile.blockedProfiles
     });
   } catch (err) {
-    res.status(500).json({ result: false, message: err.message });
+    res.status(500).json({
+      result: false,
+      message: err.message
+    });
   }
 };
 
@@ -1021,7 +960,10 @@ exports.getHiddenProfiles = async (req, res) => {
       hiddenProfiles: profile.hiddenProfiles
     });
   } catch (err) {
-    res.status(500).json({ result: false, message: err.message });
+    res.status(500).json({
+      result: false,
+      message: err.message
+    });
   }
 };
 

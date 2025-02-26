@@ -469,60 +469,6 @@ router.get('/profiles', authenticateToken, userController.searchProfiles);
 
 /**
  * @swagger
- * /users/users/{userId}/follow:
- *   post:
- *     summary: 사용자 팔로우
- *     tags: [Follow]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: 팔로우할 사용자의 고유 ID
- *     responses:
- *       200:
- *         description: 사용자를 성공적으로 팔로우했습니다.
- *       400:
- *         description: 잘못된 userId 형식입니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       404:
- *         description: 팔로우할 사용자를 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- * /users/users/{userId}/unfollow:
- *   post:
- *     summary: 사용자 언팔로우
- *     tags: [Follow]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: 언팔로우할 사용자의 고유 ID
- *     responses:
- *       200:
- *         description: 사용자를 성공적으로 언팔로우했습니다.
- *       400:
- *         description: 잘못된 userId 형식입니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       404:
- *         description: 언팔로우할 사용자를 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
-router.post('/users/:userId/follow', authenticateToken, userController.followUser);
-router.post('/users/:userId/unfollow', authenticateToken, userController.unfollowUser);
-
-/**
- * @swagger
  * /users/profile/{profileId}/top-friends:
  *   get:
  *     summary: topFriends 조회
