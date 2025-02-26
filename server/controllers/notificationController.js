@@ -243,6 +243,24 @@ async function getCommunityNotifications(req, res) {
     }
 }
 
+// 추가: 알림 읽음 상태 업데이트 함수
+async function markNotificationAsRead(req, res) {
+    try {
+        const { notificationId } = req.params;
+        const notification = await Notification.findByIdAndUpdate(
+            notificationId,
+            { isRead: true },
+            { new: true }
+        );
+        if (!notification) {
+            return res.status(404).json({ success: false, message: '알림을 찾을 수 없습니다.' });
+        }
+        return res.status(200).json({ success: true, data: notification });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: '알림 업데이트 중 오류 발생: ' + error.message });
+    }
+}
+
 module.exports = {
     createNotification,
     getNotificationsByProfile,
@@ -257,5 +275,6 @@ module.exports = {
     createNewCommentOnPostNotification,
     createNewReplyOnCommentNotification,
     getTransactionNotifications,
-    getCommunityNotifications
+    getCommunityNotifications,
+    markNotificationAsRead  // 추가된 함수 익스포트
 };

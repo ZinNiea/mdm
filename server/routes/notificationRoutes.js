@@ -1,7 +1,7 @@
 // 파일 경로: server/routes/notificationRoutes.js
 const express = require('express');
 const router = express.Router();
-const { createNotification, getNotificationsByProfile, getTransactionNotifications, getCommunityNotifications } = require('../controllers/notificationController');
+const { createNotification, getNotificationsByProfile, getTransactionNotifications, getCommunityNotifications, markNotificationAsRead } = require('../controllers/notificationController');
 
 /**
  * @swagger
@@ -121,6 +121,35 @@ router.get('/transaction/:profileId', async (req, res) => {
 router.get('/community/:profileId', async (req, res) => {
     try {
         await getCommunityNotifications(req, res);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /notifications/read/{notificationId}:
+ *   put:
+ *     summary: 알림 읽음 상태 업데이트
+ *     description: 주어진 notificationId의 알림을 읽음 상태로 업데이트합니다.
+ *     parameters:
+ *       - in: path
+ *         name: notificationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 업데이트할 알림의 ID
+ *     responses:
+ *       200:
+ *         description: 알림 업데이트 성공
+ *       404:
+ *         description: 알림을 찾을 수 없음
+ *       500:
+ *         description: 서버 오류
+ */
+router.put('/read/:notificationId', async (req, res) => {
+    try {
+        await markNotificationAsRead(req, res);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
