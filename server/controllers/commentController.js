@@ -5,11 +5,10 @@ const { MODELS } = require('../models/constants');
 const { createNotification } = require('../controllers/notificationController');
 const { Post } = require('../models/postModel'); // 새로운 댓글 알림을 위해 Post 모델 추가
 
-// 댓글 추가 (대댓글 포함)
 exports.addComment = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { content, profileId, parentId } = req.body;
+    const { content, profileId, parentId, nickname } = req.body;
 
     const comment = new Comment({
       postId: postId,
@@ -27,7 +26,7 @@ exports.addComment = async (req, res) => {
         await createNotification(
           parentComment.author._id,  // 원본 댓글 작성자의 프로필 ID
           '커뮤니티',                // 알림 카테고리
-          `${profileId}님이 회원님의 댓글에 답글을 남겼습니다. "${content}"`, // 알림 메시지
+          `${nickname}님이 회원님의 댓글에 답글을 남겼습니다. "${content}"`, // 알림 메시지
           `community/${postId}/${comment._id}` // 생성된 딥링크
         )
       }
@@ -38,7 +37,7 @@ exports.addComment = async (req, res) => {
         await createNotification(
           post.author._id,  // 게시글 작성자의 프로필 ID
           '커뮤니티',        // 알림 카테고리
-          `${profileId}님이 회원님의 게시글에 댓글을 남겼습니다. "${content}"`, // 알림 메시지
+          `${nickname}님이 회원님의 게시글에 댓글을 남겼습니다. "${content}"`, // 알림 메시지
           `community/${postId}/${comment._id}` // 생성된 딥링크
         );
       }
