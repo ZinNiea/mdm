@@ -852,9 +852,9 @@ exports.followProfile = async (req, res) => {
     // 알림 생성: 팔로우한 프로필에게 알림 전달
     await createNotification(
       targetProfile._id,
-      '프로필 팔로우',
+      '커뮤니티',
       `${profile.nickname}님이 당신의 프로필을 팔로우했습니다.`,
-      `profile/${profile._id}`
+      `community/${profileId}`
     );
 
     res.status(200).json({ result: true, message: '프로필을 성공적으로 팔로우했습니다.' });
