@@ -1,7 +1,13 @@
 // 파일 경로: server/routes/notificationRoutes.js
 const express = require('express');
 const router = express.Router();
-const { createNotification, getNotificationsByProfile, getTransactionNotifications, getCommunityNotifications, markNotificationAsRead } = require('../controllers/notificationController');
+const {
+    createNotification,
+    getNotificationsByProfile,
+    markNotificationAsRead,
+    getTradeNotifications,
+    getCommunityNotifications
+} = require('../controllers/notificationController');
 
 /**
  * @swagger
@@ -21,7 +27,7 @@ const { createNotification, getNotificationsByProfile, getTransactionNotificatio
  *             - message
  *           properties:
  *             profileId:
- *               type: integer
+ *               type: string
  *             category:
  *               type: string
  *             message:
@@ -32,7 +38,6 @@ const { createNotification, getNotificationsByProfile, getTransactionNotificatio
  *       500:
  *         description: 서버 오류
  */
-// 알림 생성 라우터 (POST /notifications)
 router.post('/', async (req, res) => {
     const { profileId, category, message } = req.body;
     try {
@@ -47,13 +52,14 @@ router.post('/', async (req, res) => {
  * @swagger
  * /notifications/{profileId}:
  *   get:
- *     summary: 특정 프로필의 알림 조회
+ *     summary: 특정 프로필의 모든 알림 조회
  *     description: 주어진 profileId에 대한 모든 알림을 가져옵니다.
  *     parameters:
  *       - in: path
  *         name: profileId
- *         type: integer
  *         required: true
+ *         schema:
+ *           type: string
  *         description: 프로필 ID
  *     responses:
  *       200:
@@ -61,7 +67,6 @@ router.post('/', async (req, res) => {
  *       500:
  *         description: 서버 오류
  */
-// 특정 프로필의 알림 조회 라우터 (GET /notifications/:profileId)
 router.get('/:profileId', async (req, res) => {
     const { profileId } = req.params;
     try {
@@ -74,10 +79,10 @@ router.get('/:profileId', async (req, res) => {
 
 /**
  * @swagger
- * /notifications/transaction/{profileId}:
+ * /notifications/trade/{profileId}:
  *   get:
  *     summary: 거래 관련 알림 조회
- *     description: 주어진 profileId에 해당하는 거래 관련 알림(NEW_BID_ON_AUCTION, OUTBID, AUCTION_ENDING_SOON, AUCTION_ENDED, AUCTION_WON)을 조회합니다.
+ *     description: 주어진 profileId에 해당하는 거래 카테고리 알림을 조회합니다.
  *     parameters:
  *       - in: path
  *         name: profileId
@@ -91,20 +96,14 @@ router.get('/:profileId', async (req, res) => {
  *       500:
  *         description: 서버 오류
  */
-router.get('/transaction/:profileId', async (req, res) => {
-    try {
-        await getTransactionNotifications(req, res);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+router.get('/trade/:profileId', getTradeNotifications);
 
 /**
  * @swagger
  * /notifications/community/{profileId}:
  *   get:
  *     summary: 커뮤니티 관련 알림 조회
- *     description: 주어진 profileId에 해당하는 커뮤니티 관련 알림(NEW_FOLLOWER, NEW_LIKE_ON_POST, NEW_COMMENT_ON_POST, NEW_REPLY_ON_COMMENT)을 조회합니다.
+ *     description: 주어진 profileId에 해당하는 커뮤니티 카테고리 알림을 조회합니다.
  *     parameters:
  *       - in: path
  *         name: profileId
@@ -118,13 +117,7 @@ router.get('/transaction/:profileId', async (req, res) => {
  *       500:
  *         description: 서버 오류
  */
-router.get('/community/:profileId', async (req, res) => {
-    try {
-        await getCommunityNotifications(req, res);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+router.get('/community/:profileId', getCommunityNotifications);
 
 /**
  * @swagger

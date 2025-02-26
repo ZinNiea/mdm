@@ -59,8 +59,46 @@ async function markNotificationAsRead(req, res) {
     }
 }
 
+/**
+ * '거래' 카테고리 알림 조회 함수 (특정 profileId 기준)
+ * @param {Request} req
+ * @param {Response} res
+ */
+async function getTradeNotifications(req, res) {
+    try {
+        const { profileId } = req.params;
+        const notifications = await Notification.find({
+            profile: profileId,
+            category: '거래'
+        }).sort({ createdAt: -1 });
+        return res.status(200).json({ success: true, notifications });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: '알림 조회 중 오류 발생: ' + error.message });
+    }
+}
+
+/**
+ * '커뮤니티' 카테고리 알림 조회 함수 (특정 profileId 기준)
+ * @param {Request} req
+ * @param {Response} res
+ */
+async function getCommunityNotifications(req, res) {
+    try {
+        const { profileId } = req.params;
+        const notifications = await Notification.find({
+            profile: profileId,
+            category: '커뮤니티'
+        }).sort({ createdAt: -1 });
+        return res.status(200).json({ success: true, notifications });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: '알림 조회 중 오류 발생: ' + error.message });
+    }
+}
+
 module.exports = {
     createNotification,
     getNotificationsByProfile,
-    markNotificationAsRead  // 추가된 함수 익스포트
+    markNotificationAsRead,
+    getTradeNotifications,      // 신규 함수 익스포트
+    getCommunityNotifications   // 신규 함수 익스포트
 };
