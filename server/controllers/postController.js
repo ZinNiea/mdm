@@ -409,20 +409,21 @@ exports.toggleLike = async (req, res) => {
       // 좋아요 추가
       post.likes.push(profileId);
       await post.save();
-      // NEW_LIKE_ON_POST 알림 생성: 게시글 작성자에게 좋아요 정보 전달
+
+      const likingProfile = await Profile.findById(profileId);
+
+      if (likingProfile) {
+        await createNotification(
+          likingProfile._id,
+          '커뮤니티',
+          `${likingProfile.nickname}님이 회원님의 게시물을 좋아합니다. ${post.content}`,
+          `community/${postId}`
+        )
+      }
       // post.author는 User ID이므로, 해당 사용자의 메인 프로필을 가정
       const author = await User.findById(post.author);
       if (author && author.mainProfile) {
-        // 프로필에서 닉네임 조회 (예: 팔로워 프로필의 닉네임)
-        const likingProfile = await Profile.findById(profileId);
-        if (likingProfile) {
-          await createNotification(
-            author.mainProfile,
-            '커뮤니티',
-            `${likingProfile.nickname}님이 회원님의 게시물을 좋아합니다. ${post.content}`,
-            `community/${postId}`
-          )
-        }
+
       }
       return res.status(200).json({ result: true, message: '게시물에 좋아요를 표시했습니다.' });
     }
