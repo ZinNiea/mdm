@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema({
   profile: { type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE, required: true },
   category: {
     type: String,
-    enum: ['거래', '커뮤니티', '동행'],
+    enum: ['거래', '커뮤니티'],
     required: true
   },
   message: { type: String, required: true },

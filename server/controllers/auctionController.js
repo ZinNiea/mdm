@@ -7,7 +7,7 @@ const { Report } = require('../models/reportModel');
 const { deleteImage } = require('../middlewares/uploadMiddleware'); // deleteImage 함수 추가
 const schedule = require('node-schedule'); // node-schedule 라이브러리 추가
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
-const { createNewBidOnAuctionNotification, createAuctionEndedNotification, createAuctionWonNotification, createAuctionEndingSoonNotification, createOutbidNotification } = require('../controllers/notificationController'); // 알림 함수 추가
+const { createNotification } = require('../controllers/notificationController'); // 알림 함수 추가
 const { Profile } = require('../models/profileModel'); // 추가
 
 // 경매 종료 함수 정의
@@ -184,7 +184,7 @@ exports.getAuctionItems = async (req, res) => {
 exports.getAuctionItemById = async (req, res) => {
   try {
     const item = await AuctionItem.findById(req.params.auctionId)
-      .populate('highestBidder', 'nickname')
+      .populate('highestBidder', '_id nickname')
       .populate('createdBy', 'nickname profileImage rating');
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
 
@@ -224,12 +224,16 @@ exports.getAuctionItemById = async (req, res) => {
  */
 exports.placeBid = async (req, res) => {
   const { auctionId } = req.params;
-  // bidderNickname 제거: 프로필 조회로 대체
   const { price, profileId } = req.body;
   try {
     const item = await AuctionItem.findById(auctionId);
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
     if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
+
+    // 자기 자신이 이미 최고 입찰자인 경우 입찰 진행 불가
+    if (item.highestBidder && item.highestBidder.toString() === profileId.toString()) {
+      return res.status(400).send('이미 최고 입찰자입니다.');
+    }
 
     const bidAmount = price;
     if (bidAmount < item.startingPrice || bidAmount <= item.currentBid) {
@@ -238,11 +242,6 @@ exports.placeBid = async (req, res) => {
 
     // 입찰 전 이전 최고 입찰자 저장
     const previousHighestBidder = item.highestBidder;
-
-    // 입찰자의 닉네임을 profileId로 조회
-    const bidderProfile = await Profile.findById(profileId);
-    if (!bidderProfile) return res.status(404).send('입찰자 프로필을 찾을 수 없습니다.');
-    const bidderNickname = bidderProfile.nickname;
 
     item.currentBid = bidAmount;
     item.highestBidder = profileId;
@@ -256,30 +255,23 @@ exports.placeBid = async (req, res) => {
     });
     await bid.save();
 
-    // 이전 최고 입찰자가 존재하고 새로운 입찰자와 다른 경우 OUTBID 알림 생성
-    if (previousHighestBidder && previousHighestBidder.toString() !== profileId.toString()) {
-      const previousBidderProfile = await Profile.findById(previousHighestBidder);
-      if (previousBidderProfile) {
-        await createOutbidNotification(
-          previousHighestBidder,           // 이전 최고 입찰자 프로필 ID
-          item._id,                        // 경매 아이템 ID
-          item.title,                      // 경매 제목
-          previousBidderProfile.nickname,  // 이전 입찰자 닉네임
-          bidAmount,                       // 새로운 입찰 금액
-          `/auction/${item._id}`           // 생성된 딥링크
-        );
-      }
-    }
-
-    // NEW_BID_ON_AUCTION 알림 생성: 경매글 작성자(item.createdBy)에게 알림 전송
-    await createNewBidOnAuctionNotification(
-      item.createdBy,     // 알림을 받을 프로필
-      item._id,           // 경매 아이템 ID
-      item.title,         // 경매 글 제목
-      bidderNickname,     // 프로필 조회로 가져온 입찰자 닉네임
-      bidAmount,          // 입찰 금액
-      `/auction/${item._id}` // 생성된 딥링크
+    // 거래 게시자에게 새로운 입찰 알림 생성
+    await createNotification(
+      item.createdBy,                    // 거래 게시자의 프로필ID
+      '거래',                            // 카테고리
+      `${item.title}에 새로운 입찰이 등록되었습니다: ${bidAmount}원`, // 메시지
+      `trade/${item._id}`                // 딥링크
     );
+
+    // 이전 최고 입찰자가 존재하면 알림 생성 (새로운 입찰로 인해 최고 입찰자가 변경됨)
+    if (previousHighestBidder && previousHighestBidder.toString() !== profileId.toString()) {
+      await createNotification(
+        previousHighestBidder,
+        '거래',
+        `${item.title}의 최고 입찰자가 변경되었습니다. 다시 입찰해보세요!: ${bidAmount}원`,
+        `trade/${item._id}`
+      );
+    }
 
     res.status(201)
       .location(`/auctions/${item._id}/bids/${bid._id}`)
@@ -382,29 +374,21 @@ exports.endAuction = async (req, res) => {
     const io = req.app.get('io');
 
     if (item.highestBidder) {
-      // 수정: 채팅방 생성 및 roomId 반환
+      // 채팅방 생성 및 roomId 반환
       const roomId = await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
-      // 최고 입찰자의 닉네임 조회
-      const highestBidderProfile = await Profile.findById(item.highestBidder._id);
-      // AUCTION_ENDED 알림 호출: 판매자에게 최종 가격, 입찰자 닉네임, 채팅방 ID 포함
-      await createAuctionEndedNotification(
+      // 거래 게시자에게 알림 생성
+      await createNotification(
         item.createdBy,
-        item._id,
-        item.title,
-        item.currentBid,
-        highestBidderProfile.nickname,
-        roomId,
-        `/auction/${item._id}` // 생성된 딥링크
+        '거래',
+        `${item.title} 경매가 종료되었습니다. 확인해보세요!: ${item.currentBid}원`,
+        `trade/${item._id}`
       );
-      // 추가: AUCTION_WON 알림: 낙찰된 (최고 입찰자)에게 판매자의 닉네임 포함 알림 전송
-      const sellerProfile = await Profile.findById(item.createdBy);
-      await createAuctionWonNotification(
-        item.highestBidder._id,  // 낙찰된 사람(최고 입찰자)
-        item._id,
-        item.title,
-        item.currentBid,
-        sellerProfile.nickname,
-        `/auction/${item._id}` // 생성된 딥링크
+      // 낙찰자에게 알림 생성
+      await createNotification(
+        item.highestBidder._id,
+        '거래',
+        `${item.title}의 최종 낙찰자가 되었습니다. 거래를 진행해주세요!`,
+        `trade/${item._id}`
       );
       return res.status(200).json({
         success: true,
