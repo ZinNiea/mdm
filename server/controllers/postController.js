@@ -9,7 +9,7 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const { MODELS } = require('../models/constants');
 const { ViewLog } = require('../models/viewLogModel');
 const mongoose = require('mongoose');
-const { createNewLikeOnPostNotification } = require('../controllers/notificationController'); // 추가
+const { createNotification } = require('../controllers/notificationController'); // 추가
 const { Comment } = require('../models/commentModel'); // 신규 추가: 댓글 모델 import
 
 
@@ -416,13 +416,12 @@ exports.toggleLike = async (req, res) => {
         // 프로필에서 닉네임 조회 (예: 팔로워 프로필의 닉네임)
         const likingProfile = await Profile.findById(profileId);
         if (likingProfile) {
-          await createNewLikeOnPostNotification(
-            author.mainProfile,          // 알림 대상 (게시글 작성자 메인프로필)
-            likingProfile.nickname,      // 좋아요 누른 사용자 닉네임
-            postId,                      // 게시글 ID
-            post.content,                // 게시글 내용
-            `/post/${postId}`            // 생성된 딥링크
-          );
+          await createNotification(
+            author.mainProfile,
+            '커뮤니티',
+            `${likingProfile.nickname}님이 회원님의 게시물을 좋아합니다. ${post.content}`,
+            `community/${postId}`
+          )
         }
       }
       return res.status(200).json({ result: true, message: '게시물에 좋아요를 표시했습니다.' });

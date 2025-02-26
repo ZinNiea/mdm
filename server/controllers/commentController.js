@@ -2,7 +2,7 @@
 const { Comment } = require('../models/commentModel');
 const { CommentReport } = require('../models/reportModel');
 const { MODELS } = require('../models/constants');
-const { createNewCommentOnPostNotification, createNewReplyOnCommentNotification } = require('../controllers/notificationController');
+const { createNotification } = require('../controllers/notificationController');
 const { Post } = require('../models/postModel'); // 새로운 댓글 알림을 위해 Post 모델 추가
 
 // 댓글 추가 (대댓글 포함)
@@ -24,26 +24,22 @@ exports.addComment = async (req, res) => {
       // 대댓글인 경우: 원본 댓글 작성자에게 알림 전송
       const parentComment = await Comment.findById(parentId).populate('author', 'nickname');
       if (parentComment) {
-        await createNewReplyOnCommentNotification(
-          parentComment.author._id,      // 원본 댓글 작성자의 프로필 ID
-          parentComment.author.nickname, // 원본 댓글 작성자의 닉네임
-          postId,                        // 댓글이 속한 게시글 ID
-          comment._id,                   // 새 댓글(대댓글) ID
-          comment.content,               // 새 댓글 내용
-          `/post/${postId}/comment/${parentComment._id}` // 생성된 딥링크
-        );
+        await createNotification(
+          parentComment.author._id,  // 원본 댓글 작성자의 프로필 ID
+          '커뮤니티',                // 알림 카테고리
+          `${profileId}님이 회원님의 댓글에 답글을 남겼습니다. "${content}"`, // 알림 메시지
+          `community/${postId}/${comment._id}` // 생성된 딥링크
+        )
       }
     } else {
       // 최상위 댓글인 경우: 게시글 작성자에게 알림 전송
       const post = await Post.findById(postId).populate('author', 'nickname');
       if (post && post.author) {
-        await createNewCommentOnPostNotification(
-          post.author._id,           // 게시글 작성자의 프로필 ID
-          post.author.nickname,      // 게시글 작성자의 닉네임
-          postId,                    // 게시글 ID
-          comment._id,               // 새 댓글 ID
-          comment.content,           // 새 댓글 내용
-          `/post/${postId}`          // 생성된 딥링크
+        await createNotification(
+          post.author._id,  // 게시글 작성자의 프로필 ID
+          '커뮤니티',        // 알림 카테고리
+          `${profileId}님이 회원님의 게시글에 댓글을 남겼습니다. "${content}"`, // 알림 메시지
+          `community/${postId}/${comment._id}` // 생성된 딥링크
         );
       }
     }

@@ -30,7 +30,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const { Notification } = require('../models/notificationModel');
-const { createNewFollowerNotification } = require('../controllers/notificationController'); // 추가
+const { createNotification } = require('../controllers/notificationController'); // 추가
 
 /**
  * 회원가입
@@ -584,15 +584,15 @@ exports.followUser = async (req, res) => {
     await user.save();
     await targetUser.save();
 
-    // NEW_FOLLOWER 알림 생성: targetUserId에게 팔로워 정보 전달
     // user의 프로필 정보 조회 (예: 첫번째 프로필 사용)
     const followerProfile = await Profile.findById(user.mainProfile);
     if (followerProfile) {
-      await createNewFollowerNotification(
-        targetUser.mainProfile,  // 알림을 받을 대상 프로필 (예: targetUser의 mainProfile)
-        user.mainProfile,        // 팔로워 프로필 ID
-        followerProfile.nickname, // 팔로워의 닉네임
-        `/profile/${user.mainProfile}` // 생성된 딥링크
+      // 알림 생성
+      await createNotification(
+        targetUser.mainProfile,
+        '커뮤니티',
+        `${followerProfile.nickname}님이 팔로우했습니다.`,
+        `community/${user.mainProfile}`
       );
     }
 
