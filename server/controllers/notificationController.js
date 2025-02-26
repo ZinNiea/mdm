@@ -7,14 +7,16 @@ const { Notification } = require('../models/notificationModel');
  * @param {String} profileId - 알림을 받을 프로필의 ID
  * @param {String} category - 알림 카테고리 ('거래', '커뮤니티', '동행')
  * @param {String} message - 전달할 메시지 내용
+ * @param {String} [deepLink=null] - 딥링크 자원
  * @returns 생성된 알림 객체
  */
-async function createNotification(profileId, category, message) {
+async function createNotification(profileId, category, message, deepLink = null) {
     try {
         const notification = new Notification({
             profile: profileId,
             category,
             message,
+            deepLink  // 추가된 딥링크 필드
         });
 
         await notification.save();
@@ -40,47 +42,15 @@ async function getNotificationsByProfile(profileId) {
 }
 
 // 거래 알림 생성
-async function createTransactionNotification(profileId, type, data) {
-    try {
-        const notification = new Notification({
-            profile: profileId,
-            type,          // 거래 알림 종류 (예:"NEW_BID_ON_AUCTION", "OUTBID", ...)
-            data,          // 상황별로 필요한 데이터 (auctionId, auctionTitle, 등)
-            category: '거래'
-        });
-        await notification.save();
-        return notification;
-    } catch (error) {
-        throw new Error('거래 알림 생성 중 오류 발생: ' + error.message);
-    }
-}
-
-// 거래 알림 생성 관련 헬퍼 함수들
-async function createNewBidOnAuctionNotification(profileId, auctionId, auctionTitle, nickname, price) {
-    return createTransactionNotification(profileId, "NEW_BID_ON_AUCTION", { auctionId, auctionTitle, nickname, price });
-}
-async function createOutbidNotification(profileId, auctionId, auctionTitle, nickname, price) {
-    return createTransactionNotification(profileId, "OUTBID", { auctionId, auctionTitle, nickname, price });
-}
-async function createAuctionEndingSoonNotification(profileId, auctionId, auctionTitle, price) {
-    return createTransactionNotification(profileId, "AUCTION_ENDING_SOON", { auctionId, auctionTitle, price });
-}
-async function createAuctionEndedNotification(profileId, auctionId, auctionTitle, finalPrice, nickname, roomId) {
-    return createTransactionNotification(profileId, "AUCTION_ENDED", { auctionId, auctionTitle, finalPrice, nickname, roomId });
-}
-async function createAuctionWonNotification(profileId, auctionId, auctionTitle, price, sellerNickname) {
-    return createTransactionNotification(profileId, "AUCTION_WON", { auctionId, auctionTitle, price, sellerNickname });
-}
-
-// 커뮤니티 알림 생성 관련 함수
-async function createTransactionNotification(profileId, type, data) {
+async function createTransactionNotification(profileId, type, data, deepLink = null) {
     try {
         const notification = new Notification({
             profile: profileId,
             type,          // 거래 알림 종류 (예:"NEW_BID_ON_AUCTION", "OUTBID", ...)
             data,          // 상황별로 필요한 데이터 (auctionId, auctionTitle, 등)
             category: '거래',
-            message: `[${type}] 거래 알림`  // 기본 메시지 추가
+            message: `[${type}] 거래 알림`,
+            deepLink       // 딥링크 추가
         });
         await notification.save();
         return notification;
@@ -88,26 +58,34 @@ async function createTransactionNotification(profileId, type, data) {
         throw new Error('거래 알림 생성 중 오류 발생: ' + error.message);
     }
 }
-async function createNewFollowerNotification(profileId, followerProfileId, profileName) {
-    return createCommunityNotification(profileId, "NEW_FOLLOWER", { profileId: followerProfileId, profileName });
+
+// 거래 알림 생성 관련 헬퍼 함수들 수정: deepLink 인자 추가
+async function createNewBidOnAuctionNotification(profileId, auctionId, auctionTitle, nickname, price, deepLink = null) {
+    return createTransactionNotification(profileId, "NEW_BID_ON_AUCTION", { auctionId, auctionTitle, nickname, price }, deepLink);
 }
-async function createNewLikeOnPostNotification(profileId, profileName, postId, postContent) {
-    return createCommunityNotification(profileId, "NEW_LIKE_ON_POST", { profileName, postId, postContent });
+async function createOutbidNotification(profileId, auctionId, auctionTitle, nickname, price, deepLink = null) {
+    return createTransactionNotification(profileId, "OUTBID", { auctionId, auctionTitle, nickname, price }, deepLink);
 }
-async function createNewCommentOnPostNotification(profileId, profileName, postId, commentId, commentContent) {
-    return createCommunityNotification(profileId, "NEW_COMMENT_ON_POST", { profileName, postId, commentId, commentContent });
+async function createAuctionEndingSoonNotification(profileId, auctionId, auctionTitle, price, deepLink = null) {
+    return createTransactionNotification(profileId, "AUCTION_ENDING_SOON", { auctionId, auctionTitle, price }, deepLink);
 }
-async function createNewReplyOnCommentNotification(profileId, profileName, postId, replyId, replyContent) {
-    return createCommunityNotification(profileId, "NEW_REPLY_ON_COMMENT", { profileName, postId, replyId, replyContent });
+async function createAuctionEndedNotification(profileId, auctionId, auctionTitle, finalPrice, nickname, roomId, deepLink = null) {
+    return createTransactionNotification(profileId, "AUCTION_ENDED", { auctionId, auctionTitle, finalPrice, nickname, roomId }, deepLink);
 }
-async function createCommunityNotification(profileId, type, data) {
+async function createAuctionWonNotification(profileId, auctionId, auctionTitle, price, sellerNickname, deepLink = null) {
+    return createTransactionNotification(profileId, "AUCTION_WON", { auctionId, auctionTitle, price, sellerNickname }, deepLink);
+}
+
+// 커뮤니티 알림 생성 관련 함수
+async function createCommunityNotification(profileId, type, data, deepLink = null) {
     try {
         const notification = new Notification({
             profile: profileId,
             type,          // 커뮤니티 알림 종류 (예:"NEW_FOLLOWER", "NEW_LIKE_ON_POST", ...)
             data,          // 상황별로 필요한 데이터 (profileId, profileName, postId, 등)
             category: '커뮤니티',
-            message: `[${type}] 커뮤니티 알림`  // 기본 메시지 추가
+            message: `[${type}] 커뮤니티 알림`,  // 기본 메시지 추가
+            deepLink       // 딥링크 추가
         });
         await notification.save();
         return notification;
@@ -115,9 +93,21 @@ async function createCommunityNotification(profileId, type, data) {
         throw new Error('커뮤니티 알림 생성 중 오류 발생: ' + error.message);
     }
 }
+async function createNewFollowerNotification(profileId, followerProfileId, profileName, deepLink = null) {
+    return createCommunityNotification(profileId, "NEW_FOLLOWER", { profileId: followerProfileId, profileName }, deepLink);
+}
+async function createNewLikeOnPostNotification(profileId, profileName, postId, postContent, deepLink = null) {
+    return createCommunityNotification(profileId, "NEW_LIKE_ON_POST", { profileName, postId, postContent }, deepLink);
+}
+async function createNewCommentOnPostNotification(profileId, profileName, postId, commentId, commentContent, deepLink = null) {
+    return createCommunityNotification(profileId, "NEW_COMMENT_ON_POST", { profileName, postId, commentId, commentContent }, deepLink);
+}
+async function createNewReplyOnCommentNotification(profileId, profileName, postId, replyId, replyContent, deepLink = null) {
+    return createCommunityNotification(profileId, "NEW_REPLY_ON_COMMENT", { profileName, postId, replyId, replyContent }, deepLink);
+}
 
 // 거래 관련 알림 조회
-exports.getTransactionNotifications = async (req, res) => {
+async function getTransactionNotifications(req, res) {
     try {
         const { profileId } = req.params;
         const transactionTypes = [
@@ -185,10 +175,10 @@ exports.getTransactionNotifications = async (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
-};
+}
 
 // 커뮤니티 관련 알림 조회
-exports.getCommunityNotifications = async (req, res) => {
+async function getCommunityNotifications(req, res) {
     try {
         const { profileId } = req.params;
         const communityTypes = [
@@ -251,7 +241,7 @@ exports.getCommunityNotifications = async (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
-};
+}
 
 module.exports = {
     createNotification,
@@ -265,5 +255,7 @@ module.exports = {
     createNewFollowerNotification,
     createNewLikeOnPostNotification,
     createNewCommentOnPostNotification,
-    createNewReplyOnCommentNotification
+    createNewReplyOnCommentNotification,
+    getTransactionNotifications,
+    getCommunityNotifications
 };

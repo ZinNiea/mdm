@@ -116,7 +116,8 @@ exports.createAuctionItem = async (req, res) => {
             bidderId,
             auctionItem._id,
             auctionItem.title,
-            auctionItem.currentBid
+            auctionItem.currentBid,
+            `/auction/${auctionItem._id}` // 생성된 딥링크
           );
         }
       });
@@ -260,11 +261,12 @@ exports.placeBid = async (req, res) => {
       const previousBidderProfile = await Profile.findById(previousHighestBidder);
       if (previousBidderProfile) {
         await createOutbidNotification(
-          previousHighestBidder,   // 알림 받을 프로필: 이전 최고 입찰자
-          item._id,                // 경매 아이템 ID
-          item.title,              // 경매 글 제목
-          previousBidderProfile.nickname, // 이전 최고 입찰자의 닉네임
-          bidAmount                // 새로운 입찰 금액
+          previousHighestBidder,           // 이전 최고 입찰자 프로필 ID
+          item._id,                        // 경매 아이템 ID
+          item.title,                      // 경매 제목
+          previousBidderProfile.nickname,  // 이전 입찰자 닉네임
+          bidAmount,                       // 새로운 입찰 금액
+          `/auction/${item._id}`           // 생성된 딥링크
         );
       }
     }
@@ -275,7 +277,8 @@ exports.placeBid = async (req, res) => {
       item._id,           // 경매 아이템 ID
       item.title,         // 경매 글 제목
       bidderNickname,     // 프로필 조회로 가져온 입찰자 닉네임
-      bidAmount           // 입찰 금액
+      bidAmount,          // 입찰 금액
+      `/auction/${item._id}` // 생성된 딥링크
     );
 
     res.status(201)
@@ -390,7 +393,8 @@ exports.endAuction = async (req, res) => {
         item.title,
         item.currentBid,
         highestBidderProfile.nickname,
-        roomId
+        roomId,
+        `/auction/${item._id}` // 생성된 딥링크
       );
       // 추가: AUCTION_WON 알림: 낙찰된 (최고 입찰자)에게 판매자의 닉네임 포함 알림 전송
       const sellerProfile = await Profile.findById(item.createdBy);
@@ -399,7 +403,8 @@ exports.endAuction = async (req, res) => {
         item._id,
         item.title,
         item.currentBid,
-        sellerProfile.nickname
+        sellerProfile.nickname,
+        `/auction/${item._id}` // 생성된 딥링크
       );
       return res.status(200).json({
         success: true,

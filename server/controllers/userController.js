@@ -591,7 +591,8 @@ exports.followUser = async (req, res) => {
       await createNewFollowerNotification(
         targetUser.mainProfile,  // 알림을 받을 대상 프로필 (예: targetUser의 mainProfile)
         user.mainProfile,        // 팔로워 프로필 ID
-        followerProfile.nickname // 팔로워의 닉네임
+        followerProfile.nickname, // 팔로워의 닉네임
+        `/profile/${user.mainProfile}` // 생성된 딥링크
       );
     }
 

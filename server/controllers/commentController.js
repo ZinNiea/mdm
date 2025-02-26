@@ -29,7 +29,8 @@ exports.addComment = async (req, res) => {
           parentComment.author.nickname, // 원본 댓글 작성자의 닉네임
           postId,                        // 댓글이 속한 게시글 ID
           comment._id,                   // 새 댓글(대댓글) ID
-          comment.content                // 새 댓글 내용
+          comment.content,               // 새 댓글 내용
+          `/post/${postId}/comment/${parentComment._id}` // 생성된 딥링크
         );
       }
     } else {
@@ -41,7 +42,8 @@ exports.addComment = async (req, res) => {
           post.author.nickname,      // 게시글 작성자의 닉네임
           postId,                    // 게시글 ID
           comment._id,               // 새 댓글 ID
-          comment.content            // 새 댓글 내용
+          comment.content,           // 새 댓글 내용
+          `/post/${postId}`          // 생성된 딥링크
         );
       }
     }

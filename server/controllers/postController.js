@@ -417,10 +417,11 @@ exports.toggleLike = async (req, res) => {
         const likingProfile = await Profile.findById(profileId);
         if (likingProfile) {
           await createNewLikeOnPostNotification(
-            author.mainProfile,        // 알림을 받을 프로필 (게시글 작성자 메인 프로필)
-            likingProfile.nickname,    // 좋아요 누른 사람의 닉네임
-            postId,                    // 게시글 ID
-            post.content               // 게시글 내용 (또는 요약)
+            author.mainProfile,          // 알림 대상 (게시글 작성자 메인프로필)
+            likingProfile.nickname,      // 좋아요 누른 사용자 닉네임
+            postId,                      // 게시글 ID
+            post.content,                // 게시글 내용
+            `/post/${postId}`            // 생성된 딥링크
           );
         }
       }
