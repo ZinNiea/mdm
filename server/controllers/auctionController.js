@@ -19,7 +19,7 @@ const endAuctionJob = async (auctionId, io) => {
       await item.save();
 
       if (item.highestBidder) {
-        await createChatRoomAndNotify(item.createdBy, item.highestBidder, item._id, io);
+        await createChatRoomAndNotify(item, io);
       }
     }
   } catch (err) {
@@ -285,30 +285,29 @@ exports.placeBid = async (req, res) => {
 };
 
 
-// 수정: createChatRoomAndNotify 함수를 수정하여 roomId 반환
-const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) => {
+// 변경된 createChatRoomAndNotify 함수: auctionItem 객체를 인자로 받음
+const createChatRoomAndNotify = async (auctionItem, io) => {
   const chatRoom = await Chat.create({
-    participants: [sellerId, bidderId],
-    auctionItem: auctionItemId,
-    category: CHAT_CATEGORY.AUCTION, // 상수 사용
+    participants: [auctionItem.createdBy, auctionItem.highestBidder],
+    auctionItem: auctionItem._id,
+    category: CHAT_CATEGORY.AUCTION,
     messages: [],
     createdAt: new Date()
   });
   const roomId = chatRoom._id.toString();
-  io.to(sellerId.toString()).emit('chatRoom', { roomId });
-  io.to(bidderId.toString()).emit('chatRoom', { roomId });
+  io.to(auctionItem.createdBy.toString()).emit('chatRoom', { roomId });
+  io.to(auctionItem.highestBidder.toString()).emit('chatRoom', { roomId });
   await createNotification(
-    item.createdBy,
+    auctionItem.createdBy,
     '거래',
-    `${item.title} 경매가 종료되었습니다. 확인해보세요!: ${item.currentBid}원`,
-    `trade/${item._id}`
+    `${auctionItem.title} 경매가 종료되었습니다. 확인해보세요!: ${auctionItem.currentBid}원`,
+    `trade/${auctionItem._id}`
   );
-  // 낙찰자에게 알림 생성
   await createNotification(
-    item.highestBidder._id,
+    auctionItem.highestBidder,
     '거래',
-    `${item.title}의 최종 낙찰자가 되었습니다. 거래를 진행해주세요!`,
-    `trade/${item._id}`
+    `${auctionItem.title}의 최종 낙찰자가 되었습니다. 거래를 진행해주세요!`,
+    `trade/${auctionItem._id}`
   );
   return roomId;
 };
@@ -339,9 +338,8 @@ exports.instantBuy = async (req, res) => {
     });
     await bid.save();
 
-    // 헬퍼 함수 호출하여 채팅방 생성 및 알림 전송
     const io = req.app.get('io');
-    await createChatRoomAndNotify(item.createdBy, item.highestBidder, item._id, io);
+    await createChatRoomAndNotify(item, io);
 
     res.status(201)
       .location(`/auctions/${item._id}/bids/${bid._id}`)
@@ -383,7 +381,7 @@ exports.endAuction = async (req, res) => {
 
     if (item.highestBidder) {
       // 채팅방 생성 및 roomId 반환
-      const roomId = await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
+      const roomId = await createChatRoomAndNotify(item, io);
       return res.status(200).json({
         success: true,
         message: '경매가 종료되었으며, 실시간 채팅방과 거래 종료 및 낙찰 알림이 생성되었습니다.'
