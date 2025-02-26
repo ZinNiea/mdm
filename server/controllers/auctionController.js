@@ -297,6 +297,19 @@ const createChatRoomAndNotify = async (sellerId, bidderId, auctionItemId, io) =>
   const roomId = chatRoom._id.toString();
   io.to(sellerId.toString()).emit('chatRoom', { roomId });
   io.to(bidderId.toString()).emit('chatRoom', { roomId });
+  await createNotification(
+    item.createdBy,
+    '거래',
+    `${item.title} 경매가 종료되었습니다. 확인해보세요!: ${item.currentBid}원`,
+    `trade/${item._id}`
+  );
+  // 낙찰자에게 알림 생성
+  await createNotification(
+    item.highestBidder._id,
+    '거래',
+    `${item.title}의 최종 낙찰자가 되었습니다. 거래를 진행해주세요!`,
+    `trade/${item._id}`
+  );
   return roomId;
 };
 
@@ -359,11 +372,6 @@ exports.endAuction = async (req, res) => {
       return res.status(404).json({ success: false, message: '경매 아이템을 찾을 수 없습니다.' });
     }
 
-    // 인증된 사용자인지 확인 (미들웨어에서 처리되지 않은 경우)
-    // if (!req.user || item.createdBy.toString() !== req.user._id.toString()) {
-    //   return res.status(403).json({ success: false, message: '경매를 종료할 권한이 없습니다.' });
-    // }
-
     if (item.endTime < new Date()) {
       return res.status(409).json({ success: false, message: '경매가 이미 종료되었습니다.' });
     }
@@ -376,20 +384,6 @@ exports.endAuction = async (req, res) => {
     if (item.highestBidder) {
       // 채팅방 생성 및 roomId 반환
       const roomId = await createChatRoomAndNotify(item.createdBy, item.highestBidder._id, item._id, io);
-      // 거래 게시자에게 알림 생성
-      await createNotification(
-        item.createdBy,
-        '거래',
-        `${item.title} 경매가 종료되었습니다. 확인해보세요!: ${item.currentBid}원`,
-        `trade/${item._id}`
-      );
-      // 낙찰자에게 알림 생성
-      await createNotification(
-        item.highestBidder._id,
-        '거래',
-        `${item.title}의 최종 낙찰자가 되었습니다. 거래를 진행해주세요!`,
-        `trade/${item._id}`
-      );
       return res.status(200).json({
         success: true,
         message: '경매가 종료되었으며, 실시간 채팅방과 거래 종료 및 낙찰 알림이 생성되었습니다.'
