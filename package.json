@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "agenda": "^5.0.0",
     "aws-sdk": "^2.1692.0",
     "bcrypt": "^5.1.1",
     "coolsms-node-sdk": "^2.1.0",

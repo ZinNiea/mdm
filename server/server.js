@@ -11,9 +11,18 @@ const { ViewLog } = require('./models/viewLogModel'); // ViewLog 모델 가져�
 
 const mongoose = require('mongoose');
 const { CHAT_CATEGORY } = require('./models/constants');
+const agenda = require('./services/agendaService');
 
 // HTTP 서버 생성
 const server = http.createServer(app);
+
+// Agenda 작업 스케줄러 초기화
+require('./jobs/endAuctionJob')(agenda);
+
+agenda.on('ready', async () => {
+  await agenda.start();
+  logger.info('Agenda 작업 스케줄러가 시작되었습니다.');
+});
 
 // Socket.IO 초기화
 const io = socketIo(server, {

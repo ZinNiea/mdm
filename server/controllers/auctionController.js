@@ -9,23 +9,8 @@ const schedule = require('node-schedule'); // node-schedule 라이브러리 추�
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
 const { createNotification } = require('../controllers/notificationController'); // 알림 함수 추가
 const { Profile } = require('../models/profileModel'); // 추가
+const agenda = require('../services/agendaService');
 
-// 경매 종료 함수 정의
-const endAuctionJob = async (auctionId, io) => {
-  try {
-    const item = await AuctionItem.findById(auctionId);
-    if (item && item.endTime > new Date()) {
-      item.endTime = new Date();
-      await item.save();
-
-      if (item.highestBidder) {
-        await createChatRoomAndNotify(item, io);
-      }
-    }
-  } catch (err) {
-    console.error(`경매 종료 실패: ${err.message}`);
-  }
-};
 
 /**
  * 경매 아이템 생성
@@ -96,32 +81,29 @@ exports.createAuctionItem = async (req, res) => {
     });
     await auctionItem.save();
 
-    // node-schedule을 사용하여 경매 종료 작업 스케줄링
-    schedule.scheduleJob(endTime, () => {
-      const io = req.app.get('io'); // io 인스턴스 가져오기
-      endAuctionJob(auctionItem._id, io);
-    });
+    // 사용하여 경매 종료 작업 스케줄링
+    agenda.schedule(endTime, 'auction end job', { auctionItemId: auctionItem._id });
 
     // AUCTION_ENDING_SOON 알림 스케줄링: 경매 종료 3시간 전에 알림 전송 (경매 지속시간이 3시간 이상인 경우)
-    const threeHours = 3 * 60 * 60 * 1000;
-    if (endTime - createdAt > threeHours) {
-      const endingSoonTime = new Date(endTime.getTime() - threeHours);
-      schedule.scheduleJob(endingSoonTime, async () => {
-        // 해당 경매의 모든 입찰자를 고유하게 조회
-        const bids = await Bid.find({ auctionItem: auctionItem._id });
-        const uniqueBidders = [...new Set(bids.map(b => b.bidder.toString()))];
-        for (const bidderId of uniqueBidders) {
-          // 현재 입찰 금액을 기준으로 알림 전송 (auctionTitle, currentBid)
-          await createAuctionEndingSoonNotification(
-            bidderId,
-            auctionItem._id,
-            auctionItem.title,
-            auctionItem.currentBid,
-            `/auction/${auctionItem._id}` // 생성된 딥링크
-          );
-        }
-      });
-    }
+    // const threeHours = 3 * 60 * 60 * 1000;
+    // if (endTime - createdAt > threeHours) {
+    //   const endingSoonTime = new Date(endTime.getTime() - threeHours);
+    //   schedule.scheduleJob(endingSoonTime, async () => {
+    //     // 해당 경매의 모든 입찰자를 고유하게 조회
+    //     const bids = await Bid.find({ auctionItem: auctionItem._id });
+    //     const uniqueBidders = [...new Set(bids.map(b => b.bidder.toString()))];
+    //     for (const bidderId of uniqueBidders) {
+    //       // 현재 입찰 금액을 기준으로 알림 전송 (auctionTitle, currentBid)
+    //       await createAuctionEndingSoonNotification(
+    //         bidderId,
+    //         auctionItem._id,
+    //         auctionItem.title,
+    //         auctionItem.currentBid,
+    //         `/auction/${auctionItem._id}` // 생성된 딥링크
+    //       );
+    //     }
+    //   });
+    // }
 
     res.status(201).send({ result: true, auctionId: auctionItem._id });
   } catch (err) {
@@ -284,34 +266,6 @@ exports.placeBid = async (req, res) => {
   }
 };
 
-
-// 변경된 createChatRoomAndNotify 함수: auctionItem 객체를 인자로 받음
-const createChatRoomAndNotify = async (auctionItem, io) => {
-  const chatRoom = await Chat.create({
-    participants: [auctionItem.createdBy, auctionItem.highestBidder],
-    auctionItem: auctionItem._id,
-    category: CHAT_CATEGORY.AUCTION,
-    messages: [],
-    createdAt: new Date()
-  });
-  const roomId = chatRoom._id.toString();
-  io.to(auctionItem.createdBy.toString()).emit('chatRoom', { roomId });
-  io.to(auctionItem.highestBidder.toString()).emit('chatRoom', { roomId });
-  await createNotification(
-    auctionItem.createdBy,
-    '거래',
-    `${auctionItem.title} 경매가 종료되었습니다. 확인해보세요!: ${auctionItem.currentBid}원`,
-    `trade/${auctionItem._id}`
-  );
-  await createNotification(
-    auctionItem.highestBidder,
-    '거래',
-    `${auctionItem.title}의 최종 낙찰자가 되었습니다. 거래를 진행해주세요!`,
-    `trade/${auctionItem._id}`
-  );
-  return roomId;
-};
-
 /**
  * 즉시구매
  * @param {Request} req 
@@ -337,9 +291,6 @@ exports.instantBuy = async (req, res) => {
       auctionItem: item._id
     });
     await bid.save();
-
-    const io = req.app.get('io');
-    await createChatRoomAndNotify(item, io);
 
     res.status(201)
       .location(`/auctions/${item._id}/bids/${bid._id}`)
@@ -381,7 +332,6 @@ exports.endAuction = async (req, res) => {
 
     if (item.highestBidder) {
       // 채팅방 생성 및 roomId 반환
-      const roomId = await createChatRoomAndNotify(item, io);
       return res.status(200).json({
         success: true,
         message: '경매가 종료되었으며, 실시간 채팅방과 거래 종료 및 낙찰 알림이 생성되었습니다.'
