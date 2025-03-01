@@ -23,6 +23,6 @@ router.post('/:roomId/leave', chatController.leaveChatRoom);
 router.post('/:roomId/invite', chatController.inviteToChatRoom);
 
 // 새로운 라우트: 특정 유저가 참여 중인 채팅방 목록 조회
-router.get('/rooms/profile', chatController.getUserParticipatingRooms);
+// router.get('/rooms/profile', chatController.getUserParticipatingRooms);
 
 module.exports = router;

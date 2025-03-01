@@ -65,10 +65,28 @@ exports.getUserChatRooms = async (req, res) => {
       filter.category = category;
     }
     const chatRooms = await Chat.find(filter)
-      .select('_id auctionItem createdAt') // 필요한 필드 선택
-      .populate('auctionItem', 'title'); // 경매 아이템의 제목 정보 포함
+      .select('_id auctionItem createdAt participants') // 필요한 필드 선택
+      .populate('auctionItem', 'title')
+      .populate('participants', 'nickname profileImage'); // 경매 아이템의 제목 정보 포함
 
-    res.status(200).json(chatRooms);
+    const chatRoiomsWithOtherUser = chatRooms.map(room => {
+      const roomObj = room.toObject();
+
+      const otherParticipant = roomObj.participants.find(
+        participant => participant._id.toString() !== profileId
+      );
+
+      roomObj.otherUser = otherParticipant
+        ? {
+          _id: otherParticipant._id,
+          nickname: otherParticipant.nickname,
+          profileImage: otherParticipant.profileImage
+        }
+        : null;
+      return roomObj;
+    });
+
+    res.status(200).json(chatRoiomsWithOtherUser);
   } catch (err) {
     res.status(500).send(err.message);
   }
@@ -207,56 +225,6 @@ exports.inviteToChatRoom = async (req, res) => {
     // 선택 사항: Socket.IO를 통해 실시간 알림 전송
     const io = req.app.get('io');
     io.to(roomId).emit('userInvited', { profileId });
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-};
-
-/**
- * 특정 유저가 참여 중인 채팅방 목록 조회(GET /api/chats/user/:userId/rooms)
- * @param {Request} req
- * @param {Response} res
- */
-exports.getUserParticipatingRooms = async (req, res) => {
-  const { profileId } = req.query;
-  try {
-    const chatRooms = await Chat.find({ 'participants.profile': profileId })
-      .select('_id participants createdAt messages')
-      .populate({
-        path: 'participants.profile',
-        select: 'nickname profileImage'
-      });
-
-    const roomsData = chatRooms.map(room => {
-      // 현재 유저를 제외한 참여자 정보
-      const otherParticipants = room.participants.filter(p => p.profile._id.toString() !== profileId);
-
-      // 마지막 메시지와 그 시간
-      const lastMessage = room.messages.length > 0 ? room.messages[room.messages.length - 1] : null;
-
-      // 읽지 않은 메시지 여부 판단
-      const currentUser = room.participants.find(p => p.profile._id.toString() === profileId);
-      const lastRead = currentUser ? currentUser.lastReadTimestamp : new Date(0);
-      const unreadMessages = room.messages.some(message => message.timestamp > lastRead);
-
-      return {
-        _id: room._id,
-        createdAt: room.createdAt,
-        lastMessage: lastMessage ? {
-          sender: lastMessage.sender,
-          message: lastMessage.message,
-          timestamp: lastMessage.timestamp
-        } : null,
-        unreadMessages: unreadMessages,
-        participants: otherParticipants.map(p => ({
-          _id: p.profile._id,
-          nickname: p.profile.nickname,
-          profileImage: p.profile.profileImage
-        }))
-      };
-    });
-
-    res.status(200).json(roomsData);
   } catch (err) {
     res.status(500).send(err.message);
   }
