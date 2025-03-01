@@ -428,7 +428,7 @@ exports.deleteAuctionItem = async (req, res) => {
       return res.status(403).send('경매를 삭제할 권한이 없습니다.');
     }
 
-    await AuctionItem.findByIdAndDelete(auctionId);
+    await AuctionItem.findByIdAndUpdate(auctionId, { deletedAt: new Date() });
     res.status(200).json({ message: '경매 아이템이 삭제되었습니다.' });
   } catch (err) {
     res.status(400).send(err.message);

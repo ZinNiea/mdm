@@ -172,7 +172,7 @@ router.get('/', auctionController.getAuctionItems);
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  *   delete:
- *     summary: 경매 아이템 삭제
+ *     summary: 경매 아이템 소프트 삭제
  *     tags: [Auctions]
  *     parameters:
  *       - in: path
@@ -180,10 +180,10 @@ router.get('/', auctionController.getAuctionItems);
  *         required: true
  *         schema:
  *           type: string
- *         description: 삭제할 경매 아이템의 고유 ID
+ *         description: 소프트 삭제할 경매 아이템의 고유 ID
  *     responses:
  *       200:
- *         description: 경매 아이템이 성공적으로 삭제되었습니다.
+ *         description: 경매 아이템이 소프트 삭제되었습니다. (DB에서는 삭제 기록이 남아있으며, 조회 시 제외됩니다.)
  *       400:
  *         description: 잘못된 auctionId 형식입니다.
  *       404:

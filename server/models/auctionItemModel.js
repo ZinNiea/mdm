@@ -21,6 +21,7 @@ const AuctionItemSchema = new mongoose.Schema({
   views: { type: Number, default: 0 },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: MODELS.PROFILE }],
   createdAt: { type: Date, default: Date.now },
+  deletedAt: { type: Date, default: null },
 });
 
 const AuctionItem = mongoose.model(MODELS.AUCTIONITEM, AuctionItemSchema);

@@ -66,10 +66,10 @@ exports.getUserChatRooms = async (req, res) => {
     }
     const chatRooms = await Chat.find(filter)
       .select('_id auctionItem createdAt participants') // 필요한 필드 선택
-      .populate('auctionItem', 'title')
+      .populate('auctionItem', 'title images currentBid')
       .populate('participants', 'nickname profileImage'); // 경매 아이템의 제목 정보 포함
 
-    const chatRoiomsWithOtherUser = chatRooms.map(room => {
+    const chatRoomsWithAdditionalInfo = chatRooms.map(room => {
       const roomObj = room.toObject();
 
       const otherParticipant = roomObj.participants.find(
@@ -83,10 +83,17 @@ exports.getUserChatRooms = async (req, res) => {
           profileImage: otherParticipant.profileImage
         }
         : null;
+
+      // auctionItem이 존재하면, images 배열의 첫 번째 요소를 firstImage 필드로 추가
+      if (roomObj.auctionItem) {
+        roomObj.auctionItem.firstImage = Array.isArray(roomObj.auctionItem.images)
+          ? roomObj.auctionItem.images[0]
+          : null;
+      }
       return roomObj;
     });
 
-    res.status(200).json(chatRoiomsWithOtherUser);
+    res.status(200).json(chatRoomsWithAdditionalInfo);
   } catch (err) {
     res.status(500).send(err.message);
   }
