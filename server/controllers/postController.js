@@ -11,6 +11,7 @@ const { ViewLog } = require('../models/viewLogModel');
 const mongoose = require('mongoose');
 const { createNotification } = require('../controllers/notificationController'); // 추가
 const { Comment } = require('../models/commentModel'); // 신규 추가: 댓글 모델 import
+const { SearchLog } = require('../models/searchLogModel'); // 신규 추가: 검색어 모델 import
 
 
 function verifyTokenAndGetUserId(req) {
@@ -24,36 +25,6 @@ async function findPostOrFail(postId) {
   const post = await Post.findById(postId);
   if (!post) throw new Error('게시물을 찾을 수 없습니다.');
   return post;
-}
-
-function isBookmarked(userBookmarks, postId) {
-  return userBookmarks.includes(postId.toString());
-}
-
-function isPostBookmarked(postBookmarks, userId) {
-  return postBookmarks.includes(userId);
-}
-
-async function getPostsExcludingBlocked(profileId) {
-  // profileId 검증 추가
-  if (!profileId) {
-    throw new Error('프로필 ID가 필요합니다.');
-  }
-
-  // profileId의 유효성 검사 (예: 유효한 ObjectId인지 확인)
-  if (!mongoose.Types.ObjectId.isValid(profileId)) {
-    throw new Error('유효하지 않은 프로필 ID입니다.');
-  }
-
-  const profile = await Profile.findById(profileId);
-  if (!profile) throw new Error('프로필을 찾을 수 없습니다.');
-
-  const blockedProfiles = profile.blockedProfiles || [];
-  const posts = await Post.find({ author: { $nin: blockedProfiles } })
-    .populate('author', 'nickname profileImage')
-    .sort({ createdAt: -1 });
-
-  return posts;
 }
 
 exports.getPosts = async (req, res) => {
@@ -81,6 +52,9 @@ exports.getPosts = async (req, res) => {
 
   // 검색어 필터 (대소문자 구분 없이 content 필드 검색)
   if (q) {
+    const searchLog = new SearchLog({ keyword: q });
+    await searchLog.save();
+
     filter.content = { $regex: q, $options: 'i' };
   }
 
@@ -145,32 +119,6 @@ exports.getPosts = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-/**
- * {
-  "_id": "677882ade0e7da3e5f075c86",
-  "author": "6771dec510b5be38d0b6b72a",
-  "content": "hiii",
-  "images": [],
-  "createdAt": "2025-01-04T00:37:01.745Z",
-  "commentCount": 0,
-  "likesCount": 0
-}
-
-{
-  "id": "677882ade0e7da3e5f075c86",
-  "content": "hiii",
-  "authorId": "6771dec510b5be38d0b6b72a",
-  "authorNickname": "aewannabe",
-  "createdAt": "2025-01-04T00:37:01.745Z",
-  "likesCount": 0,
-  "commentCount": 0,
-  "likeStatus": false,
-  "bookmarkCount": 0,
-  "bookmarkStatus": false,
-  "images": []
-}
- */
 
 // 설명: getPostById 함수는 특정 게시물을 조회하는 API 엔드포인트를 처리합니다.
 exports.getPostById = async (req, res) => {
@@ -643,7 +591,11 @@ exports.getPopularKeywords = async (req, res) => {
   }
 };
 
-// 누적 인기 키워드 랭킹 조회 함수 추가
+/**
+ * 누적 인기 키워드 랭킹 조회
+ * @param {Request} req
+ * @param {Response} res
+ */
 exports.getCumulativePopularKeywords = async (req, res) => {
   try {
     const posts = await Post.find({});
@@ -662,6 +614,24 @@ exports.getCumulativePopularKeywords = async (req, res) => {
 
     res.status(200).json({ success: true, keywords: sortedKeywords });
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * 검색어 순위 조회
+ * @param {Request} req
+ * @param {Response} res
+ */
+exports.getSearchRanking = async (req, res) => {
+  try {
+    const ranking = await SearchLog.aggregate([
+      { $group: { _id: "$term", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    res.status(200).json({ success: true, data: ranking });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -711,6 +711,7 @@ router.get('/posts/profile/:profileId', authenticateToken, postController.getPos
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/popular-keywords', postController.getPopularKeywords);
+router.get('/popular-keywords', postController.getSearchRanking);
+// router.get('/popular-keywords', postController.getPopularKeywords);
 
 module.exports = router;

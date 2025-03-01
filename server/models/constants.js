@@ -8,6 +8,8 @@ const MODELS = {
   COMMENTREPORT: 'CommentReport',
   PROFILEREPORT: 'ProfileReport',
 
+  SEARCHLOG: 'SearchLog',
+
   AUCTIONITEM: 'AuctionItem',
   BID: 'Bid',
   CHAT: 'Chat',
