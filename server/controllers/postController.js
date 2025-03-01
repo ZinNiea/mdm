@@ -642,3 +642,26 @@ exports.getPopularKeywords = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// 누적 인기 키워드 랭킹 조회 함수 추가
+exports.getCumulativePopularKeywords = async (req, res) => {
+  try {
+    const posts = await Post.find({});
+    const keywordCount = {};
+
+    posts.forEach(post => {
+      post.content.split(/\s+/).forEach(keyword => {
+        if (!keyword) return;
+        keywordCount[keyword] = (keywordCount[keyword] || 0) + 1;
+      });
+    });
+
+    const sortedKeywords = Object.entries(keywordCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([keyword, count]) => ({ keyword, count }));
+
+    res.status(200).json({ success: true, keywords: sortedKeywords });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
