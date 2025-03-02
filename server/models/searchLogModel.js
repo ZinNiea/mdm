@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const { MODELS } = require('./constants');
 
 const searchLogSchema = new mongoose.Schema({
-    term: { type: String, required: true },
+    keyword: { type: String, required: true },
     searchedAt: { type: Date, default: Date.now }
 });
 

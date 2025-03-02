@@ -626,7 +626,7 @@ exports.getCumulativePopularKeywords = async (req, res) => {
 exports.getSearchRanking = async (req, res) => {
   try {
     const ranking = await SearchLog.aggregate([
-      { $group: { _id: "$term", count: { $sum: 1 } } },
+      { $group: { _id: "$keyword", count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
     res.status(200).json({ success: true, data: ranking });
