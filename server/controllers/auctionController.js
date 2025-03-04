@@ -104,6 +104,25 @@ exports.createAuctionItem = async (req, res) => {
     //     }
     //   });
     // }
+    // const threeHours = 3 * 60 * 60 * 1000;
+    // if (endTime - createdAt > threeHours) {
+    //   const endingSoonTime = new Date(endTime.getTime() - threeHours);
+    //   schedule.scheduleJob(endingSoonTime, async () => {
+    //     // 해당 경매의 모든 입찰자를 고유하게 조회
+    //     const bids = await Bid.find({ auctionItem: auctionItem._id });
+    //     const uniqueBidders = [...new Set(bids.map(b => b.bidder.toString()))];
+    //     for (const bidderId of uniqueBidders) {
+    //       // 현재 입찰 금액을 기준으로 알림 전송 (auctionTitle, currentBid)
+    //       await createAuctionEndingSoonNotification(
+    //         bidderId,
+    //         auctionItem._id,
+    //         auctionItem.title,
+    //         auctionItem.currentBid,
+    //         `/auction/${auctionItem._id}` // 생성된 딥링크
+    //       );
+    //     }
+    //   });
+    // }
 
     res.status(201).send({ result: true, auctionId: auctionItem._id });
   } catch (err) {
@@ -130,6 +149,9 @@ exports.getAuctionItems = async (req, res) => {
     if (category) {
       filter.category = category;  // category 검색조건 추가
     }
+    // 삭제되지 않은 경매만 조회 (deletedAt이 null인 항목)
+    filter.deletedAt = null;
+
 
     const items = await AuctionItem.find(filter); // 수정된 filter 적용
 
@@ -389,8 +411,6 @@ exports.reportAuctionItem = async (req, res) => {
   try {
     const { auctionId } = req.params; // 신고할 게시글 ID
     const { category, content, profileId } = req.body; // 신고 카테고리와 내용
-
-    const auctionItem = await AuctionItem.findById(auctionId);
     if (!auctionItem) {
       return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
     }
