@@ -336,7 +336,7 @@ exports.instantBuy = async (req, res) => {
     );
 
     res.status(201)
-      .location(`/auctions/${item._id}/bids/${bid._id}`)
+      .location(`/auctions/${auctionItem._id}/bids/${bid._id}`)
       .send({ result: true });
   } catch (err) {
     res.status(400).send(err.message);
