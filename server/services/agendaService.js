@@ -1,4 +1,4 @@
-// agenda.js
+// agendaService.js
 const Agenda = require('agenda');
 
 const mongoConnectionString = 'mongodb+srv://p04u:VpJL4ftrjy7RbWO6@cluster0.0nr56.mongodb.net/';

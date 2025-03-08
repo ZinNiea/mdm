@@ -296,23 +296,44 @@ exports.placeBid = async (req, res) => {
  */
 exports.instantBuy = async (req, res) => {
   const { profileId } = req.body;
+  const { auctionId } = req.params;
   try {
-    const item = await AuctionItem.findById(req.params.auctionId);
-    if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
-    if (item.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
-    if (!item.instantBuyPrice) return res.status(400).send('즉시구매가 불가능한 아이템입니다.');
+    const auctionItem = await AuctionItem.findById(auctionId);
+    if (!auctionItem) return res.status(404).send('아이템을 찾을 수 없습니다.');
+    if (auctionItem.endTime < new Date()) return res.status(400).send('경매가 종료되었습니다.');
+    if (!auctionItem.instantBuyPrice) return res.status(400).send('즉시구매가 불가능한 아이템입니다.');
 
-    item.currentBid = item.instantBuyPrice;
-    item.highestBidder = profileId;
-    item.endTime = new Date(); // 경매 종료 처리
-    await item.save();
+    auctionItem.currentBid = auctionItem.instantBuyPrice;
+    auctionItem.highestBidder = profileId;
+    auctionItem.endTime = new Date(); // 경매 종료 처리
+    await auctionItem.save();
 
     const bid = new Bid({
-      amount: item.instantBuyPrice,
+      amount: auctionItem.instantBuyPrice,
       bidder: profileId,
-      auctionItem: item._id
+      auctionItem: auctionItem._id
     });
     await bid.save();
+
+    const newChatRoom = await Chat.create({
+      participants: [auctionItem.createdBy, auctionItem.highestBidder],
+      category: CHAT_CATEGORY.AUCTION,
+      auctionItem: auctionItem._id,
+      createdAt: new Date(),
+      messages: []
+    });
+    await createNotification(
+      auctionItem.createdBy,
+      '거래',
+      `경매 종료: '${auctionItem.title}'에 대해 채팅방이 생성되었습니다.`,
+      `/trade/${newChatRoom._id}`
+    );
+    await createNotification(
+      auctionItem.highestBidder,
+      '거래',
+      `경매 종료: '${auctionItem.title}'에 대해 채팅방이 생성되었습니다.`,
+      `/trade/${newChatRoom._id}`
+    );
 
     res.status(201)
       .location(`/auctions/${item._id}/bids/${bid._id}`)
