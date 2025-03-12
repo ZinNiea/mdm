@@ -153,7 +153,7 @@ exports.getAuctionItems = async (req, res) => {
     filter.deletedAt = null;
 
 
-    const items = await AuctionItem.find(filter); // 수정된 filter 적용
+    const items = await AuctionItem.find(filter).sort({ createdAt: -1 }); // 이미지 로드 속도 위해서 최신순으로 로드
 
     const now = new Date();
 
