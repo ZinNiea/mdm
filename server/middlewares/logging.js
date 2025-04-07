@@ -1,4 +1,4 @@
-// middlewares/logging.js
+// server/middlewares/logging.js
 const morgan = require('morgan');
 const logger = require('../utils/logger'); // logger.js의 위치에 맞게 경로 수정
 

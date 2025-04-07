@@ -1,4 +1,4 @@
-// utils/convertCase.js
+// server/utils/convertCase.js
 const camelcaseKeys = require('camelcase-keys');
 const snakecaseKeys = require('snakecase-keys');
 

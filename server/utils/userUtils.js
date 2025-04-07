@@ -1,7 +1,6 @@
-// utils/userUtils.js
-
-const { User } = require('../models/userModel');
-const { Profile } = require('../models/profileModel');
+// server/utils/userUtils.js
+const { User } = require('../models/user.model');
+const { Profile } = require('../models/profile.model');
 
 // 사용자 이름 중복 검사 함수
 exports.isUsernameTaken = async (username) => {

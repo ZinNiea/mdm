@@ -4,19 +4,19 @@ const express = require('express');
 const { default: mongoose, connect } = require('mongoose');
 const cors = require('cors');
 const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가져오기
-const userRouter = require('./routes/userRoutes');
-const postRouter = require('./routes/postRoutes');
-const auctionRouter = require('./routes/auctionRoutes');
-const chatRouter = require('./routes/chatRoutes');
-const authRouter = require('./routes/authRoutes');
-const notificationRouter = require('./routes/notificationRoutes');
+const userRouter = require('./routes/api/users.routes');
+const postRouter = require('./routes/api/post.routes');
+const auctionRouter = require('./routes/api/auctions.routes');
+const chatRouter = require('./routes/api/chats.routes');
+const authRouter = require('./routes/api/auth.routes');
+const notificationRouter = require('./routes/api/notifications.routes');
 const connectDB = require('./config/mongoose');
 
 const app = express();
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerSpec = require('./docs/swaggerOptions');
+const swaggerSpec = require('./docs/swagger.options');
 const swaggerAllowedIPs = [];
 
 // Basic 인증 미들웨어

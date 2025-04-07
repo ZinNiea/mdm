@@ -1,4 +1,4 @@
-// redisClient.js
+// server/config/redisClient.js
 const redis = require('redis');
 
 // Redis 클라이언트 생성

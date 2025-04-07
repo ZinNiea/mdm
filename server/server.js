@@ -2,16 +2,14 @@
 const app = require('./app');
 const http = require('http');
 const socketIo = require('socket.io');
-const chatController = require('./controllers/chatController'); // chatController 불러오기
 const PORT = process.env.PORT || 3000;
 
-const logger = require('./utils/logger'); // Winston 로거 가져오기
-const { Chat, Message } = require('./models/chatModel'); // Chat, Message 모델 가져오기
-const { ViewLog } = require('./models/viewLogModel'); // ViewLog 모델 가져오기
+const logger = require('./utils/logger');
+const { Chat, Message } = require('./models/chat.model');
 
 const mongoose = require('mongoose');
-const { CHAT_CATEGORY } = require('./models/constants');
-const agenda = require('./services/agendaService');
+const { CHAT_CATEGORY } = require('./constants/constants');
+const agenda = require('./services/agenda.service');
 
 // HTTP 서버 생성
 const server = http.createServer(app);
@@ -31,8 +29,6 @@ const io = socketIo(server, {
     methods: ["GET", "POST"]
   }
 });
-
-const readCounts = {};
 
 // Socket.IO 연결 설정
 io.on('connection', (socket) => {
@@ -118,27 +114,12 @@ io.on('connection', (socket) => {
       // 메시지를 방에 브로드캐스트
       io.to(roomId).emit('broadcastMessage', { senderId: senderId, message: message, timestamp: messageInstance.timestamp, messageId: messageInstance._id });
 
-      /*  레거시
-      // 메시지 저장 및 메시지 ID 획득
-      const result = await chatController.saveMessage({ params: { roomId }, body: { senderId, message } });
-      socket.emit('messageSaved', { message: '메시지가 저장되었습니다.' });
-
-      const timestamp = new Date();
-
-      // 메시지를 방에 브로드캐스트
-      io.to(roomId).emit('broadcastMessage', { senderId, message, timestamp, messageId: result.messageId });
-
-      // 읽음 카운트 업데이트
-      readCounts[roomId] = (readCounts[roomId] || 0) + 1;
-      io.to(roomId).emit('updateReadCount', readCounts[roomId]);
-       */
     } catch (error) {
       logger.error('메시지 저장 오류:', error);
       socket.emit('error', { message: '메시지 저장에 실패했습니다.' });
     }
   });
 
-  // 채팅방에서 탈퇴
   socket.on('leaveRoom', async (data) => {
     const { roomId, profileId } = data;
 
@@ -158,8 +139,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Event handler for rejoining a chat room
-  // This handler allows a user to rejoin a chat room and updates the last read time
   socket.on('rejoinRoom', async (data) => {
     const { roomId, lastReadTime } = data;
 

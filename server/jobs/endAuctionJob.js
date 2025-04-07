@@ -1,8 +1,8 @@
 // 예시: 작업 핸들러 등록 (예: jobs/endAuctionJob.js)
-const { AuctionItem } = require('../models/auctionItemModel');
-const { Chat } = require('../models/chatModel');
-const { createNotification } = require('../controllers/notificationController');
-const { CHAT_CATEGORY } = require('../models/constants');
+const { AuctionItem } = require('../models/auctionItem.model');
+const { Chat } = require('../models/chat.model');
+const { createNotification } = require('../controllers/notification.controller');
+const { CHAT_CATEGORY } = require('../constants/constants');
 
 module.exports = function (agenda) {
     agenda.define('auction end job', async job => {
