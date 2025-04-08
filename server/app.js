@@ -4,12 +4,8 @@ const express = require('express');
 const { default: mongoose, connect } = require('mongoose');
 const cors = require('cors');
 const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가져오기
-const userRouter = require('./routes/api/users.routes');
-const postRouter = require('./routes/api/post.routes');
-const auctionRouter = require('./routes/api/auctions.routes');
-const chatRouter = require('./routes/api/chats.routes');
-const authRouter = require('./routes/api/auth.routes');
-const notificationRouter = require('./routes/api/notifications.routes');
+const apiRouter = require('./routes/api/index'); // api 라우터 가져오기
+const adminRouter = require('./routes/admin/index'); // admin 라우터 가져오기
 const connectDB = require('./config/mongoose');
 
 const app = express();
@@ -78,12 +74,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(loggingMiddleware);
 
 // 라우터 등록
-app.use('/user', userRouter);
-app.use('/post', postRouter);
-app.use('/auctions', auctionRouter);
-app.use('/chat', chatRouter);
-app.use('/auth', authRouter);
-app.use('/notifications', notificationRouter);
+app.use('/api', apiRouter);
+app.use('/admin', adminRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');

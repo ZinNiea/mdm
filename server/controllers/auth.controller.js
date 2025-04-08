@@ -1,6 +1,10 @@
 // server/controllers/auth.controller.js
+const { Request, Response } = require('express');
 const { sendSMS } = require('../services/sms.service');
-const redisService = require('../services/redis.service');
+const bcrypt = require('bcrypt');
+const { User } = require('../models/user.model');
+const SECRET_KEY = process.env.SECRET_KEY; // Load SECRET_KEY from environment variables
+const { User } = require('../models/user.model');
 
 /**
  * 인증번호 요청
@@ -50,3 +54,56 @@ exports.verifyCode = async (req, res) => {
     res.status(400).json({ result: false, message: '인증번호가 일치하지 않습니다.' });
   }
 };
+
+/**
+ * 
+ * @param {Request} req 
+ * @param {Response} res 
+ */
+async function login(req, res) {
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ username: username, isDeleted: false });
+
+    // 사용자 존재 여부와 비밀번호 검증을 통합
+    if (!user || !await bcrypt.compare(password, user.password)) {
+      return res.status(401).json({ message: '아이디 또는 비밀번호가 잘못되었습니다.' });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      SECRET_KEY,
+      { expiresIn: '3d' }
+    );
+    // 프로필 목록 구성
+    const profiles = Array.isArray(user.profiles) ? user.profiles.map(profile => ({
+      id: profile._id,
+      nickname: profile.nickname,
+      profileImage: profile.profileImage,
+      birthdate: profile.birthdate,
+      // 필요한 다른 필드 추가
+    })) : [];
+
+    res.status(200).json({
+      result: true,
+      message: '로그인 성공',
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        createdAt: user.createdAt,
+        profiles: profiles,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: err.message
+    });
+  }
+}
+
+module.exports = {
+  login,
+}
