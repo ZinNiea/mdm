@@ -291,13 +291,23 @@ exports.deleteUser = async (req, res) => {
       return res.status(400).json({ result: false, message: 'userId가 필요합니다.' });
     }
 
-    const user = await User.findOneAndUpdate(
-      { userId, isDeleted: false },
-      { isDeleted: true, deletedAt: new Date() }
-    );
+    // userId로 사용자를 찾습니다.
+    const user = await User.findById({ userId });
+
+    // 사용자가 존재하지 않는 경우
     if (!user) {
       return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
     }
+
+    // 이미 삭제된 사용자인 경우
+    if (user.isDeleted) {
+      return res.status(400).json({ result: false, message: '탈퇴한 사용자입니다.' });
+    }
+
+    // 사용자 소프트 삭제 처리
+    user.isDeleted = true;
+    // user.deletedAt = new Date();
+    await user.save();
 
     res.status(200).json({
       result: true,
