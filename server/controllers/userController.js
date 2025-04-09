@@ -292,7 +292,7 @@ exports.deleteUser = async (req, res) => {
     }
 
     // userId로 사용자를 찾습니다.
-    const user = await User.findById({ userId });
+    const user = await User.findById(userId);
 
     // 사용자가 존재하지 않는 경우
     if (!user) {
