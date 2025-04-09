@@ -341,11 +341,13 @@ exports.reportPost = async (req, res) => {
 // 좋아요/좋아요 취소
 exports.toggleLike = async (req, res) => {
   const { postId } = req.params;
-  const { profileId } = req.body;
+  // const { profileId } = req.body;
+  const profileId = req.body.profileId; //!< 행동을 수행하고 있는 프로필 ID
+
 
   try {
     const userId = verifyTokenAndGetUserId(req);
-    const post = await findPostOrFail(postId);
+    const post = await Post.findById(postId);
 
     // 좋아요 취소인 경우
     if (post.likes.includes(profileId)) {
@@ -358,19 +360,15 @@ exports.toggleLike = async (req, res) => {
       await post.save();
 
       const likingProfile = await Profile.findById(profileId);
+      const authorProfile = await Profile.findById(post.author);
 
-      if (likingProfile) {
+      if (authorProfile) {
         await createNotification(
-          likingProfile._id,
+          authorProfile._id,
           '커뮤니티',
           `${likingProfile.nickname}님이 회원님의 게시물을 좋아합니다. ${post.content}`,
           `community/${postId}`
         )
-      }
-      // post.author는 User ID이므로, 해당 사용자의 메인 프로필을 가정
-      const author = await User.findById(post.author);
-      if (author && author.mainProfile) {
-
       }
       return res.status(200).json({ result: true, message: '게시물에 좋아요를 표시했습니다.' });
     }
