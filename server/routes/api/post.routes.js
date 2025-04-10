@@ -123,8 +123,8 @@ const { authenticateToken } = require('../../middlewares/auth.middleware');
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/posts', postController.getPosts);
-router.post('/posts', authenticateToken, upload(IMAGE_TYPES.POST).array('images', 5), postController.createPost);
+router.get('/', postController.getPosts);
+router.post('/', authenticateToken, upload(IMAGE_TYPES.POST).array('images', 5), postController.createPost);
 
 /**
  * @swagger
@@ -262,9 +262,9 @@ router.post('/posts', authenticateToken, upload(IMAGE_TYPES.POST).array('images'
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/posts/:postId', authenticateToken, postController.getPostById);
-router.put('/posts/:postId', authenticateToken, upload(IMAGE_TYPES.POST).array('images', 5), postController.updatePost);
-router.delete('/posts/:postId', authenticateToken, postController.deletePost);
+router.get('/:postId', authenticateToken, postController.getPostById);
+router.put('/:postId', authenticateToken, upload(IMAGE_TYPES.POST).array('images', 5), postController.updatePost);
+router.delete('/:postId', authenticateToken, postController.deletePost);
 
 /**
  * @swagger
@@ -309,7 +309,7 @@ router.delete('/posts/:postId', authenticateToken, postController.deletePost);
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/posts/:postId/report', authenticateToken, postController.reportPost);
+router.post('/:postId/report', authenticateToken, postController.reportPost);
 
 /**
  * @swagger
@@ -346,7 +346,7 @@ router.post('/posts/:postId/report', authenticateToken, postController.reportPos
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/posts/:postId/likes', authenticateToken, postController.toggleLike);
+router.post('/:postId/likes', authenticateToken, postController.toggleLike);
 
 /**
  * @swagger
@@ -383,7 +383,7 @@ router.post('/posts/:postId/likes', authenticateToken, postController.toggleLike
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/posts/:postId/bookmarks', authenticateToken, postController.toggleBookmark);
+router.post('/:postId/bookmarks', authenticateToken, postController.toggleBookmark);
 
 /**
  * @swagger
