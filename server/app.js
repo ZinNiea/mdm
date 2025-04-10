@@ -5,7 +5,7 @@ const { default: mongoose, connect } = require('mongoose');
 const cors = require('cors');
 const loggingMiddleware = require('./middlewares/logging'); // 미들웨어 가져오기
 const apiRouter = require('./routes/api/index'); // api 라우터 가져오기
-const adminRouter = require('./routes/admin/index'); // admin 라우터 가져오기
+// const adminRouter = require('./routes/admin/index'); // admin 라우터 가져오기
 const connectDB = require('./config/mongoose');
 
 const app = express();
@@ -75,7 +75,7 @@ app.use(loggingMiddleware);
 
 // 라우터 등록
 app.use('/api', apiRouter);
-app.use('/admin', adminRouter);
+// app.use('/admin', adminRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');

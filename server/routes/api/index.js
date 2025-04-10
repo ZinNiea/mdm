@@ -10,7 +10,7 @@ const authRouter = require('./auth.routes');
 const notificationsRouter = require('./notifications.routes');
 
 router.use('/users', usersRouter);
-router.use('/post', postsRouter);
+router.use('/posts', postsRouter);
 router.use('/auctions', auctionsRouter);
 router.use('/chats', chatsRouter);
 router.use('/auth', authRouter);
