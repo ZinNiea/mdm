@@ -20,7 +20,7 @@ let swaggerSpec;
 
 try {
   // 자동 생성된 파일 사용 시도
-  swaggerSpec = require('./swagger-output.json');
+  swaggerSpec = require('./docs/swagger-output.json');
 } catch (error) {
   // 파일이 없으면 기존 설정 사용
   swaggerSpec = require('./docs/swaggerOptions');
