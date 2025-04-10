@@ -10,6 +10,11 @@ const auctionRouter = require('./routes/auctionRoutes');
 const chatRouter = require('./routes/chatRoutes');
 const authRouter = require('./routes/authRoutes');
 const notificationRouter = require('./routes/notificationRoutes');
+
+//!< v2
+const apiRouter = require('./routes/api');
+const adminRouter = require('./routes/admin')
+
 const connectDB = require('./config/mongoose');
 
 const app = express();
@@ -95,6 +100,9 @@ app.use('/auctions', auctionRouter);
 app.use('/chat', chatRouter);
 app.use('/auth', authRouter);
 app.use('/notifications', notificationRouter);
+app.use('/api', apiRouter);
+app.use('/admin', adminRouter);
+
 
 app.get('/', (req, res) => {
   res.send('Hello, World! \n This is the main page of the app');
