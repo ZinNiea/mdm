@@ -107,14 +107,14 @@ const options = {
     autoBody: true,
     // 중요: 파일 경로에 따라 태그 자동 할당
     routesPaths: {
-        'userRoutes.js': 'Users',
-        'postRoutes.js': 'Posts',
-        'authRoutes.js': 'Authentication',
-        'auctionRoutes.js': 'Auctions',
-        'chatRoutes.js': 'Chats',
-        'notificationRoutes.js': 'Notifications',
-        'commentRoutes.js': 'Comments'
-    }
+        '../routes/userRoutes.js': 'Users',
+        '../routes/postRoutes.js': 'Posts',
+        '../routes/commentRoutes.js': 'Comments',
+        '../routes/notificationRoutes.js': 'Notifications',
+        '../routes/chatRoutes.js': 'Chats',
+        '../routes/authRoutes.js': 'Authentication',
+        '../routes/auctionRoutes.js': 'Auctions'
+    },
 };
 
 swaggerAutogen(outputFile, endpointsFiles, doc, options).then(() => {
