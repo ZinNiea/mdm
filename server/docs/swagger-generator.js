@@ -10,7 +10,7 @@ const doc = {
         version: '1.0.0'
     },
     host: process.env.SERVER_URL?.replace(/^https?:\/\//, '') || 'localhost:3000',
-    basePath: '/api',
+    basePath: '/',
     schemes: ['http', 'https'],
     securityDefinitions: {
         bearerAuth: {
@@ -63,12 +63,30 @@ const doc = {
         {
             name: 'Authentication',
             description: '인증 관련 API'
+        },
+        {
+            name: 'Auctions',
+            description: '경매 관련 API'
+        },
+        {
+            name: 'Chats',
+            description: '채팅 관련 API'
+        },
+        {
+            name: 'Notifications',
+            description: '알림 관련 API'
+        },
+        {
+            name: 'Comments',
+            description: '댓글 관련 API'
         }
-    ]
+    ],
+    // 자동 태그 지정 설정 추가
+    autoTags: true
 };
 
 // 출력 파일 경로
-const outputFile = './swagger-output.json';
+const outputFile = '../docs/swagger-output.json';
 
 // 스캔할 라우트 파일들
 const endpointsFiles = [
@@ -82,4 +100,23 @@ const endpointsFiles = [
     '../routes/auctionRoutes.js',
 ];
 
-swaggerAutogen(outputFile, endpointsFiles, doc);
+// 파일 경로 기반 태그 매핑 설정
+const options = {
+    autoHeaders: true,
+    autoQuery: true,
+    autoBody: true,
+    // 중요: 파일 경로에 따라 태그 자동 할당
+    routesPaths: {
+        'userRoutes.js': 'Users',
+        'postRoutes.js': 'Posts',
+        'authRoutes.js': 'Authentication',
+        'auctionRoutes.js': 'Auctions',
+        'chatRoutes.js': 'Chats',
+        'notificationRoutes.js': 'Notifications',
+        'commentRoutes.js': 'Comments'
+    }
+};
+
+swaggerAutogen(outputFile, endpointsFiles, doc, options).then(() => {
+    console.log('Swagger 문서가 성공적으로 생성되었습니다');
+});
