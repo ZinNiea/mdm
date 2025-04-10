@@ -1,5 +1,8 @@
 const swaggerAutogen = require('swagger-autogen')();
+const swaggerOptionsModule = require('./swaggerOptions');
 
+// swaggerOptions.js 파일에서 내보낸 것은 swaggerSpec 객체이므로
+// 스키마 정의를 직접 작성하거나 빈 객체로 설정
 const doc = {
     info: {
         title: 'MDM API',
@@ -19,8 +22,33 @@ const doc = {
     },
     components: {
         schemas: {
-            // 기존 스키마 정의 가져오기
-            ...require('./swaggerOptions').definition.components.schemas
+            // 직접 스키마 정의
+            User: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string' },
+                    username: { type: 'string' },
+                    email: { type: 'string' }
+                }
+            },
+            Profile: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string' },
+                    userId: { type: 'string' },
+                    nickname: { type: 'string' }
+                }
+            },
+            Post: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string' },
+                    title: { type: 'string' },
+                    content: { type: 'string' },
+                    author: { type: 'string' }
+                }
+            }
+            // 필요한 다른 스키마들...
         }
     },
     tags: [
@@ -52,7 +80,6 @@ const endpointsFiles = [
     '../routes/chatRoutes.js',
     '../routes/authRoutes.js',
     '../routes/auctionRoutes.js',
-    // 필요한 다른 라우트 파일들 추가
 ];
 
 swaggerAutogen(outputFile, endpointsFiles, doc);
