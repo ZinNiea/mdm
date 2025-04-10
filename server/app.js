@@ -12,8 +12,23 @@ const app = express();
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerSpec = require('./docs/swagger.options');
 const swaggerAllowedIPs = [];
+
+//!< swagger auto gen
+const swaggerFile = require('./swagger-output');
+
+// swagger-autogen으로 생성된 파일 불러오기
+let swaggerSpec;
+
+try {
+  // 자동 생성된 파일 사용 시도
+  swaggerSpec = require('./swagger-output.json');
+} catch (error) {
+  // 파일이 없으면 기존 설정 사용
+  swaggerSpec = require('./docs/swagger.options');
+  console.log('자동 생성된 swagger 문서를 찾을 수 없습니다. 기본 문서를 사용합니다.');
+  console.log('npm run swagger-autogen 명령어로 문서를 생성할 수 있습니다.');
+}
 
 // Basic 인증 미들웨어
 const basicAuth = (req, res, next) => {
