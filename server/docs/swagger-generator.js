@@ -95,55 +95,57 @@ const endpointsFiles = [
     path.join(__dirname, '../routes/auctionRoutes.js'),
 ];
 
-// 후처리 함수 정의 - 생성된 문서를 수정하는 접근법
+// 더 정확한 경로 매칭을 위한 수정
 const generateSwagger = async () => {
     // 기본 문서 생성
     await swaggerAutogen(outputFile, endpointsFiles, doc);
-
+    
+    console.log('기본 Swagger 문서 생성 완료, 태그 후처리 시작...');
+    
     // 생성된 문서 로드
     const fs = require('fs');
     const swaggerDoc = JSON.parse(fs.readFileSync(outputFile));
-
-    // 경로 기반 태그 매핑
-    const pathToTagMapping = {
-        '/user': 'Users',
-        '/users': 'Users',
-        '/post': 'Posts',
-        '/posts': 'Posts',
-        '/comment': 'Comments',
-        '/comments': 'Comments',
-        '/notification': 'Notifications',
-        '/notifications': 'Notifications',
-        '/chat': 'Chats',
-        '/chats': 'Chats',
-        '/auth': 'Authentication',
-        '/auction': 'Auctions',
-        '/auctions': 'Auctions',
-    };
-
-    // 모든 API 경로 순회하며 태그 할당
+    
+    console.log(`총 ${Object.keys(swaggerDoc.paths).length}개의 API 경로 발견`);
+    
+    // 태그 매핑 적용 전 모든 경로 출력 (디버깅용)
+    console.log('발견된 API 경로:');
     Object.keys(swaggerDoc.paths).forEach(path => {
-        // 경로에 맞는 태그 찾기
-        let matchedTag = null;
-        for (const prefix in pathToTagMapping) {
-            if (path.includes(prefix)) {
-                matchedTag = pathToTagMapping[prefix];
-                break;
-            }
+        console.log(`  - ${path}`);
+    });
+    
+    // 경로별 태그 매핑 (더 명확한 규칙)
+    Object.keys(swaggerDoc.paths).forEach(path => {
+        let assignedTag = null;
+        
+        // 절대적인 경로 시작 부분 확인
+        if (path.startsWith('/user') || path.startsWith('/users')) {
+            assignedTag = 'Users';
+        } else if (path.startsWith('/post') || path.startsWith('/posts')) {
+            assignedTag = 'Posts';
+        } else if (path.startsWith('/comment') || path.includes('comments')) {
+            assignedTag = 'Comments';
+        } else if (path.includes('notification')) {
+            assignedTag = 'Notifications';
+        } else if (path.startsWith('/chat') || path.includes('/chats')) {
+            assignedTag = 'Chats';
+        } else if (path.startsWith('/auth')) {
+            assignedTag = 'Authentication';
+        } else if (path.startsWith('/auction') || path.includes('auctions')) {
+            assignedTag = 'Auctions';
         }
-
-        if (matchedTag) {
-            // 모든 HTTP 메서드에 태그 적용
+        
+        if (assignedTag) {
+            // 해당 경로의 모든 HTTP 메서드에 태그 적용
             for (const method in swaggerDoc.paths[path]) {
-                if (!swaggerDoc.paths[path][method].tags) {
-                    swaggerDoc.paths[path][method].tags = [];
-                }
-                // 기존 태그 제거하고 새 태그만 설정
-                swaggerDoc.paths[path][method].tags = [matchedTag];
+                swaggerDoc.paths[path][method].tags = [assignedTag];
+                console.log(`  태그 할당: ${path} [${method}] -> ${assignedTag}`);
             }
+        } else {
+            console.log(`  태그 미할당: ${path} (매칭되는 패턴 없음)`);
         }
     });
-
+    
     // 수정된 문서 저장
     fs.writeFileSync(outputFile, JSON.stringify(swaggerDoc, null, 2));
     console.log('태그가 적용된 Swagger 문서가 성공적으로 생성되었습니다!');
