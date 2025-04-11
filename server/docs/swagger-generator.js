@@ -1,5 +1,6 @@
 const swaggerAutogen = require('swagger-autogen')();
 const swaggerOptionsModule = require('./swaggerOptions');
+const path = require('path');
 
 // swaggerOptions.js 파일에서 내보낸 것은 swaggerSpec 객체이므로
 // 스키마 정의를 직접 작성하거나 빈 객체로 설정
@@ -84,18 +85,30 @@ const doc = {
 };
 
 // 출력 파일 경로
-const outputFile = '../docs/swagger-output.json';
+// const outputFile = '../docs/swagger-output.json';
+const outputFile = path.join(__dirname, 'swagger-output.json');
 
 // 스캔할 라우트 파일들
+// const endpointsFiles = [
+//     '../app.js',
+//     '../routes/userRoutes.js',
+//     '../routes/postRoutes.js',
+//     '../routes/commentRoutes.js',
+//     '../routes/notificationRoutes.js',
+//     '../routes/chatRoutes.js',
+//     '../routes/authRoutes.js',
+//     '../routes/auctionRoutes.js',
+// ];
 const endpointsFiles = [
-    '../app.js',
-    '../routes/userRoutes.js',
-    '../routes/postRoutes.js',
-    '../routes/commentRoutes.js',
-    '../routes/notificationRoutes.js',
-    '../routes/chatRoutes.js',
-    '../routes/authRoutes.js',
-    '../routes/auctionRoutes.js',
+    path.join(__dirname, '../app.js'),
+    path.join(__dirname, '../routes/api/index.js'), // API 라우트 파일
+    path.join(__dirname, '../routes/userRoutes.js'),
+    path.join(__dirname, '../routes/postRoutes.js'),
+    path.join(__dirname, '../routes/commentRoutes.js'),
+    path.join(__dirname, '../routes/notificationRoutes.js'),
+    path.join(__dirname, '../routes/chatRoutes.js'),
+    path.join(__dirname, '../routes/authRoutes.js'),
+    path.join(__dirname, '../routes/auctionRoutes.js'),
 ];
 
 // 파일 경로 기반 태그 매핑 설정
