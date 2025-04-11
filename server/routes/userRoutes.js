@@ -8,126 +8,12 @@ const userController = require('../controllers/userController');
 const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
-/**
- * @swagger
- * /users/register:
- *   post:
- *     summary: 사용자 등록
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *               profileImage:
- *                 type: string
- *                 format: binary
- *     responses:
- *       201:
- *         description: 회원가입에 성공했습니다.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 userId:
- *                   type: string
- *                   description: 생성된 사용자의 고유 ID
- *       400:
- *         description: 요청 데이터가 잘못되었습니다. 필수 필드가 누락되었거나 형식이 올바르지 않습니다.
- *       409:
- *         description: 사용자 이름이 이미 존재합니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
 router.post('/register', upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.registerUser);
 
-/**
- * @swagger
- * /users/login:
- *   post:
- *     summary: 사용자 로그인
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: 로그인이 성공했습니다.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *                   description: 인증 토큰
- *       400:
- *         description: 요청 데이터가 잘못되었습니다.
- *       401:
- *         description: 인증에 실패했습니다. 사용자 이름 또는 비밀번호가 올바르지 않습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
 router.post('/login', userController.login);
 
-/**
- * @swagger
- * /users/logout:
- *   post:
- *     summary: 사용자 로그아웃
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: 로그아웃 처리되었습니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
 router.post('/logout', userController.logout);
 
-/**
- * @swagger
- * /users/{userId}/delete:
- *   delete:
- *     summary: 사용자 삭제
- *     tags: [Users]
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: 삭제할 사용자의 고유 ID
- *     responses:
- *       200:
- *         description: 사용자가 성공적으로 삭제되었습니다.
- *       400:
- *         description: 잘못된 userId 형식입니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       403:
- *         description: 사용자 삭제 권한이 없습니다.
- *       404:
- *         description: 삭제할 사용자를 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
 router.delete('/:userId/delete', authenticateToken, userController.deleteUser);
 
 /**
