@@ -108,98 +108,55 @@ const generateSwagger = async () => {
 
     console.log(`총 ${Object.keys(swaggerDoc.paths).length}개의 API 경로 발견`);
 
-    // 태그 매핑 적용 전 모든 경로 출력 (디버깅용)
-    console.log('발견된 API 경로:');
-    Object.keys(swaggerDoc.paths).forEach(path => {
-        console.log(`  - ${path}`);
-    });
-
-    // 특정 경로에 대한 명시적 태그 지정
+    // 명시적 태그 지정 (기본 설정)
     const explicitTags = {
         '/': 'General',
         '/hello': 'General',
         '/api/users/register': 'Authentication',
         '/api/users/login': 'Authentication',
         '/api/users/logout': 'Authentication',
-        // 필요한 다른 명시적 경로
     };
 
-    Object.keys(swaggerDoc.paths).forEach(path => {
-        // 1. 명시적 태그 체크
+    // 경로 분류 함수
+    function classifyPath(path) {
+        // 명시적으로 지정된 태그가 있으면 사용
         if (explicitTags[path]) {
-            for (const method in swaggerDoc.paths[path]) {
-                swaggerDoc.paths[path][method].tags = [explicitTags[path]];
-                console.log(`  명시적 태그 할당: ${path} [${method}] -> ${explicitTags[path]}`);
-            }
-            return;
+            return explicitTags[path];
         }
 
-        // 2. 패턴 기반 태그 지정 (기존 로직)
-        let assignedTag = null;
-
-        // 경로 규칙 우선순위
-        const rules = [
-            { pattern: /comments|comment/, tag: 'Comments' },
-            { pattern: /\/auth|login|logout|register|verification/, tag: 'Authentication' },
-            { pattern: /\/users|\/user|\/profiles|\/profile/, tag: 'Users' },
-            { pattern: /\/posts|\/post/, tag: 'Posts' },
-            { pattern: /notification/, tag: 'Notifications' },
-            { pattern: /\/chat|\/chats/, tag: 'Chats' },
-            { pattern: /auction|\/bid/, tag: 'Auctions' }
-        ];
-
-        // 첫 번째 일치하는 규칙 적용
-        for (const rule of rules) {
-            if (path.match(rule.pattern)) {
-                assignedTag = rule.tag;
-                break;
-            }
-        }
-
-        if (assignedTag) {
-            // 태그 적용
-            for (const method in swaggerDoc.paths[path]) {
-                swaggerDoc.paths[path][method].tags = [assignedTag];
-                console.log(`  태그 할당: ${path} [${method}] -> ${assignedTag}`);
-            }
-        } else {
-            console.log(`  태그 미할당: ${path} (매칭되는 패턴 없음)`);
-        }
-    });
-
-    // API 접두사 정규화 처리
-    Object.keys(swaggerDoc.paths).forEach(path => {
-        let normalizedPath = path;
-        // /api/ 접두사 제거하여 기본 경로 얻기
+        // /api/ 경로만 태그 할당하고 나머지는 default로 유지
         if (path.startsWith('/api/')) {
-            normalizedPath = path.substring(4); // '/api/' 제거
+            const normalizedPath = path.substring(4); // '/api/' 제거
+
+            // API 경로에 대한 태그 할당
+            if (normalizedPath.match(/users|user|profiles|profile/)) return 'Users';
+            if (normalizedPath.match(/posts|post/)) return 'Posts';
+            if (normalizedPath.match(/comments|comment/)) return 'Comments';
+            if (normalizedPath.match(/notifications|notification/)) return 'Notifications';
+            if (normalizedPath.match(/chats|chat/)) return 'Chats';
+            if (normalizedPath.match(/auth|login|logout|register|verification/)) return 'Authentication';
+            if (normalizedPath.match(/auctions|auction|bid/)) return 'Auctions';
         }
 
-        // 정규화된 경로로 태그 찾기
-        let assignedTag = findTagForPath(normalizedPath);
+        // /api/ 접두사가 없는 경로는 모두 default로 유지
+        return 'default';
+    }
 
-        if (assignedTag) {
-            // 태그 적용
+    // 모든 경로에 태그 적용
+    Object.keys(swaggerDoc.paths).forEach(path => {
+        const tag = classifyPath(path);
+
+        // default가 아닌 경우에만 태그 적용
+        if (tag !== 'default') {
             for (const method in swaggerDoc.paths[path]) {
-                swaggerDoc.paths[path][method].tags = [assignedTag];
-                console.log(`  태그 할당: ${path} [${method}] -> ${assignedTag}`);
+                swaggerDoc.paths[path][method].tags = [tag];
+                console.log(`  태그 할당: ${path} [${method}] -> ${tag}`);
             }
         } else {
-            console.log(`  태그 미할당: ${path} (매칭되는 패턴 없음)`);
+            // default 태그는 출력만 하고 실제 태그는 변경하지 않음
+            console.log(`  기본 태그 유지: ${path} (default 그룹)`);
         }
     });
-
-    // 경로에 맞는 태그 찾기 함수
-    function findTagForPath(path) {
-        if (path.match(/\/users|\/user|profiles|profile/)) return 'Users';
-        if (path.match(/\/posts|\/post/)) return 'Posts';
-        if (path.match(/comments|comment/)) return 'Comments';
-        if (path.match(/notification/)) return 'Notifications';
-        if (path.match(/\/chats|\/chat/)) return 'Chats';
-        if (path.match(/\/auth|login|logout|register|verification/)) return 'Authentication';
-        if (path.match(/auction|bid/)) return 'Auctions';
-        return null;
-    }
 
     // 수정된 문서 저장
     fs.writeFileSync(outputFile, JSON.stringify(swaggerDoc, null, 2));
