@@ -1,4 +1,5 @@
-// routes/commentRoutes.js
+// server/routes/commentRoutes.js
+// #swagger.tags = ['Comments']
 const express = require('express');
 const router = express.Router();
 const commentsController = require('../controllers/commentController');

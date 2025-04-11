@@ -1,4 +1,5 @@
-// 파일 경로: server/routes/notificationRoutes.js
+// server/routes/notificationRoutes.js
+// #swagger.tags = ['Notifications']
 const express = require('express');
 const router = express.Router();
 const {

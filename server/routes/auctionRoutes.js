@@ -1,4 +1,5 @@
 // routes/auction.js
+// #swagger.tags = ['Auctions']
 const express = require('express');
 const router = express.Router();
 const auctionController = require('../controllers/auctionController');
