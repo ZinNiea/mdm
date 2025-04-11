@@ -1,9 +1,6 @@
 const swaggerAutogen = require('swagger-autogen')();
-const swaggerOptionsModule = require('./swaggerOptions');
 const path = require('path');
 
-// swaggerOptions.js 파일에서 내보낸 것은 swaggerSpec 객체이므로
-// 스키마 정의를 직접 작성하거나 빈 객체로 설정
 const doc = {
     info: {
         title: 'MDM API',
@@ -23,7 +20,6 @@ const doc = {
     },
     components: {
         schemas: {
-            // 직접 스키마 정의
             User: {
                 type: 'object',
                 properties: {
@@ -49,7 +45,6 @@ const doc = {
                     author: { type: 'string' }
                 }
             }
-            // 필요한 다른 스키마들...
         }
     },
     tags: [
@@ -84,24 +79,13 @@ const doc = {
     ],
 };
 
-// 출력 파일 경로
-// const outputFile = '../docs/swagger-output.json';
+// 출력 파일 경로 수정
 const outputFile = path.join(__dirname, 'swagger-output.json');
 
-// 스캔할 라우트 파일들
-// const endpointsFiles = [
-//     '../app.js',
-//     '../routes/userRoutes.js',
-//     '../routes/postRoutes.js',
-//     '../routes/commentRoutes.js',
-//     '../routes/notificationRoutes.js',
-//     '../routes/chatRoutes.js',
-//     '../routes/authRoutes.js',
-//     '../routes/auctionRoutes.js',
-// ];
+// 스캔할 라우트 파일들 - 잘못된 URL 수정
 const endpointsFiles = [
     path.join(__dirname, '../app.js'),
-    path.join(__dirname, '../routes/api/index.js'), // API 라우트 파일
+    path.join(__dirname, '../routes/api/index.js'), // 올바른 라우트 파일 경로
     path.join(__dirname, '../routes/userRoutes.js'),
     path.join(__dirname, '../routes/postRoutes.js'),
     path.join(__dirname, '../routes/commentRoutes.js'),
@@ -111,23 +95,59 @@ const endpointsFiles = [
     path.join(__dirname, '../routes/auctionRoutes.js'),
 ];
 
-// 파일 경로 기반 태그 매핑 설정
-const options = {
-    autoHeaders: true,
-    autoQuery: true,
-    autoBody: true,
-    // 중요: 파일 경로에 따라 태그 자동 할당
-    routesPaths: {
-        '../routes/userRoutes.js': 'Users',
-        '../routes/postRoutes.js': 'Posts',
-        '../routes/commentRoutes.js': 'Comments',
-        '../routes/notificationRoutes.js': 'Notifications',
-        '../routes/chatRoutes.js': 'Chats',
-        '../routes/authRoutes.js': 'Authentication',
-        '../routes/auctionRoutes.js': 'Auctions'
-    },
+// 후처리 함수 정의 - 생성된 문서를 수정하는 접근법
+const generateSwagger = async () => {
+    // 기본 문서 생성
+    await swaggerAutogen(outputFile, endpointsFiles, doc);
+
+    // 생성된 문서 로드
+    const fs = require('fs');
+    const swaggerDoc = JSON.parse(fs.readFileSync(outputFile));
+
+    // 경로 기반 태그 매핑
+    const pathToTagMapping = {
+        '/user': 'Users',
+        '/users': 'Users',
+        '/post': 'Posts',
+        '/posts': 'Posts',
+        '/comment': 'Comments',
+        '/comments': 'Comments',
+        '/notification': 'Notifications',
+        '/notifications': 'Notifications',
+        '/chat': 'Chats',
+        '/chats': 'Chats',
+        '/auth': 'Authentication',
+        '/auction': 'Auctions',
+        '/auctions': 'Auctions',
+    };
+
+    // 모든 API 경로 순회하며 태그 할당
+    Object.keys(swaggerDoc.paths).forEach(path => {
+        // 경로에 맞는 태그 찾기
+        let matchedTag = null;
+        for (const prefix in pathToTagMapping) {
+            if (path.includes(prefix)) {
+                matchedTag = pathToTagMapping[prefix];
+                break;
+            }
+        }
+
+        if (matchedTag) {
+            // 모든 HTTP 메서드에 태그 적용
+            for (const method in swaggerDoc.paths[path]) {
+                if (!swaggerDoc.paths[path][method].tags) {
+                    swaggerDoc.paths[path][method].tags = [];
+                }
+                // 기존 태그 제거하고 새 태그만 설정
+                swaggerDoc.paths[path][method].tags = [matchedTag];
+            }
+        }
+    });
+
+    // 수정된 문서 저장
+    fs.writeFileSync(outputFile, JSON.stringify(swaggerDoc, null, 2));
+    console.log('태그가 적용된 Swagger 문서가 성공적으로 생성되었습니다!');
 };
 
-swaggerAutogen(outputFile, endpointsFiles, doc, options).then(() => {
-    console.log('Swagger 문서가 성공적으로 생성되었습니다');
-});
+// 함수 실행
+generateSwagger();
