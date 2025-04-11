@@ -81,8 +81,6 @@ const doc = {
             description: '댓글 관련 API'
         }
     ],
-    // 자동 태그 지정 설정 추가
-    autoTags: true
 };
 
 // 출력 파일 경로
@@ -105,16 +103,15 @@ const options = {
     autoHeaders: true,
     autoQuery: true,
     autoBody: true,
-    autoTags: true,
     // 중요: 파일 경로에 따라 태그 자동 할당
     routesPaths: {
-        'userRoutes.js': 'Users',
-        'postRoutes.js': 'Posts',
-        'commentRoutes.js': 'Comments',
-        'notificationRoutes.js': 'Notifications',
-        'chatRoutes.js': 'Chats',
-        'authRoutes.js': 'Authentication',
-        'auctionRoutes.js': 'Auctions'
+        '../routes/userRoutes.js': 'Users',
+        '../routes/postRoutes.js': 'Posts',
+        '../routes/commentRoutes.js': 'Comments',
+        '../routes/notificationRoutes.js': 'Notifications',
+        '../routes/chatRoutes.js': 'Chats',
+        '../routes/authRoutes.js': 'Authentication',
+        '../routes/auctionRoutes.js': 'Auctions'
     },
 };
 
