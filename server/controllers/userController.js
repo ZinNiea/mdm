@@ -1,7 +1,10 @@
 // server/user/userController.js
 require('dotenv').config();
+
 const { User } = require('../models/userModel');
 const { Profile } = require('../models/profileModel');
+const { Post } = require('../models/postModel');
+const { Request, Response } = require('express');
 
 // jwt 모듈을 사용하여 토큰을 발급합니다.
 const jwt = require('jsonwebtoken');
@@ -35,8 +38,8 @@ const { createNotification } = require('../controllers/notificationController');
 /**
  * 회원가입
  * 
- * @param {*} req 
- * @param {*} res 
+ * @param {Request} req 
+ * @param {Response} res 
  * @returns 
  */
 exports.registerUser = async (req, res) => {
@@ -1179,6 +1182,57 @@ exports.findUserId = async (req, res) => {
   }
 };
 
+exports.getUsers = async (req, res) => {
+  // const { email, phoneNumber } = req.body;
+  const { email, phoneNumber } = req.query;
+
+  // 이메일 형식 검증
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      result: false,
+      message: '유효한 이메일 형식이 아닙니다.'
+    });
+  }
+
+  // 휴대폰 번호 형식 검증 (10-15자리 숫자)
+  const phoneRegex = /^\d{10,15}$/;
+  if (!phoneRegex.test(phoneNumber)) {
+    return res.status(400).json({
+      result: false,
+      message: '유효한 휴대폰 번호 형식이 아닙니다.'
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email: email, phoneNumber: phoneNumber });
+
+    if (!user) {
+      return res.status(404).json({
+        result: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    if (user.isDeleted) {
+      return res.status(404).json({
+        result: false,
+        message: '이미 탈퇴한 사용자입니다.'
+      });
+    }
+
+    res.status(200).json({
+      result: true,
+      userId: user._id
+    });
+  } catch (err) {
+    res.status(500).json({
+      result: false,
+      message: err.message
+    });
+  }
+};
+
 exports.checkUserExistence = async (req, res) => {
   const { username, phoneNumber } = req.body;
 
@@ -1249,5 +1303,96 @@ exports.updatePassword = async (req, res) => {
     res.status(200).json({ result: true, message: '비밀번호가 성공적으로 변경되었습니다.' });
   } catch (err) {
     res.status(500).json({ result: false, message: err.message });
+  }
+};
+
+/**
+ * 사용자 조회 통합 함수
+ * 쿼리 파라미터에 따라 다른 방식으로 사용자를 조회합니다
+ * 
+ * @param {Request} req 
+ * @param {Response} res 
+ * @returns 
+ */
+exports.lookupUser = async (req, res) => {
+  // 쿼리 파라미터에서 조회 기준 정보 추출
+  const { email, phoneNumber, username } = req.query;
+
+  try {
+    // 이메일과 전화번호로 조회
+    if (email && phoneNumber) {
+      // 이메일 형식 검증
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          result: false,
+          message: '유효한 이메일 형식이 아닙니다.'
+        });
+      }
+
+      // 휴대폰 번호 형식 검증 (10-15자리 숫자)
+      const phoneRegex = /^\d{10,15}$/;
+      if (!phoneRegex.test(phoneNumber)) {
+        return res.status(400).json({
+          result: false,
+          message: '유효한 휴대폰 번호 형식이 아닙니다.'
+        });
+      }
+
+      const user = await User.findOne({ email, phoneNumber, isDeleted: false });
+
+      if (!user) {
+        return res.status(404).json({
+          result: false,
+          message: '사용자를 찾을 수 없습니다.'
+        });
+      }
+
+      return res.status(200).json({
+        result: true,
+        userId: user._id,
+        username: user.username
+      });
+    }
+    
+    // 사용자 이름과 전화번호로 조회
+    else if (username && phoneNumber) {
+      // 휴대폰 번호 형식 검증 (10-15자리 숫자)
+      const phoneRegex = /^\d{10,15}$/;
+      if (!phoneRegex.test(phoneNumber)) {
+        return res.status(400).json({
+          result: false,
+          message: '유효한 휴대폰 번호 형식이 아닙니다.'
+        });
+      }
+
+      const user = await User.findOne({ username, phoneNumber, isDeleted: false });
+
+      if (!user) {
+        return res.status(404).json({
+          result: false,
+          message: '유효한 사용자가 아닙니다.'
+        });
+      }
+
+      return res.status(200).json({
+        result: true,
+        userId: user._id,
+        exists: true
+      });
+    }
+    
+    // 필수 파라미터가 없는 경우
+    else {
+      return res.status(400).json({
+        result: false,
+        message: '필수 쿼리 파라미터가 누락되었습니다. 이메일+전화번호 또는 사용자이름+전화번호를 제공해주세요.'
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      result: false,
+      message: err.message
+    });
   }
 };

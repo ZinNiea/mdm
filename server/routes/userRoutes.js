@@ -16,218 +16,24 @@ router.post('/logout', userController.logout);
 
 router.delete('/:userId/delete', authenticateToken, userController.deleteUser);
 
-/**
- * @swagger
- * /users/{userId}/profile:
- *   post:
- *     summary: 프로필 추가
- *     tags: [Profiles]
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: 프로필을 추가할 사용자의 고유 ID
- *     requestBody:
- *       required: false
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               profileImage:
- *                 type: string
- *                 format: binary
- *     responses:
- *       201:
- *         description: 프로필이 성공적으로 추가되었습니다.
- *       400:
- *         description: 요청 데이터가 잘못되었습니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       404:
- *         description: 사용자를 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
+//!< 특정 유저 프로필 추가
 router.post('/:userId/profile', authenticateToken, upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.addProfile);
+router.post('/:userId/profiles', authenticateToken, upload(IMAGE_TYPES.PROFILE).single('profileImage'), userController.addProfile);
 
-/**
- * @swagger
- * /users/subcategories/{mainCategory}:
- *   get:
- *     summary: 서브카테고리 조회
- *     tags: [Categories]
- *     parameters:
- *       - in: path
- *         name: mainCategory
- *         required: true
- *         schema:
- *           type: string
- *         description: 메인 카테고리 이름
- *     responses:
- *       200:
- *         description: 서브카테고리 목록을 성공적으로 조회하였습니다.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: string
- *       400:
- *         description: 잘못된 mainCategory 형식입니다.
- *       404:
- *         description: 메인 카테고리를 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
+//!< 특정 유저 프로필 조회
+router.get('/:userId/profile', authenticateToken, userController.getUserProfiles);
+router.get('/:userId/profiles', authenticateToken, userController.getUserProfiles);
+
+//!< 서브 카테고리 조회
 router.get('/subcategories/:mainCategory', userController.getSubCategories);
 
-// 특정 프로필의 관심사 조회 라우트
-/**
- * @swagger
- * /users/profiles/{profileId}/interests:
- *   get:
- *     summary: 관심사 조회
- *     tags: [Profiles]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: profileId
- *         required: true
- *         schema:
- *           type: string
- *         description: 관심사를 조회할 프로필의 고유 ID
- *     responses:
- *       200:
- *         description: 관심사 목록을 성공적으로 조회하였습니다.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: string
- *       400:
- *         description: 잘못된 profileId 형식입니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       404:
- *         description: 프로필을 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- *   post:
- *     summary: 관심사 추가
- *     tags: [Profiles]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: profileId
- *         required: true
- *         schema:
- *           type: string
- *         description: 관심사를 추가할 프로필의 고유 ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - subCategory
- *             properties:
- *               subCategory:
- *                 type: string
- *                 description: 추가할 관심사의 서브카테고리
- *     responses:
- *       201:
- *         description: 관심사가 성공적으로 추가되었습니다.
- *       400:
- *         description: 요청 데이터가 잘못되었습니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       404:
- *         description: 프로필을 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
+//!< 특정 프로필의 관심사 조회 라우트
 router.get('/profiles/:profileId/interests', authenticateToken, userController.getInterests);
 router.post('/profiles/:profileId/interests', authenticateToken, userController.addInterest);
 
-/**
- * @swagger
- * /users/profiles/{profileId}/interests/{subCategory}:
- *   delete:
- *     summary: 관심사 삭제
- *     tags: [Profiles]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: profileId
- *         required: true
- *         schema:
- *           type: string
- *         description: 관심사를 삭제할 프로필의 고유 ID
- *       - in: path
- *         name: subCategory
- *         required: true
- *         schema:
- *           type: string
- *         description: 삭제할 관심사의 서브카테고리
- *     responses:
- *       200:
- *         description: 관심사가 성공적으로 삭제되었습니다.
- *       400:
- *         description: 잘못된 요청 파라미터가 제공되었습니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       403:
- *         description: 관심사 삭제 권한이 없습니다.
- *       404:
- *         description: 삭제할 관심사를 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
+//!< 관심사 삭제
 router.delete('/profiles/:profileId/interests/:subCategory', authenticateToken, userController.deleteInterest);
 
-/**
- * @swagger
- * /users/{userId}/profiles:
- *   get:
- *     summary: 사용자 프로필 목록
- *     tags: [Profiles]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: 프로필 목록을 조회할 사용자의 고유 ID
- *     responses:
- *       200:
- *         description: 사용자의 프로필 목록을 성공적으로 조회하였습니다.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Profile'
- *       400:
- *         description: 잘못된 userId 형식입니다.
- *       401:
- *         description: 인증이 필요합니다.
- *       404:
- *         description: 사용자를 찾을 수 없습니다.
- *       500:
- *         description: 서버 내부 오류가 발생하였습니다.
- */
-router.get('/:userId/profile', authenticateToken, userController.getUserProfiles);
-router.get('/:userId/profiles', authenticateToken, userController.getUserProfiles);
 
 /**
  * @swagger
@@ -865,6 +671,7 @@ router.delete('/:userId/profile/:profileId', authenticateToken, userController.d
  *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.post('/users/find', authenticateToken, userController.findUserId);
+router.get('/', authenticateToken, userController.getUsers);
 
 /**
  * @swagger
@@ -902,6 +709,7 @@ router.post('/users/find', authenticateToken, userController.findUserId);
  *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.get('/users/validate', authenticateToken, userController.checkUserExistence);
+router.get('/validate', authenticateToken, userController.checkUserExistence);
 
 /**
  * @swagger
@@ -942,6 +750,7 @@ router.get('/users/validate', authenticateToken, userController.checkUserExisten
  *         description: 서버 내부 오류가 발생하였습니다.
  */
 router.put('/users/password-reset', authenticateToken, userController.updatePassword);
+router.put('/password-reset' , authenticateToken, userController.updatePassword);
 
 /**
  * @swagger
@@ -973,6 +782,7 @@ router.put('/users/password-reset', authenticateToken, userController.updatePass
  *         description: 잘못된 요청
  */
 router.post('/check-email', userController.checkEmail);
+router.get('/email-availability', userController.checkEmail);
 
 /**
  * @swagger
@@ -1003,6 +813,7 @@ router.post('/check-email', userController.checkEmail);
  *         description: 잘못된 요청
  */
 router.post('/check-nickname', userController.checkNickname);
+router.get('/nickname-availability', userController.checkNickname);
 
 /**
  * @swagger
@@ -1033,5 +844,55 @@ router.post('/check-nickname', userController.checkNickname);
  *         description: 잘못된 요청
  */
 router.post('/check-username', userController.checkUsername);
+router.get('/username-availability', userController.checkUsername);
+
+/**
+ * @swagger
+ * /users/lookup:
+ *   get:
+ *     summary: 사용자 조회 통합 엔드포인트
+ *     tags: [Users]
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: 사용자 이메일
+ *       - in: query
+ *         name: phoneNumber
+ *         schema:
+ *           type: string
+ *         description: 사용자 전화번호
+ *       - in: query
+ *         name: username
+ *         schema:
+ *           type: string
+ *         description: 사용자 아이디
+ *     responses:
+ *       200:
+ *         description: 사용자가 성공적으로 조회되었습니다
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: boolean
+ *                 userId:
+ *                   type: string
+ *                   description: 조회된 사용자의 ID
+ *       400:
+ *         description: 유효하지 않은 요청 파라미터
+ *       404:
+ *         description: 사용자를 찾을 수 없음
+ *       500:
+ *         description: 서버 내부 오류
+ */
+
+// 사용자 조회 통합 엔드포인트
+// #swagger.path = '/users/lookup'
+// #swagger.method = 'get'
+// #swagger.description = '사용자 조회 통합 엔드포인트'
+router.get('/lookup', userController.lookupUser);
 
 module.exports = router;

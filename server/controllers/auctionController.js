@@ -22,41 +22,41 @@ exports.createAuctionItem = async (req, res) => {
 
   // 요청 파라미터 검증 추가
   if (!profileId || typeof profileId !== 'string') {
-    return res.status(400).send('유효하지 않은 profileId입니다.');
+    return res.status(400).json({ success: false, message: '유효하지 않은 profileId입니다.' });
   }
   if (!title || typeof title !== 'string') {
-    return res.status(400).send('유효하지 않은 title입니다.');
+    return res.status(400).json({ success: false, message: '유효하지 않은 title입니다.' });
   }
   if (!content || typeof content !== 'string') {
-    return res.status(400).send('유효하지 않은 content입니다.');
+    return res.status(400).json({ success: false, message: '유효하지 않은 content입니다.' });
   }
   const validCategories = ['거래', '나눔', '과테말라'];
   if (!category || !validCategories.includes(category)) {
-    return res.status(400).send('유효하지 않은 category입니다.');
+    return res.status(400).json({ success: false, message: '유효하지 않은 category입니다.' });
   }
   if (isNaN(startingbid) || startingbid <= 0) {
-    return res.status(400).send('유효하지 않은 startingbid입니다.');
+    return res.status(400).json({ success: false, message: '유효하지 않은 startingbid입니다.' });
   }
   if (isNaN(buyNowPrice) || buyNowPrice <= 0) {
-    return res.status(400).send('유효하지 않은 buyNowPrice입니다.');
+    return res.status(400).json({ success: false, message: '유효하지 않은 buyNowPrice입니다.' });
   }
   if (isNaN(duration) || duration <= 0) {
-    return res.status(400).send('유효하지 않은 duration입니다.');
+    return res.status(400).json({ success: false, message: '유효하지 않은 duration입니다.' });
   }
 
   // 이미지 파일 검증 추가
   if (!req.files || req.files.length === 0) {
-    return res.status(400).send('이미지 파일이 필요합니다.');
+    return res.status(400).json({ success: false, message: '이미지 파일이 필요합니다.' });
   }
   if (req.files.length > 4) {
-    return res.status(400).send('이미지 파일은 최대 4개까지 업로드할 수 있습니다.');
+    return res.status(400).json({ success: false, message: '이미지 파일은 최대 4개까지 업로드할 수 있습니다.' });
   }
   for (const file of req.files) {
     if (!file.mimetype.startsWith('image/')) {
-      return res.status(400).send('유효하지 않은 이미지 파일입니다.');
+      return res.status(400).json({ success: false, message: '유효하지 않은 이미지 파일입니다.' });
     }
     if (file.size > 5 * 1024 * 1024) { // 5MB 제한
-      return res.status(400).send('이미지 파일 크기는 5MB를 초과할 수 없습니다.');
+      return res.status(400).json({ success: false, message: '이미지 파일 크기는 5MB를 초과할 수 없습니다.' });
     }
   }
 
@@ -84,49 +84,22 @@ exports.createAuctionItem = async (req, res) => {
     // 사용하여 경매 종료 작업 스케줄링
     agenda.schedule(endTime, 'auction end job', { auctionItemId: auctionItem._id });
 
-    // AUCTION_ENDING_SOON 알림 스케줄링: 경매 종료 3시간 전에 알림 전송 (경매 지속시간이 3시간 이상인 경우)
-    // const threeHours = 3 * 60 * 60 * 1000;
-    // if (endTime - createdAt > threeHours) {
-    //   const endingSoonTime = new Date(endTime.getTime() - threeHours);
-    //   schedule.scheduleJob(endingSoonTime, async () => {
-    //     // 해당 경매의 모든 입찰자를 고유하게 조회
-    //     const bids = await Bid.find({ auctionItem: auctionItem._id });
-    //     const uniqueBidders = [...new Set(bids.map(b => b.bidder.toString()))];
-    //     for (const bidderId of uniqueBidders) {
-    //       // 현재 입찰 금액을 기준으로 알림 전송 (auctionTitle, currentBid)
-    //       await createAuctionEndingSoonNotification(
-    //         bidderId,
-    //         auctionItem._id,
-    //         auctionItem.title,
-    //         auctionItem.currentBid,
-    //         `/auction/${auctionItem._id}` // 생성된 딥링크
-    //       );
-    //     }
-    //   });
-    // }
-    // const threeHours = 3 * 60 * 60 * 1000;
-    // if (endTime - createdAt > threeHours) {
-    //   const endingSoonTime = new Date(endTime.getTime() - threeHours);
-    //   schedule.scheduleJob(endingSoonTime, async () => {
-    //     // 해당 경매의 모든 입찰자를 고유하게 조회
-    //     const bids = await Bid.find({ auctionItem: auctionItem._id });
-    //     const uniqueBidders = [...new Set(bids.map(b => b.bidder.toString()))];
-    //     for (const bidderId of uniqueBidders) {
-    //       // 현재 입찰 금액을 기준으로 알림 전송 (auctionTitle, currentBid)
-    //       await createAuctionEndingSoonNotification(
-    //         bidderId,
-    //         auctionItem._id,
-    //         auctionItem.title,
-    //         auctionItem.currentBid,
-    //         `/auction/${auctionItem._id}` // 생성된 딥링크
-    //       );
-    //     }
-    //   });
-    // }
-
-    res.status(201).send({ result: true, auctionId: auctionItem._id });
+    // REST API 표준에 맞게 응답 형식 수정
+    res.status(201).json({
+      success: true,
+      data: {
+        auctionId: auctionItem._id,
+        title: auctionItem.title,
+        createdAt: auctionItem.createdAt,
+        endTime: auctionItem.endTime
+      },
+      message: '경매 아이템이 성공적으로 생성되었습니다.'
+    });
   } catch (err) {
-    res.status(500).send(err.message);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
@@ -137,7 +110,7 @@ exports.createAuctionItem = async (req, res) => {
  * @param {Response} res 
  */
 exports.getAuctionItems = async (req, res) => {
-  const { q, category, profileId } = req.query;
+  const { q, category } = req.query;
   try {
     let filter = {};
     if (q) { // 자동완성 적용 후 최종 검색어
@@ -186,8 +159,10 @@ exports.getAuctionItems = async (req, res) => {
  * @returns 
  */
 exports.getAuctionItemById = async (req, res) => {
+  const auctionId = req.params.auctionId;
+
   try {
-    const item = await AuctionItem.findById(req.params.auctionId)
+    const item = await AuctionItem.findById(auctionId)
       .populate('highestBidder', '_id nickname')
       .populate('createdBy', 'nickname profileImage rating');
     if (!item) return res.status(404).send('아이템을 찾을 수 없습니다.');
@@ -216,7 +191,7 @@ exports.getAuctionItemById = async (req, res) => {
     };
     res.status(200).send(data);
   } catch (err) {
-    res.status(400).send(err.message);
+    res.status(500).send(err.message);
   }
 };
 
@@ -339,7 +314,7 @@ exports.instantBuy = async (req, res) => {
       .location(`/auctions/${auctionItem._id}/bids/${bid._id}`)
       .send({ result: true });
   } catch (err) {
-    res.status(400).send(err.message);
+    res.status(500).send(err.message);
   }
 };
 
@@ -472,7 +447,7 @@ exports.deleteAuctionItem = async (req, res) => {
     await AuctionItem.findByIdAndUpdate(auctionId, { deletedAt: new Date() });
     res.status(200).json({ message: '경매 아이템이 삭제되었습니다.' });
   } catch (err) {
-    res.status(400).send(err.message);
+    res.status(500).send(err.message);
   }
 };
 
@@ -555,6 +530,6 @@ exports.updateAuctionItem = async (req, res) => {
     await auctionItem.save();
     res.status(200).send({ result: true, auctionId: auctionItem._id });
   } catch (err) {
-    res.status(400).send(err.message);
+    res.status(500).send(err.message);
   }
 };
