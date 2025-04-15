@@ -8,6 +8,9 @@ const chatController = require('../controllers/chatController');
 const postController = require('../controllers/postController');
 const profileController = require('../controllers/profileController');
 
+// AWS S3 업로드 미들웨어 가져오기
+const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
+
 // 프로필별 경매 목록 조회
 // #swagger.description = '특정 프로필이 생성한 경매 목록을 조회합니다'
 // #swagger.responses[200] = { description: '프로필의 경매 목록 반환' }

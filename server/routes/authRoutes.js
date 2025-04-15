@@ -3,6 +3,9 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 
+// AWS S3 업로드 미들웨어 가져오기
+const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
+
 // 인증번호 발송 요청
 // #swagger.description = '인증번호 발송 요청'
 // #swagger.responses[200] = { description: '인증번호 발송 성공' }
