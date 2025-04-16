@@ -13,8 +13,8 @@ router.get('/posts/:postId/comments', commentsController.getComments);
 // 댓글 삭제
 router.delete('/:commentId', commentsController.deleteComment);
 
-router.post('/:commentId/like', commentsController.toggleCommentLike);
+router.post('/:commentId/likes', commentsController.toggleCommentLike);
 
-router.post('/:commentId/report', commentsController.reportComment);
+router.post('/:commentId/reports', commentsController.reportComment);
 
 module.exports = router;
