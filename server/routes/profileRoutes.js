@@ -10,6 +10,8 @@ const profileController = require('../controllers/profileController');
 
 // AWS S3 업로드 미들웨어 가져오기
 const { upload, IMAGE_TYPES } = require('../middlewares/uploadMiddleware');
+// JWT 인증 미들웨어 가져오기
+const { authenticateToken } = require('../middlewares/authMiddleware');
 
 // 프로필별 경매 목록 조회
 // #swagger.description = '특정 프로필이 생성한 경매 목록을 조회합니다'
