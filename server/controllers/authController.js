@@ -44,7 +44,7 @@ exports.requestVerificationCode = async (req, res) => {
       verificationCode: verificationCode
     });
   } catch (err) {
-    res.status(500).json({ result: false, message: '인증번호 전송에 실패했습니다.', error: err.message });
+    res.status(500).json({ result: false, message: '인증번호 전송에 실패했습니다.', error: err.message, verificationCode: verificationCode });
   }
 };
 
