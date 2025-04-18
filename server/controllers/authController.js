@@ -19,9 +19,9 @@ exports.requestVerificationCode = async (req, res) => {
     // SMS 발송
     await sendSMS(phoneNumber, `인증번호는 ${verificationCode}입니다.`);
 
-    res.status(200).json({ result: true, message: '인증번호가 전송되었습니다.' });
+    res.status(200).json({ result: true, message: '인증번호가 전송되었습니다.', verificationCode: verificationCode  });
   } catch (err) {
-    res.status(500).json({ result: false, message: '인증번호 전송에 실패했습니다.', error: err.message, verificationCode: verificationCode });
+    res.status(500).json({ result: false, message: '인증번호 전송에 실패했습니다.', error: err.message});
   }
 };
 
