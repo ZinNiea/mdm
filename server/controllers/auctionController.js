@@ -81,6 +81,49 @@ exports.createAuctionItem = async (req, res) => {
     });
     await auctionItem.save();
 
+    // 사용하여 경매 종료 작업 스케줄링
+    // agenda.schedule(endTime, 'auction end job', { auctionItemId: auctionItem._id });
+
+    // AUCTION_ENDING_SOON 알림 스케줄링: 경매 종료 3시간 전에 알림 전송 (경매 지속시간이 3시간 이상인 경우)
+    // const threeHours = 3 * 60 * 60 * 1000;
+    // if (endTime - createdAt > threeHours) {
+    //   const endingSoonTime = new Date(endTime.getTime() - threeHours);
+    //   schedule.scheduleJob(endingSoonTime, async () => {
+    //     // 해당 경매의 모든 입찰자를 고유하게 조회
+    //     const bids = await Bid.find({ auctionItem: auctionItem._id });
+    //     const uniqueBidders = [...new Set(bids.map(b => b.bidder.toString()))];
+    //     for (const bidderId of uniqueBidders) {
+    //       // 현재 입찰 금액을 기준으로 알림 전송 (auctionTitle, currentBid)
+    //       await createAuctionEndingSoonNotification(
+    //         bidderId,
+    //         auctionItem._id,
+    //         auctionItem.title,
+    //         auctionItem.currentBid,
+    //         `/auction/${auctionItem._id}` // 생성된 딥링크
+    //       );
+    //     }
+    //   });
+    // }
+    // const threeHours = 3 * 60 * 60 * 1000;
+    // if (endTime - createdAt > threeHours) {
+    //   const endingSoonTime = new Date(endTime.getTime() - threeHours);
+    //   schedule.scheduleJob(endingSoonTime, async () => {
+    //     // 해당 경매의 모든 입찰자를 고유하게 조회
+    //     const bids = await Bid.find({ auctionItem: auctionItem._id });
+    //     const uniqueBidders = [...new Set(bids.map(b => b.bidder.toString()))];
+    //     for (const bidderId of uniqueBidders) {
+    //       // 현재 입찰 금액을 기준으로 알림 전송 (auctionTitle, currentBid)
+    //       await createAuctionEndingSoonNotification(
+    //         bidderId,
+    //         auctionItem._id,
+    //         auctionItem.title,
+    //         auctionItem.currentBid,
+    //         `/auction/${auctionItem._id}` // 생성된 딥링크
+    //       );
+    //     }
+    //   });
+    // }
+
     res.status(201).send({ result: true, auctionId: auctionItem._id });
   } catch (err) {
     res.status(500).send(err.message);
