@@ -432,6 +432,8 @@ exports.reportAuctionItem = async (req, res) => {
   try {
     const { auctionId } = req.params; // 신고할 게시글 ID
     const { category, content, profileId } = req.body; // 신고 카테고리와 내용
+    
+    const auctionItem = await AuctionItem.findById(auctionId);
     if (!auctionItem) {
       return res.status(404).json({ result: false, message: '게시물을 찾을 수 없습니다.' });
     }
