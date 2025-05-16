@@ -82,7 +82,7 @@ exports.createAuctionItem = async (req, res) => {
     await auctionItem.save();
 
     // 사용하여 경매 종료 작업 스케줄링
-    agenda.schedule(endTime, 'auction end job', { auctionItemId: auctionItem._id });
+    // agenda.schedule(endTime, 'auction end job', { auctionItemId: auctionItem._id });
 
     // AUCTION_ENDING_SOON 알림 스케줄링: 경매 종료 3시간 전에 알림 전송 (경매 지속시간이 3시간 이상인 경우)
     // const threeHours = 3 * 60 * 60 * 1000;
