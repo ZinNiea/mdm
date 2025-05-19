@@ -864,7 +864,7 @@ router.delete('/:userId/profile/:profileId', authenticateToken, userController.d
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.post('/users/find', authenticateToken, userController.findUserId);
+router.post('/users/find', userController.findUserId);
 
 /**
  * @swagger
@@ -901,7 +901,7 @@ router.post('/users/find', authenticateToken, userController.findUserId);
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.get('/users/validate', authenticateToken, userController.checkUserExistence);
+router.get('/users/validate', userController.checkUserExistence);
 
 /**
  * @swagger
@@ -941,7 +941,7 @@ router.get('/users/validate', authenticateToken, userController.checkUserExisten
  *       500:
  *         description: 서버 내부 오류가 발생하였습니다.
  */
-router.put('/users/password-reset', authenticateToken, userController.updatePassword);
+router.put('/users/password-reset', userController.updatePassword);
 
 /**
  * @swagger
