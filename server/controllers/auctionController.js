@@ -399,11 +399,14 @@ exports.endAuction = async (req, res) => {
 exports.getAuctionsByProfile = async (req, res) => {
   const { profileId } = req.params;
   try {
-    const auctions = await AuctionItem.find({ createdBy: profileId })
+    const auctions = await AuctionItem.find({ 
+      createdBy: profileId,
+      deletedAt: null // 삭제되지 않은 경매만 조회
+    })
       .select('title related currentBid endTime views likes images')
       .populate('likes', 'nickname') // 좋아요를 누른 사용자 정보 포함 (필요 시)
       .sort({ createdAt: -1 }); // 최신 순 정렬
-
+ㄴ
     const postList = auctions.map(auction => ({
       auctionId: auction._id,
       related: auction.related,
