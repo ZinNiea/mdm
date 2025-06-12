@@ -406,7 +406,7 @@ exports.getAuctionsByProfile = async (req, res) => {
       .select('title related currentBid endTime views likes images')
       .populate('likes', 'nickname') // 좋아요를 누른 사용자 정보 포함 (필요 시)
       .sort({ createdAt: -1 }); // 최신 순 정렬
-ㄴ
+      
     const postList = auctions.map(auction => ({
       auctionId: auction._id,
       related: auction.related,
