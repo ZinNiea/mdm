@@ -5,10 +5,9 @@ const { Bid } = require('../models/bidModel');
 const { Chat } = require('../models/chatModel');
 const { Report } = require('../models/reportModel');
 const { deleteImage } = require('../middlewares/uploadMiddleware'); // deleteImage 함수 추가
-const schedule = require('node-schedule'); // node-schedule 라이브러리 추가
+// const schedule = require('node-schedule'); // node-schedule 라이브러리 추가
 const { CHAT_CATEGORY } = require('../models/constants'); // 상수 불러오기
 const { createNotification } = require('../controllers/notificationController'); // 알림 함수 추가
-const { Profile } = require('../models/profileModel'); // 추가
 const agenda = require('../services/agendaService');
 
 
