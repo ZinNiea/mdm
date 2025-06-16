@@ -1236,7 +1236,7 @@ exports.updatePassword = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username: username, isDeleted: false });
     if (!user) {
       return res.status(404).json({ result: false, message: '사용자를 찾을 수 없습니다.' });
     }
