@@ -1034,4 +1034,14 @@ router.post('/check-nickname', userController.checkNickname);
  */
 router.post('/check-username', userController.checkUsername);
 
+// 사용자 조회 통합 엔드포인트
+// #swagger.path = '/users/lookup'
+// #swagger.method = 'get'
+// #swagger.description = '사용자 조회 통합 엔드포인트'
+// #swagger.response[200] = { description: '사용자가 성공적으로 조회되었습니다', content: { 'application/json': { schema: { type: 'object', properties: { result: { type: 'boolean' }, userId: { type: 'string', description: '조회된 사용자의 ID' } } } } } }
+// #swagger.response[400] = { description: '유효하지 않은 요청 파라미터' }
+// #swagger.response[404] = { description: '사용자를 찾을 수 없음' }
+// #swagger.response[500] = { description: '서버 내부 오류' }
+router.get('/lookup', userController.lookupUser);
+
 module.exports = router;

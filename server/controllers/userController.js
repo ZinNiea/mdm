@@ -1251,3 +1251,94 @@ exports.updatePassword = async (req, res) => {
     res.status(500).json({ result: false, message: err.message });
   }
 };
+
+// 이메일 형식 검증 함수
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+// 휴대폰 번호 형식 검증 함수
+function isValidPhoneNumber(phoneNumber) {
+  const phoneRegex = /^\d{10,15}$/;
+  return phoneRegex.test(phoneNumber);
+}
+
+exports.lookupUser = async (req, res) => {
+  const { email, phoneNumber, username } = req.query;
+
+  // 3가지 파라미터 모두 보내면 에러
+  if (email && username && phoneNumber) {
+    return res.status(400).json({
+      result: false,
+      message: 'email, username, phoneNumber를 동시에 보낼 수 없습니다.',
+    });
+  }
+
+  // 공통 처리기: 조회 -> 삭제 여부 검사 -> 응답
+  const handleLookup = async ({ query, notFoundMessage, successBody }) => {
+    const user = await User.findOne(query);
+    if (!user) {
+      return res.status(404).json({ result: false, message: notFoundMessage });
+    }
+    if (user.isDeleted) {
+      return res.status(404).json({ result: false, message: '삭제된 계정입니다.' });
+    }
+    return res.status(200).json({ result: true, userId: user._id, ...successBody(user) });
+  };
+
+  let lookupType = 'invalid';
+  // 파라미터 조합 및 값 형식 검증 후 조회 타입 결정
+  if (email && phoneNumber) {
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        result: false,
+        message: '유효한 이메일 형식이 아닙니다.',
+      });
+    }
+    if (!isValidPhoneNumber(phoneNumber)) {
+      return res.status(400).json({
+        result: false,
+        message: '유효한 휴대폰 번호 형식이 아닙니다.',
+      });
+    }
+    lookupType = 'email_phone';
+  } else if (username && phoneNumber) {
+    if (!isValidPhoneNumber(phoneNumber)) {
+      return res.status(400).json({
+        result: false,
+        message: '유효한 휴대폰 번호 형식이 아닙니다.',
+      });
+    }
+    lookupType = 'username_phone';
+  }
+
+  try {
+    switch (lookupType) {
+      case 'email_phone':
+        return await handleLookup({
+          query: { email, phoneNumber },
+          notFoundMessage: '사용자를 찾을 수 없습니다.',
+          successBody: (user) => ({ username: user.username }),
+        });
+
+      case 'username_phone':
+        return await handleLookup({
+          query: { username, phoneNumber },
+          notFoundMessage: '유효한 사용자가 아닙니다.',
+          successBody: () => ({}),
+        });
+
+      default:
+        return res.status(400).json({
+          result: false,
+          message:
+            '필수 쿼리 파라미터가 누락되었습니다. (email+phoneNumber 또는 username+phoneNumber 조합을 제공해주세요)',
+        });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      result: false,
+      message: err.message,
+    });
+  }
+};
